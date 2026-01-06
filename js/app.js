@@ -476,6 +476,127 @@ const OGApp = (function() {
   }
 
   // ========================================
+  // BACKUP & RESTORE
+  // ========================================
+
+  /**
+   * Open backup modal
+   */
+  function openBackupModal() {
+    // Reset form
+    document.getElementById('backup-password').value = '';
+    document.getElementById('backup-password-confirm').value = '';
+    document.getElementById('backup-code').value = '';
+    document.getElementById('backup-result').classList.add('hidden');
+    showModal('backup-modal');
+  }
+
+  /**
+   * Generate encrypted backup
+   */
+  async function generateBackup() {
+    const password = document.getElementById('backup-password').value;
+    const confirmPassword = document.getElementById('backup-password-confirm').value;
+
+    if (password.length < 4) {
+      showToast('Password must be at least 4 characters', 'error');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showToast('Passwords do not match', 'error');
+      return;
+    }
+
+    try {
+      showLoading(true);
+      const backupCode = await OGCrypto.exportIdentity(password);
+
+      document.getElementById('backup-code').value = backupCode;
+      document.getElementById('backup-result').classList.remove('hidden');
+
+      showToast('Backup generated!', 'success');
+    } catch (err) {
+      console.error('[App] Backup failed:', err);
+      showToast('Backup failed: ' + err.message, 'error');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  /**
+   * Copy backup code to clipboard
+   */
+  async function copyBackupToClipboard() {
+    const backupCode = document.getElementById('backup-code').value;
+
+    try {
+      await navigator.clipboard.writeText(backupCode);
+      showToast('Copied to clipboard!', 'success');
+    } catch (err) {
+      // Fallback for Safari
+      const textarea = document.getElementById('backup-code');
+      textarea.select();
+      document.execCommand('copy');
+      showToast('Copied to clipboard!', 'success');
+    }
+  }
+
+  /**
+   * Open restore modal
+   */
+  function openRestoreModal() {
+    // Reset form
+    document.getElementById('restore-code').value = '';
+    document.getElementById('restore-password').value = '';
+    showModal('restore-modal');
+  }
+
+  /**
+   * Restore identity from backup
+   */
+  async function restoreFromBackup() {
+    const backupCode = document.getElementById('restore-code').value.trim();
+    const password = document.getElementById('restore-password').value;
+
+    if (!backupCode) {
+      showToast('Please enter your backup code', 'error');
+      return;
+    }
+
+    if (!backupCode.startsWith('OG1:')) {
+      showToast('Invalid backup code format', 'error');
+      return;
+    }
+
+    if (!password) {
+      showToast('Please enter your password', 'error');
+      return;
+    }
+
+    try {
+      showLoading(true);
+
+      // Import the identity
+      const publicKey = await OGCrypto.importIdentity(backupCode, password);
+
+      showToast('Identity restored!', 'success');
+      closeModal('restore-modal');
+
+      // Reload the app to use the restored identity
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
+    } catch (err) {
+      console.error('[App] Restore failed:', err);
+      showToast('Restore failed: ' + err.message, 'error');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  // ========================================
   // MODALS
   // ========================================
 
@@ -589,6 +710,36 @@ const OGApp = (function() {
     const clearRecipientBtn = document.getElementById('clear-recipient-btn');
     if (clearRecipientBtn) {
       clearRecipientBtn.addEventListener('click', clearRecipient);
+    }
+
+    // Backup button
+    const backupBtn = document.getElementById('backup-btn');
+    if (backupBtn) {
+      backupBtn.addEventListener('click', openBackupModal);
+    }
+
+    // Backup generate button
+    const backupGenerateBtn = document.getElementById('backup-generate-btn');
+    if (backupGenerateBtn) {
+      backupGenerateBtn.addEventListener('click', generateBackup);
+    }
+
+    // Backup copy button
+    const backupCopyBtn = document.getElementById('backup-copy-btn');
+    if (backupCopyBtn) {
+      backupCopyBtn.addEventListener('click', copyBackupToClipboard);
+    }
+
+    // Restore button
+    const restoreBtn = document.getElementById('restore-btn');
+    if (restoreBtn) {
+      restoreBtn.addEventListener('click', openRestoreModal);
+    }
+
+    // Restore submit button
+    const restoreSubmitBtn = document.getElementById('restore-submit-btn');
+    if (restoreSubmitBtn) {
+      restoreSubmitBtn.addEventListener('click', restoreFromBackup);
     }
 
     // Modal close buttons

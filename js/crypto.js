@@ -323,6 +323,178 @@ const OGCrypto = (function() {
   }
 
   // ========================================
+  // BACKUP & RESTORE
+  // ========================================
+
+  /**
+   * Export identity as encrypted backup string
+   * @param {string} password - Password to encrypt the backup
+   * @returns {Promise<string>} Encrypted backup string
+   */
+  async function exportIdentity(password) {
+    if (!password || password.length < 4) {
+      throw new Error('Password must be at least 4 characters');
+    }
+
+    const secretKey = await getKey('secretKey');
+    const publicKey = await getKey('publicKey');
+
+    if (!secretKey || !publicKey) {
+      throw new Error('No identity to export');
+    }
+
+    // Create backup payload
+    const payload = JSON.stringify({
+      version: 1,
+      publicKey: encodeBase64(publicKey),
+      secretKey: encodeBase64(secretKey),
+      exportedAt: new Date().toISOString()
+    });
+
+    // Encrypt with password using Web Crypto API
+    const encrypted = await encryptWithPassword(payload, password);
+
+    // Return as base64 string with prefix
+    return 'OG1:' + encrypted;
+  }
+
+  /**
+   * Import identity from encrypted backup string
+   * @param {string} backupString - Encrypted backup string
+   * @param {string} password - Password to decrypt
+   * @returns {Promise<string>} Public key of imported identity
+   */
+  async function importIdentity(backupString, password) {
+    if (!backupString || !backupString.startsWith('OG1:')) {
+      throw new Error('Invalid backup format');
+    }
+
+    // Remove prefix
+    const encrypted = backupString.substring(4);
+
+    // Decrypt
+    const payload = await decryptWithPassword(encrypted, password);
+    const data = JSON.parse(payload);
+
+    if (data.version !== 1) {
+      throw new Error('Unsupported backup version');
+    }
+
+    // Decode keys
+    const publicKey = decodeBase64(data.publicKey);
+    const secretKey = decodeBase64(data.secretKey);
+
+    // Verify the keys match (secretKey contains publicKey in Ed25519)
+    const derivedPublic = secretKey.slice(32);
+    if (encodeBase64(derivedPublic) !== data.publicKey) {
+      throw new Error('Invalid key pair in backup');
+    }
+
+    // Store keys
+    await storeKey('secretKey', secretKey);
+    await storeKey('publicKey', publicKey);
+
+    console.log('[Crypto] Identity imported successfully');
+    return data.publicKey;
+  }
+
+  /**
+   * Encrypt a string with a password using AES-GCM
+   */
+  async function encryptWithPassword(plaintext, password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(plaintext);
+
+    // Generate salt and IV
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    // Derive key from password
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      'PBKDF2',
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+
+    const key = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt']
+    );
+
+    // Encrypt
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv: iv },
+      key,
+      data
+    );
+
+    // Combine salt + iv + ciphertext
+    const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
+    combined.set(salt, 0);
+    combined.set(iv, salt.length);
+    combined.set(new Uint8Array(encrypted), salt.length + iv.length);
+
+    return encodeBase64(combined);
+  }
+
+  /**
+   * Decrypt a string with a password using AES-GCM
+   */
+  async function decryptWithPassword(encryptedBase64, password) {
+    const encoder = new TextEncoder();
+    const combined = decodeBase64(encryptedBase64);
+
+    // Extract salt, iv, and ciphertext
+    const salt = combined.slice(0, 16);
+    const iv = combined.slice(16, 28);
+    const ciphertext = combined.slice(28);
+
+    // Derive key from password
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(password),
+      'PBKDF2',
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+
+    const key = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: salt,
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    );
+
+    // Decrypt
+    try {
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: iv },
+        key,
+        ciphertext
+      );
+      return new TextDecoder().decode(decrypted);
+    } catch (err) {
+      throw new Error('Wrong password or corrupted backup');
+    }
+  }
+
+  // ========================================
   // PUBLIC API
   // ========================================
 
@@ -332,6 +504,10 @@ const OGCrypto = (function() {
     hasIdentity,
     getPublicKey,
     deleteIdentity,
+
+    // Backup & Restore
+    exportIdentity,
+    importIdentity,
 
     // Signing
     sign,
