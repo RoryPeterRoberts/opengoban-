@@ -1327,16 +1327,28 @@ const OGApp = (function() {
       });
     }
 
-    // Send button
-    const sendBtn = document.getElementById('send-btn');
-    if (sendBtn) {
-      sendBtn.addEventListener('click', openSendModal);
+    // Offline button (opens offline transfer options)
+    const offlineBtn = document.getElementById('offline-btn');
+    if (offlineBtn) {
+      offlineBtn.addEventListener('click', () => showModal('offline-modal'));
     }
 
-    // Scan button
-    const scanBtn = document.getElementById('scan-btn');
-    if (scanBtn) {
-      scanBtn.addEventListener('click', openScanner);
+    // Offline Send button (inside offline modal)
+    const offlineSendBtn = document.getElementById('offline-send-btn');
+    if (offlineSendBtn) {
+      offlineSendBtn.addEventListener('click', () => {
+        closeModal('offline-modal');
+        openSendModal();
+      });
+    }
+
+    // Offline Scan button (inside offline modal)
+    const offlineScanBtn = document.getElementById('offline-scan-btn');
+    if (offlineScanBtn) {
+      offlineScanBtn.addEventListener('click', () => {
+        closeModal('offline-modal');
+        openScanner();
+      });
     }
 
     // My QR button

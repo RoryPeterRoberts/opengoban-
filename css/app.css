@@ -336,6 +336,84 @@ body {
   font-weight: 500;
 }
 
+/* 3-column action grid */
+.action-grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* Primary action button */
+.action-btn-primary {
+  background: linear-gradient(135deg, var(--accent-green), #00cc6f);
+  border-color: var(--accent-green);
+  color: var(--bg-primary);
+}
+
+.action-btn-primary:hover, .action-btn-primary:active {
+  background: linear-gradient(135deg, #00cc6f, var(--accent-green));
+  border-color: #00cc6f;
+}
+
+.action-btn-primary .icon {
+  color: var(--bg-primary);
+}
+
+/* ========================================
+   OFFLINE MODAL OPTIONS
+   ======================================== */
+
+.offline-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.offline-option-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.offline-option-btn:hover {
+  border-color: var(--accent-green);
+  background: var(--bg-input);
+}
+
+.offline-option-icon {
+  font-size: 2rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-input);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.offline-option-content {
+  flex: 1;
+}
+
+.offline-option-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.offline-option-desc {
+  font-size: 0.813rem;
+  color: var(--text-secondary);
+}
+
 /* ========================================
    FORMS
    ======================================== */

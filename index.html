@@ -90,22 +90,18 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="action-grid">
-          <button id="send-btn" class="action-btn">
-            <span class="icon">&#8593;</span>
-            <span class="label">Send</span>
+        <div class="action-grid action-grid-3">
+          <button id="p2p-sync-btn" class="action-btn action-btn-primary">
+            <span class="icon">&#8596;</span>
+            <span class="label">Transfer</span>
           </button>
-          <button id="scan-btn" class="action-btn">
-            <span class="icon">&#9744;</span>
-            <span class="label">Scan</span>
+          <button id="offline-btn" class="action-btn">
+            <span class="icon">&#128246;</span>
+            <span class="label">Offline</span>
           </button>
           <button id="my-qr-btn" class="action-btn">
             <span class="icon">&#9783;</span>
             <span class="label">My ID</span>
-          </button>
-          <button id="p2p-sync-btn" class="action-btn">
-            <span class="icon">&#128259;</span>
-            <span class="label">Sync</span>
           </button>
         </div>
 
@@ -319,6 +315,37 @@
         <button type="button" id="copy-my-id-btn" class="btn btn-secondary btn-block mt-md">
           Copy My ID (for pasting)
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Offline Transfer Modal -->
+  <div id="offline-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Offline Transfer</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-center text-muted mb-lg">No internet? Use QR codes to transfer credits.</p>
+
+        <div class="offline-options">
+          <button id="offline-send-btn" class="offline-option-btn">
+            <div class="offline-option-icon">&#8593;</div>
+            <div class="offline-option-content">
+              <div class="offline-option-title">Send Credits</div>
+              <div class="offline-option-desc">Generate a QR code for recipient to scan</div>
+            </div>
+          </button>
+
+          <button id="offline-scan-btn" class="offline-option-btn">
+            <div class="offline-option-icon">&#128247;</div>
+            <div class="offline-option-content">
+              <div class="offline-option-title">Receive Credits</div>
+              <div class="offline-option-desc">Scan a payment QR code from sender</div>
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   </div>
