@@ -402,6 +402,11 @@ const OGCrypto = (function() {
    * Encrypt a string with a password using AES-GCM
    */
   async function encryptWithPassword(plaintext, password) {
+    // Check for secure context (HTTPS required for Web Crypto)
+    if (!crypto.subtle) {
+      throw new Error('Secure connection required (HTTPS). Please access via https://');
+    }
+
     const encoder = new TextEncoder();
     const data = encoder.encode(plaintext);
 

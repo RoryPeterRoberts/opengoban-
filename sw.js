@@ -3,7 +3,7 @@
  * Enables offline-first operation for the PWA
  */
 
-const CACHE_NAME = 'opengoban-v4';
+const CACHE_NAME = 'opengoban-v5';
 
 // Files to cache for offline use
 const CACHE_URLS = [
