@@ -335,14 +335,32 @@ const OGLedger = (function() {
       throw new Error('Must be logged in');
     }
 
-    if (amount <= 0 || amount > CONFIG.MAX_TRANSACTION) {
-      throw new Error(`Amount must be between 1 and ${CONFIG.MAX_TRANSACTION}`);
+    // Check if account is frozen
+    if (currentMember.status === 'frozen') {
+      throw new Error('Your account is frozen. You cannot send credits until your balance is above your limit.');
     }
 
-    // Check balance
+    // Get member's personal credit limit (entry limits based on tenure)
+    const creditLimit = typeof OGValidation !== 'undefined'
+      ? await OGValidation.getMemberCreditLimit(currentMember)
+      : CONFIG.CREDIT_LIMIT_MIN;
+
+    // Check balance using validation module (circuit breaker + credit limit)
     const balance = await getBalance(currentMember._id);
-    if (balance - amount < CONFIG.CREDIT_LIMIT_MIN) {
-      throw new Error(`Insufficient credit. Balance: ${balance}, Limit: ${CONFIG.CREDIT_LIMIT_MIN}`);
+
+    if (typeof OGValidation !== 'undefined') {
+      const validation = OGValidation.validateTransactionAmount(amount, balance, creditLimit);
+      if (!validation.valid) {
+        throw new Error(validation.error);
+      }
+    } else {
+      // Fallback validation
+      if (amount <= 0 || amount > CONFIG.MAX_TRANSACTION) {
+        throw new Error(`Amount must be between 1 and ${CONFIG.MAX_TRANSACTION}`);
+      }
+      if (balance - amount < CONFIG.CREDIT_LIMIT_MIN) {
+        throw new Error(`Insufficient credit. Balance: ${balance}, Limit: ${CONFIG.CREDIT_LIMIT_MIN}`);
+      }
     }
 
     // Verify recipient exists
@@ -708,6 +726,79 @@ const OGLedger = (function() {
     }
   }
 
+  /**
+   * Run post-sync validation (detect double-spends, freeze breached accounts)
+   */
+  async function runPostSyncValidation() {
+    if (typeof OGValidation === 'undefined') {
+      console.log('[Sync] Validation module not loaded, skipping');
+      return [];
+    }
+
+    const actions = await OGValidation.runPostSyncValidation(db);
+
+    // Dispatch event for UI to handle
+    if (actions.length > 0) {
+      dispatchEvent('validation-actions', actions);
+    }
+
+    return actions;
+  }
+
+  // ========================================
+  // DISPUTES
+  // ========================================
+
+  /**
+   * Create a dispute for a transaction
+   */
+  async function createDispute(transactionId, reason) {
+    if (!currentMember) {
+      throw new Error('Must be logged in');
+    }
+
+    if (typeof OGValidation === 'undefined') {
+      throw new Error('Validation module not loaded');
+    }
+
+    return OGValidation.createDispute(db, transactionId, currentMember._id, reason);
+  }
+
+  /**
+   * Get dispute count for a member (for reputation display)
+   */
+  async function getDisputeCount(memberId) {
+    if (typeof OGValidation === 'undefined') {
+      return { open: 0, total: 0 };
+    }
+
+    return OGValidation.getDisputeCount(db, memberId);
+  }
+
+  /**
+   * Analyze trust graph for a member (Sybil detection)
+   */
+  async function analyzeTrustGraph(memberId) {
+    if (typeof OGValidation === 'undefined') {
+      return { warning: null };
+    }
+
+    return OGValidation.analyzeTrustGraph(db, memberId);
+  }
+
+  /**
+   * Get member's credit limit
+   */
+  async function getCreditLimit(memberId) {
+    const member = await getMember(memberId);
+    if (!member) return null;
+
+    if (typeof OGValidation !== 'undefined') {
+      return OGValidation.getMemberCreditLimit(member);
+    }
+    return CONFIG.CREDIT_LIMIT_MIN;
+  }
+
   // ========================================
   // UTILITIES
   // ========================================
@@ -797,6 +888,13 @@ const OGLedger = (function() {
     // Sync
     startSync,
     stopSync,
+    runPostSyncValidation,
+
+    // Disputes & Validation
+    createDispute,
+    getDisputeCount,
+    analyzeTrustGraph,
+    getCreditLimit,
 
     // Utilities
     exportData,
