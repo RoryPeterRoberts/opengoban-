@@ -827,6 +827,9 @@ const OGApp = (function() {
   // P2P SYNC (Device-to-Device)
   // ========================================
 
+  // Store pending transaction for accept/reject
+  let pendingP2PTransaction = null;
+
   /**
    * Open P2P sync modal and start hosting
    */
@@ -837,6 +840,9 @@ const OGApp = (function() {
     // Set up P2P callbacks
     OGP2P.setOnStatusChange(handleP2PStatus);
     OGP2P.setOnSyncComplete(handleP2PSyncComplete);
+    OGP2P.setOnTransactionRequest(handleP2PTransactionRequest);
+    OGP2P.setOnTransactionConfirmed(handleP2PTransactionConfirmed);
+    OGP2P.setOnTransactionRejected(handleP2PTransactionRejected);
 
     // Start hosting
     try {
@@ -950,6 +956,13 @@ const OGApp = (function() {
       case 'complete':
         document.getElementById('p2p-sync-status').textContent = message || 'Sync complete!';
         document.getElementById('p2p-sync-progress').innerHTML = '<div style="font-size: 2rem;">&#9989;</div>';
+        // Show peer info and send section
+        const peerInfo = OGP2P.getPeerInfo();
+        if (peerInfo) {
+          document.getElementById('p2p-peer-handle').textContent = peerInfo.handle || 'peer';
+          document.getElementById('p2p-send-to-handle').textContent = peerInfo.handle || 'peer';
+          document.getElementById('p2p-send-section').classList.remove('hidden');
+        }
         break;
 
       case 'error':
@@ -969,6 +982,116 @@ const OGApp = (function() {
     showToast(`Synced ${result.imported} items`, 'success');
     updateBalance();
     loadTransactions();
+  }
+
+  /**
+   * Send credits via P2P connection
+   */
+  async function sendViaP2P() {
+    const amount = parseInt(document.getElementById('p2p-send-amount').value, 10);
+    const description = document.getElementById('p2p-send-description').value.trim();
+
+    if (!amount || amount < 1) {
+      showToast('Please enter a valid amount', 'error');
+      return;
+    }
+
+    const statusEl = document.getElementById('p2p-send-status');
+    statusEl.textContent = 'Sending...';
+
+    try {
+      await OGP2P.sendToPeer(amount, description || 'P2P transfer');
+      statusEl.textContent = 'Waiting for confirmation...';
+    } catch (err) {
+      console.error('[App] P2P send failed:', err);
+      statusEl.textContent = 'Failed: ' + err.message;
+      showToast('Send failed: ' + err.message, 'error');
+    }
+  }
+
+  /**
+   * Handle incoming P2P transaction request
+   */
+  function handleP2PTransactionRequest(tx) {
+    console.log('[App] Incoming transaction request:', tx);
+    pendingP2PTransaction = tx;
+
+    // Hide other modes, show transaction request
+    document.getElementById('p2p-host-mode').classList.add('hidden');
+    document.getElementById('p2p-join-mode').classList.add('hidden');
+    document.getElementById('p2p-connected-mode').classList.add('hidden');
+    document.getElementById('p2p-tx-request-mode').classList.remove('hidden');
+
+    // Fill in details
+    document.getElementById('p2p-tx-from').textContent = tx.sender_handle || '@sender';
+    document.getElementById('p2p-tx-amount').textContent = tx.amount;
+    document.getElementById('p2p-tx-description').textContent = tx.description || 'No description';
+
+    // Play sound or vibrate if available
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200]);
+    }
+  }
+
+  /**
+   * Accept pending P2P transaction
+   */
+  async function acceptP2PTransaction() {
+    if (!pendingP2PTransaction) return;
+
+    try {
+      await OGP2P.confirmTransaction(pendingP2PTransaction);
+      showToast(`Received ${pendingP2PTransaction.amount} credits!`, 'success');
+      pendingP2PTransaction = null;
+
+      // Go back to connected mode
+      document.getElementById('p2p-tx-request-mode').classList.add('hidden');
+      document.getElementById('p2p-connected-mode').classList.remove('hidden');
+    } catch (err) {
+      console.error('[App] Accept transaction failed:', err);
+      showToast('Failed to accept: ' + err.message, 'error');
+    }
+  }
+
+  /**
+   * Reject pending P2P transaction
+   */
+  async function rejectP2PTransaction() {
+    if (!pendingP2PTransaction) return;
+
+    try {
+      await OGP2P.rejectTransaction(pendingP2PTransaction, 'User rejected');
+      showToast('Transaction rejected', 'info');
+      pendingP2PTransaction = null;
+
+      // Go back to connected mode
+      document.getElementById('p2p-tx-request-mode').classList.add('hidden');
+      document.getElementById('p2p-connected-mode').classList.remove('hidden');
+    } catch (err) {
+      console.error('[App] Reject transaction failed:', err);
+    }
+  }
+
+  /**
+   * Handle transaction confirmed by peer
+   */
+  function handleP2PTransactionConfirmed(tx) {
+    console.log('[App] Transaction confirmed:', tx);
+    showToast(`Sent ${tx.amount} credits to ${tx.recipient_handle}!`, 'success');
+    document.getElementById('p2p-send-status').textContent = 'Sent successfully!';
+    document.getElementById('p2p-send-amount').value = '';
+    document.getElementById('p2p-send-description').value = '';
+    updateBalance();
+    loadTransactions();
+  }
+
+  /**
+   * Handle transaction rejected by peer
+   */
+  function handleP2PTransactionRejected(txId, reason) {
+    console.log('[App] Transaction rejected:', txId, reason);
+    showToast('Transaction rejected: ' + reason, 'error');
+    document.getElementById('p2p-send-status').textContent = 'Rejected: ' + reason;
   }
 
   // ========================================
@@ -1167,6 +1290,24 @@ const OGApp = (function() {
     const p2pDisconnectBtn = document.getElementById('p2p-disconnect-btn');
     if (p2pDisconnectBtn) {
       p2pDisconnectBtn.addEventListener('click', disconnectP2P);
+    }
+
+    // P2P send button
+    const p2pSendBtn = document.getElementById('p2p-send-btn');
+    if (p2pSendBtn) {
+      p2pSendBtn.addEventListener('click', sendViaP2P);
+    }
+
+    // P2P transaction accept button
+    const p2pTxAcceptBtn = document.getElementById('p2p-tx-accept-btn');
+    if (p2pTxAcceptBtn) {
+      p2pTxAcceptBtn.addEventListener('click', acceptP2PTransaction);
+    }
+
+    // P2P transaction reject button
+    const p2pTxRejectBtn = document.getElementById('p2p-tx-reject-btn');
+    if (p2pTxRejectBtn) {
+      p2pTxRejectBtn.addEventListener('click', rejectP2PTransaction);
     }
 
     // Modal close buttons

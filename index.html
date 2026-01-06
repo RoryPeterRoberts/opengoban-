@@ -423,13 +423,46 @@
         <div id="p2p-connected-mode" class="hidden">
           <div class="text-center">
             <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">&#9989;</div>
-            <p style="font-size: 1.25rem; font-weight: 500;">Connected!</p>
+            <p style="font-size: 1.25rem; font-weight: 500;">Connected to <span id="p2p-peer-handle" style="color: var(--color-primary);">peer</span></p>
             <p class="text-muted mt-sm" id="p2p-sync-status">Syncing data...</p>
             <div id="p2p-sync-progress" class="mt-md">
               <div class="spinner"></div>
             </div>
           </div>
+
+          <!-- Send to Peer Section -->
+          <div id="p2p-send-section" class="hidden mt-lg">
+            <h4 class="text-center" style="margin-bottom: var(--spacing-md);">Send Credits</h4>
+            <div class="form-group">
+              <label for="p2p-send-amount">Amount</label>
+              <input type="number" id="p2p-send-amount" class="form-input" placeholder="0" min="1">
+            </div>
+            <div class="form-group mt-md">
+              <label for="p2p-send-description">Description</label>
+              <input type="text" id="p2p-send-description" class="form-input" placeholder="What's this for?">
+            </div>
+            <button id="p2p-send-btn" class="btn btn-primary btn-block mt-md">
+              Send to <span id="p2p-send-to-handle">peer</span>
+            </button>
+            <p id="p2p-send-status" class="text-center text-muted mt-md"></p>
+          </div>
+
           <button id="p2p-disconnect-btn" class="btn btn-secondary btn-block mt-lg">Disconnect</button>
+        </div>
+
+        <!-- Incoming Transaction Request -->
+        <div id="p2p-tx-request-mode" class="hidden">
+          <div class="text-center">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">💸</div>
+            <p style="font-size: 1.25rem; font-weight: 500;">Incoming Payment</p>
+            <p class="mt-md"><span id="p2p-tx-from" style="color: var(--color-primary);">@sender</span> wants to send you:</p>
+            <p style="font-size: 2.5rem; font-weight: bold; color: var(--color-success);" id="p2p-tx-amount">0</p>
+            <p class="text-muted" id="p2p-tx-description">description</p>
+          </div>
+          <div class="mt-lg" style="display: flex; gap: var(--spacing-md);">
+            <button id="p2p-tx-reject-btn" class="btn btn-secondary" style="flex: 1;">Reject</button>
+            <button id="p2p-tx-accept-btn" class="btn btn-primary" style="flex: 1;">Accept</button>
+          </div>
         </div>
       </div>
     </div>

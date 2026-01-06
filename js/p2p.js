@@ -17,9 +17,15 @@ const OGP2P = (function() {
   let peerEncryptionPubKey = null;
   let e2eeEnabled = true; // Can be disabled for debugging
 
+  // Peer member info
+  let peerMemberInfo = null;
+
   // Callbacks
   let onStatusChange = null;
   let onSyncComplete = null;
+  let onTransactionRequest = null;
+  let onTransactionConfirmed = null;
+  let onTransactionRejected = null;
 
   // ========================================
   // PEER MANAGEMENT
@@ -146,15 +152,22 @@ const OGP2P = (function() {
       console.log('[P2P] Connection opened');
       updateStatus('connected');
 
-      // E2EE: Send our encryption public key first
+      // E2EE: Send our encryption public key and member info
       if (e2eeEnabled) {
         try {
           const myEncPubKey = await OGCrypto.getEncryptionPublicKey();
+          const myMember = OGLedger.getCurrentMember();
+          const mySigningPubKey = await OGCrypto.getPublicKey();
           conn.send({
             type: 'key-exchange',
-            encryptionPubKey: myEncPubKey
+            encryptionPubKey: myEncPubKey,
+            member: myMember ? {
+              id: myMember._id,
+              handle: myMember.handle,
+              publicKey: mySigningPubKey
+            } : null
           });
-          console.log('[P2P] Sent encryption key');
+          console.log('[P2P] Sent encryption key and member info');
         } catch (err) {
           console.error('[P2P] Failed to send encryption key:', err);
         }
@@ -194,6 +207,7 @@ const OGP2P = (function() {
     }
     syncInProgress = false;
     peerEncryptionPubKey = null; // Reset E2EE state
+    peerMemberInfo = null; // Reset peer info
     updateStatus('idle');
     console.log('[P2P] Disconnected');
   }
@@ -275,6 +289,18 @@ const OGP2P = (function() {
         await handleSyncComplete(data);
         break;
 
+      case 'tx-request':
+        await handleTransactionRequest(data);
+        break;
+
+      case 'tx-confirm':
+        await handleTransactionConfirm(data);
+        break;
+
+      case 'tx-reject':
+        handleTransactionReject(data);
+        break;
+
       default:
         console.warn('[P2P] Unknown message type:', data.type);
     }
@@ -285,17 +311,39 @@ const OGP2P = (function() {
    */
   async function handleKeyExchange(data) {
     peerEncryptionPubKey = data.encryptionPubKey;
-    console.log('[P2P] Received peer encryption key');
+    peerMemberInfo = data.member;
+    console.log('[P2P] Received peer encryption key and member:', peerMemberInfo?.handle);
+
+    // Save peer as a known member locally
+    if (peerMemberInfo) {
+      try {
+        await OGLedger.saveScannedMember(
+          peerMemberInfo.id,
+          peerMemberInfo.handle,
+          peerMemberInfo.publicKey
+        );
+        console.log('[P2P] Saved peer member locally');
+      } catch (err) {
+        console.error('[P2P] Failed to save peer member:', err);
+      }
+    }
 
     // If we haven't sent our key yet, send it now
     if (e2eeEnabled && connection && connection.open) {
       const myEncPubKey = await OGCrypto.getEncryptionPublicKey();
+      const myMember = OGLedger.getCurrentMember();
+      const mySigningPubKey = await OGCrypto.getPublicKey();
       // Only send if this is a response (peer initiated)
       // Check if we already sent by seeing if sync is in progress
       if (!syncInProgress) {
         connection.send({
           type: 'key-exchange',
-          encryptionPubKey: myEncPubKey
+          encryptionPubKey: myEncPubKey,
+          member: myMember ? {
+            id: myMember._id,
+            handle: myMember.handle,
+            publicKey: mySigningPubKey
+          } : null
         });
       }
     }
@@ -449,6 +497,186 @@ const OGP2P = (function() {
     }
   }
 
+  // ========================================
+  // P2P TRANSACTIONS
+  // ========================================
+
+  /**
+   * Send credits to connected peer
+   * @param {number} amount - Amount to send
+   * @param {string} description - Transaction description
+   * @returns {Promise<object>} The pending transaction
+   */
+  async function sendToPeer(amount, description) {
+    if (!isConnected()) {
+      throw new Error('Not connected to peer');
+    }
+    if (!peerMemberInfo) {
+      throw new Error('Peer member info not available');
+    }
+
+    const myMember = OGLedger.getCurrentMember();
+    if (!myMember) {
+      throw new Error('No identity');
+    }
+
+    // Create transaction
+    const tx = {
+      _id: `tx_${OGCrypto.generateId()}`,
+      type: 'transaction',
+      sender_id: myMember._id,
+      sender_handle: myMember.handle,
+      recipient_id: peerMemberInfo.id,
+      recipient_handle: peerMemberInfo.handle,
+      amount: amount,
+      description: description,
+      created_at: new Date().toISOString(),
+      nonce: OGCrypto.generateNonce(),
+      status: 'pending'
+    };
+
+    // Sign as sender
+    tx.sender_signature = await OGCrypto.signTransactionAsSender(tx);
+
+    console.log('[P2P] Sending transaction request to peer');
+
+    // Send to peer for confirmation
+    await sendMessage({
+      type: 'tx-request',
+      transaction: tx
+    });
+
+    return tx;
+  }
+
+  /**
+   * Handle incoming transaction request from peer
+   */
+  async function handleTransactionRequest(data) {
+    const tx = data.transaction;
+    console.log('[P2P] Received transaction request:', tx.amount, 'from', tx.sender_handle);
+
+    // Verify sender signature
+    const senderValid = OGCrypto.verifyTransactionSignature(
+      tx,
+      tx.sender_signature,
+      peerMemberInfo.publicKey
+    );
+
+    if (!senderValid) {
+      console.error('[P2P] Invalid sender signature');
+      await sendMessage({
+        type: 'tx-reject',
+        txId: tx._id,
+        reason: 'Invalid sender signature'
+      });
+      return;
+    }
+
+    // Notify app of incoming transaction request
+    if (onTransactionRequest) {
+      onTransactionRequest(tx);
+    }
+  }
+
+  /**
+   * Confirm a pending transaction (called by recipient)
+   * @param {object} tx - The transaction to confirm
+   */
+  async function confirmTransaction(tx) {
+    // Sign as recipient
+    const recipientSignature = await OGCrypto.signTransactionAsRecipient(tx);
+    tx.recipient_signature = recipientSignature;
+    tx.status = 'confirmed';
+    tx.confirmed_at = new Date().toISOString();
+
+    // Save locally
+    await OGLedger.getDB().put(tx);
+
+    console.log('[P2P] Transaction confirmed, sending to peer');
+
+    // Send confirmation to peer
+    await sendMessage({
+      type: 'tx-confirm',
+      transaction: tx
+    });
+
+    // Refresh UI
+    if (typeof OGApp !== 'undefined') {
+      OGApp.updateBalance();
+      OGApp.loadTransactions();
+    }
+
+    return tx;
+  }
+
+  /**
+   * Reject a pending transaction (called by recipient)
+   * @param {object} tx - The transaction to reject
+   * @param {string} reason - Rejection reason
+   */
+  async function rejectTransaction(tx, reason) {
+    console.log('[P2P] Rejecting transaction:', reason);
+
+    await sendMessage({
+      type: 'tx-reject',
+      txId: tx._id,
+      reason: reason
+    });
+  }
+
+  /**
+   * Handle transaction confirmation from peer
+   */
+  async function handleTransactionConfirm(data) {
+    const tx = data.transaction;
+    console.log('[P2P] Transaction confirmed by peer:', tx._id);
+
+    // Verify recipient signature
+    const recipientValid = OGCrypto.verifyTransactionSignature(
+      tx,
+      tx.recipient_signature,
+      peerMemberInfo.publicKey
+    );
+
+    if (!recipientValid) {
+      console.error('[P2P] Invalid recipient signature');
+      return;
+    }
+
+    // Save locally
+    await OGLedger.getDB().put(tx);
+
+    // Notify app
+    if (onTransactionConfirmed) {
+      onTransactionConfirmed(tx);
+    }
+
+    // Refresh UI
+    if (typeof OGApp !== 'undefined') {
+      OGApp.updateBalance();
+      OGApp.loadTransactions();
+    }
+  }
+
+  /**
+   * Handle transaction rejection from peer
+   */
+  function handleTransactionReject(data) {
+    console.log('[P2P] Transaction rejected:', data.txId, data.reason);
+
+    if (onTransactionRejected) {
+      onTransactionRejected(data.txId, data.reason);
+    }
+  }
+
+  /**
+   * Get connected peer's member info
+   */
+  function getPeerInfo() {
+    return peerMemberInfo;
+  }
+
   /**
    * Send a message to the peer
    * Encrypts the message if E2EE is enabled and we have peer's key
@@ -536,10 +764,19 @@ const OGP2P = (function() {
     isConnected,
     isSyncing,
     isEncrypted,
+    getPeerInfo,
+
+    // Transactions
+    sendToPeer,
+    confirmTransaction,
+    rejectTransaction,
 
     // Callbacks
     setOnStatusChange,
     setOnSyncComplete,
+    setOnTransactionRequest: (cb) => { onTransactionRequest = cb; },
+    setOnTransactionConfirmed: (cb) => { onTransactionConfirmed = cb; },
+    setOnTransactionRejected: (cb) => { onTransactionRejected = cb; },
 
     // Utils
     generatePairingCode
