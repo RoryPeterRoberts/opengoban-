@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Community mutual credit trading - offline first, no banks, no app stores">
+
+  <title>OpenGoban</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+
+  <!-- Icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header hidden">
+      <h1 class="app-title">OG</h1>
+      <div class="sync-indicator">
+        <span class="sync-dot"></span>
+        <span id="sync-status">Offline</span>
+      </div>
+      <span id="header-balance" class="header-balance balance-zero">0</span>
+    </header>
+
+    <!-- Main Content -->
+    <main class="app-main">
+
+      <!-- Onboarding Screen -->
+      <div id="onboarding-screen" class="screen active">
+        <div class="onboarding">
+          <div class="onboarding-logo">&#9898;</div>
+          <h2 class="onboarding-title">OpenGoban</h2>
+          <p class="onboarding-subtitle">
+            Community credit trading.<br>
+            Offline first. No banks. No app stores.
+          </p>
+
+          <div class="form-group" style="width: 100%; max-width: 280px;">
+            <input
+              type="text"
+              id="handle-input"
+              class="form-input"
+              placeholder="Choose a handle (e.g., @rory)"
+              maxlength="32"
+              autocomplete="off"
+              autocapitalize="off"
+            >
+          </div>
+
+          <button id="create-account-btn" class="btn btn-primary btn-lg btn-block mt-md" style="max-width: 280px;">
+            Create Identity
+          </button>
+
+          <p class="text-muted mt-lg" style="font-size: 0.875rem;">
+            Your identity is generated on this device.<br>
+            No email, no password, no tracking.
+          </p>
+        </div>
+      </div>
+
+      <!-- Setup Screen (Recovery) -->
+      <div id="setup-screen" class="screen">
+        <div class="onboarding">
+          <h2>Welcome Back</h2>
+          <p class="text-muted">You have keys but no member record. Get vouched by a circle member to continue.</p>
+          <button id="show-vouch-qr-btn" class="btn btn-primary btn-lg">
+            Show My QR Code
+          </button>
+        </div>
+      </div>
+
+      <!-- Home Screen -->
+      <div id="home-screen" class="screen">
+        <!-- Balance Card -->
+        <div class="card balance-card">
+          <h3 class="card-title">Your Balance</h3>
+          <p id="balance-amount" class="balance-amount balance-zero">0</p>
+          <p class="balance-label">community credits</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-grid">
+          <button id="send-btn" class="action-btn">
+            <span class="icon">&#8593;</span>
+            <span class="label">Send</span>
+          </button>
+          <button id="scan-btn" class="action-btn">
+            <span class="icon">&#9744;</span>
+            <span class="label">Scan</span>
+          </button>
+          <button id="my-qr-btn" class="action-btn">
+            <span class="icon">&#9783;</span>
+            <span class="label">My ID</span>
+          </button>
+          <button class="action-btn" onclick="OGApp.showScreen('members')">
+            <span class="icon">&#128101;</span>
+            <span class="label">Directory</span>
+          </button>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Activity</h3>
+          </div>
+          <ul id="transaction-list" class="transaction-list">
+            <div class="empty-state">
+              <div class="empty-state-icon">&#128178;</div>
+              <div class="empty-state-text">No transactions yet</div>
+            </div>
+          </ul>
+        </div>
+      </div>
+
+      <!-- History Screen -->
+      <div id="history-screen" class="screen">
+        <h2>Transaction History</h2>
+        <ul id="full-transaction-list" class="transaction-list">
+          <div class="loading"><div class="spinner"></div></div>
+        </ul>
+      </div>
+
+      <!-- Members Screen -->
+      <div id="members-screen" class="screen">
+        <div class="form-group">
+          <input
+            type="text"
+            id="member-search"
+            class="form-input"
+            placeholder="Search members or offers..."
+          >
+        </div>
+        <ul id="member-list" class="member-list">
+          <div class="empty-state">
+            <div class="empty-state-icon">&#128101;</div>
+            <div class="empty-state-text">No members in your circle yet</div>
+          </div>
+        </ul>
+      </div>
+
+      <!-- Settings Screen -->
+      <div id="settings-screen" class="screen">
+        <div class="card">
+          <h3 class="card-title">Your Identity</h3>
+          <p id="my-handle" class="text-mono">Loading...</p>
+          <p id="my-public-key" class="text-muted text-mono" style="font-size: 0.75rem; word-break: break-all;"></p>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Circle</h3>
+          <p id="my-circle">Not in a circle yet</p>
+          <button class="btn btn-secondary btn-block mt-md">Create Circle</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Data</h3>
+          <button id="export-btn" class="btn btn-secondary btn-block">Export Backup</button>
+          <button id="import-btn" class="btn btn-secondary btn-block mt-sm">Import Backup</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">About</h3>
+          <p class="text-muted">OpenGoban v1.0.0</p>
+          <p class="text-muted" style="font-size: 0.875rem;">
+            Open source community trading.<br>
+            No banks. No app stores. No government ID.
+          </p>
+          <a href="https://github.com/opengoban/pwa" target="_blank" class="btn btn-secondary btn-block mt-md">
+            View Source
+          </a>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="app-nav hidden">
+      <a href="#" class="nav-item active" data-screen="home">
+        <span class="nav-icon">&#127968;</span>
+        <span>Home</span>
+      </a>
+      <a href="#" class="nav-item" data-screen="history">
+        <span class="nav-icon">&#128203;</span>
+        <span>History</span>
+      </a>
+      <a href="#" class="nav-item" data-screen="members">
+        <span class="nav-icon">&#128101;</span>
+        <span>Members</span>
+      </a>
+      <a href="#" class="nav-item" data-screen="settings">
+        <span class="nav-icon">&#9881;</span>
+        <span>Settings</span>
+      </a>
+    </nav>
+
+  </div>
+
+  <!-- Modals -->
+
+  <!-- Send Modal -->
+  <div id="send-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Send Credits</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <form id="send-form" class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Recipient ID</label>
+          <input type="text" id="send-recipient" class="form-input" placeholder="member_abc123..." required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount</label>
+          <input type="number" id="send-amount" class="form-input form-input-lg" placeholder="0" min="1" max="100" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description (optional)</label>
+          <input type="text" id="send-description" class="form-input" placeholder="What's this for?">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">
+          Generate QR Code
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- QR Display Modal -->
+  <div id="qr-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Transfer QR</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body text-center">
+        <p class="text-muted">Show this QR code to the recipient</p>
+        <div id="transfer-qr" class="qr-container"></div>
+        <p class="text-muted mt-md">They scan it, you both update.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scanner Modal -->
+  <div id="scanner-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Scan QR Code</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="scanner-container">
+          <video id="scanner-video" class="scanner-video" playsinline></video>
+          <div class="scanner-overlay">
+            <div class="scanner-frame"></div>
+          </div>
+        </div>
+        <p class="text-center text-muted mt-md">Point camera at a QR code</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- My QR Modal -->
+  <div id="my-qr-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">My ID</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body text-center">
+        <p class="text-muted">Share this to receive credits</p>
+        <div id="my-qr" class="qr-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="modal-overlay">
+    <div class="loading">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <!-- Vendor Libraries -->
+  <script src="/lib/pouchdb.min.js"></script>
+  <script src="/lib/tweetnacl.min.js"></script>
+  <script src="/lib/tweetnacl-util.min.js"></script>
+  <script src="/lib/qrcode.min.js"></script>
+  <script src="/lib/jsqr.min.js"></script>
+
+  <!-- Application -->
+  <script src="/js/crypto.js"></script>
+  <script src="/js/qr.js"></script>
+  <script src="/js/ledger.js"></script>
+  <script src="/js/app.js"></script>
+
+</body>
+</html>
