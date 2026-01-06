@@ -959,8 +959,14 @@ const OGApp = (function() {
         // Show peer info and send section
         const peerInfo = OGP2P.getPeerInfo();
         if (peerInfo) {
-          document.getElementById('p2p-peer-handle').textContent = peerInfo.handle || 'peer';
-          document.getElementById('p2p-send-to-handle').textContent = peerInfo.handle || 'peer';
+          const handle = peerInfo.handle || 'peer';
+          document.getElementById('p2p-peer-handle').textContent = handle;
+          document.getElementById('p2p-send-to-handle').textContent = '@' + handle;
+          // Set avatar to first letter of handle
+          const avatarEl = document.getElementById('p2p-recipient-avatar');
+          if (avatarEl) {
+            avatarEl.textContent = handle.charAt(0).toUpperCase();
+          }
           document.getElementById('p2p-send-section').classList.remove('hidden');
         }
         break;
@@ -997,15 +1003,31 @@ const OGApp = (function() {
     }
 
     const statusEl = document.getElementById('p2p-send-status');
-    statusEl.textContent = 'Sending...';
+    const sendBtn = document.getElementById('p2p-send-btn');
+
+    // Show loading state
+    if (sendBtn) {
+      sendBtn.disabled = true;
+      sendBtn.innerHTML = '<span class="spinner-small"></span> Sending...';
+    }
+    statusEl.textContent = '';
+    statusEl.className = 'p2p-status text-center mt-md';
 
     try {
       await OGP2P.sendToPeer(amount, description || 'P2P transfer');
       statusEl.textContent = 'Waiting for confirmation...';
+      statusEl.className = 'p2p-status p2p-status-waiting text-center mt-md';
     } catch (err) {
       console.error('[App] P2P send failed:', err);
       statusEl.textContent = 'Failed: ' + err.message;
+      statusEl.className = 'p2p-status p2p-status-error text-center mt-md';
       showToast('Send failed: ' + err.message, 'error');
+
+      // Re-enable button
+      if (sendBtn) {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send';
+      }
     }
   }
 
@@ -1039,17 +1061,45 @@ const OGApp = (function() {
   async function acceptP2PTransaction() {
     if (!pendingP2PTransaction) return;
 
+    const tx = pendingP2PTransaction;
+
     try {
-      await OGP2P.confirmTransaction(pendingP2PTransaction);
-      showToast(`Received ${pendingP2PTransaction.amount} credits!`, 'success');
+      // Show loading state on button
+      const acceptBtn = document.getElementById('p2p-tx-accept-btn');
+      if (acceptBtn) {
+        acceptBtn.disabled = true;
+        acceptBtn.textContent = 'Processing...';
+      }
+
+      await OGP2P.confirmTransaction(tx);
       pendingP2PTransaction = null;
 
-      // Go back to connected mode
+      // Close the P2P modal immediately
+      closeModal('p2p-modal');
+
+      // Reset modal state for next time
       document.getElementById('p2p-tx-request-mode').classList.add('hidden');
-      document.getElementById('p2p-connected-mode').classList.remove('hidden');
+      document.getElementById('p2p-host-mode').classList.remove('hidden');
+      if (acceptBtn) {
+        acceptBtn.disabled = false;
+        acceptBtn.textContent = 'Accept';
+      }
+
+      // Show success overlay
+      showSuccessOverlay(tx.amount, 'incoming', tx.sender_handle || 'peer', tx.description);
+
+      // Update balance and transactions
+      updateBalance();
+      loadTransactions();
+
     } catch (err) {
       console.error('[App] Accept transaction failed:', err);
       showToast('Failed to accept: ' + err.message, 'error');
+      const acceptBtn = document.getElementById('p2p-tx-accept-btn');
+      if (acceptBtn) {
+        acceptBtn.disabled = false;
+        acceptBtn.textContent = 'Accept';
+      }
     }
   }
 
@@ -1060,38 +1110,70 @@ const OGApp = (function() {
     if (!pendingP2PTransaction) return;
 
     try {
-      await OGP2P.rejectTransaction(pendingP2PTransaction, 'User rejected');
-      showToast('Transaction rejected', 'info');
+      await OGP2P.rejectTransaction(pendingP2PTransaction, 'User declined');
       pendingP2PTransaction = null;
 
-      // Go back to connected mode
+      // Close modal and reset state
+      closeModal('p2p-modal');
       document.getElementById('p2p-tx-request-mode').classList.add('hidden');
-      document.getElementById('p2p-connected-mode').classList.remove('hidden');
+      document.getElementById('p2p-host-mode').classList.remove('hidden');
+
+      showToast('Payment declined', 'info');
     } catch (err) {
       console.error('[App] Reject transaction failed:', err);
     }
   }
 
   /**
-   * Handle transaction confirmed by peer
+   * Handle transaction confirmed by peer (sender side)
    */
   function handleP2PTransactionConfirmed(tx) {
     console.log('[App] Transaction confirmed:', tx);
-    showToast(`Sent ${tx.amount} credits to ${tx.recipient_handle}!`, 'success');
-    document.getElementById('p2p-send-status').textContent = 'Sent successfully!';
+
+    // Clear form
     document.getElementById('p2p-send-amount').value = '';
     document.getElementById('p2p-send-description').value = '';
+    document.getElementById('p2p-send-status').textContent = '';
+
+    // Re-enable send button
+    const sendBtn = document.getElementById('p2p-send-btn');
+    if (sendBtn) {
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send';
+    }
+
+    // Close modal and reset state
+    closeModal('p2p-modal');
+    document.getElementById('p2p-connected-mode').classList.add('hidden');
+    document.getElementById('p2p-host-mode').classList.remove('hidden');
+
+    // Show success overlay
+    showSuccessOverlay(tx.amount, 'outgoing', tx.recipient_handle || 'peer', tx.description);
+
+    // Update balance and transactions
     updateBalance();
     loadTransactions();
   }
 
   /**
-   * Handle transaction rejected by peer
+   * Handle transaction rejected by peer (sender side)
    */
   function handleP2PTransactionRejected(txId, reason) {
     console.log('[App] Transaction rejected:', txId, reason);
-    showToast('Transaction rejected: ' + reason, 'error');
-    document.getElementById('p2p-send-status').textContent = 'Rejected: ' + reason;
+
+    // Re-enable send button
+    const sendBtn = document.getElementById('p2p-send-btn');
+    if (sendBtn) {
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Send';
+    }
+
+    // Show status with error styling
+    const statusEl = document.getElementById('p2p-send-status');
+    statusEl.textContent = 'Payment declined by recipient';
+    statusEl.className = 'p2p-status p2p-status-error text-center mt-md';
+
+    showToast('Payment was declined', 'error');
   }
 
   // ========================================
@@ -1155,6 +1237,71 @@ const OGApp = (function() {
       toast.style.opacity = '0';
       setTimeout(() => toast.remove(), 300);
     }, 3000);
+  }
+
+  /**
+   * Show success overlay with animation
+   * @param {number} amount - Transaction amount
+   * @param {string} direction - 'incoming' or 'outgoing'
+   * @param {string} peerHandle - Who the transaction was with
+   * @param {string} description - Transaction description
+   */
+  function showSuccessOverlay(amount, direction, peerHandle, description) {
+    const overlay = document.getElementById('success-overlay');
+    const amountEl = document.getElementById('success-amount');
+    const labelEl = document.getElementById('success-label');
+    const detailsEl = document.getElementById('success-details');
+    const particlesEl = document.getElementById('success-particles');
+
+    if (!overlay) return;
+
+    // Set content
+    amountEl.textContent = amount;
+    amountEl.className = 'success-amount ' + direction;
+
+    if (direction === 'incoming') {
+      labelEl.textContent = 'credits received';
+      detailsEl.textContent = `from @${peerHandle}`;
+    } else {
+      labelEl.textContent = 'credits sent';
+      detailsEl.textContent = `to @${peerHandle}`;
+    }
+
+    if (description) {
+      detailsEl.textContent += ' • ' + description;
+    }
+
+    // Create particles
+    particlesEl.innerHTML = '';
+    const colors = ['#00ff88', '#00cc6f', '#33ffaa', '#66ffbb'];
+    for (let i = 0; i < 12; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.background = colors[i % colors.length];
+      const angle = (i / 12) * 360;
+      const distance = 80 + Math.random() * 40;
+      const x = Math.cos(angle * Math.PI / 180) * distance;
+      const y = Math.sin(angle * Math.PI / 180) * distance;
+      particle.style.setProperty('--x', x + 'px');
+      particle.style.setProperty('--y', y + 'px');
+      particle.style.left = '50%';
+      particle.style.top = '50%';
+      particle.style.animationDelay = (i * 0.05) + 's';
+      particlesEl.appendChild(particle);
+    }
+
+    // Show overlay
+    overlay.classList.add('active');
+
+    // Vibrate for haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate([100, 50, 100]);
+    }
+
+    // Auto-close after delay
+    setTimeout(() => {
+      overlay.classList.remove('active');
+    }, 2500);
   }
 
   // ========================================

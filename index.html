@@ -431,20 +431,26 @@
           </div>
 
           <!-- Send to Peer Section -->
-          <div id="p2p-send-section" class="hidden mt-lg">
-            <h4 class="text-center" style="margin-bottom: var(--spacing-md);">Send Credits</h4>
-            <div class="form-group">
-              <label for="p2p-send-amount">Amount</label>
-              <input type="number" id="p2p-send-amount" class="form-input" placeholder="0" min="1">
+          <div id="p2p-send-section" class="p2p-send-card hidden">
+            <div class="p2p-send-header">
+              <h4>Send Credits</h4>
             </div>
-            <div class="form-group mt-md">
-              <label for="p2p-send-description">Description</label>
-              <input type="text" id="p2p-send-description" class="form-input" placeholder="What's this for?">
+            <div class="text-center mb-md">
+              <div class="p2p-recipient-badge">
+                <div class="avatar" id="p2p-recipient-avatar">?</div>
+                <span class="handle" id="p2p-send-to-handle">peer</span>
+              </div>
+            </div>
+            <div class="amount-input-wrapper">
+              <input type="number" id="p2p-send-amount" class="form-input" placeholder="0" min="1" style="font-size: 1.5rem; text-align: center; padding-left: 48px;">
+            </div>
+            <div class="form-group">
+              <input type="text" id="p2p-send-description" class="form-input" placeholder="What's this for?" style="text-align: center;">
             </div>
             <button id="p2p-send-btn" class="btn btn-primary btn-block mt-md">
-              Send to <span id="p2p-send-to-handle">peer</span>
+              Send
             </button>
-            <p id="p2p-send-status" class="text-center text-muted mt-md"></p>
+            <p id="p2p-send-status" class="p2p-status text-center mt-md"></p>
           </div>
 
           <button id="p2p-disconnect-btn" class="btn btn-secondary btn-block mt-lg">Disconnect</button>
@@ -452,20 +458,28 @@
 
         <!-- Incoming Transaction Request -->
         <div id="p2p-tx-request-mode" class="hidden">
-          <div class="text-center">
-            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">💸</div>
-            <p style="font-size: 1.25rem; font-weight: 500;">Incoming Payment</p>
-            <p class="mt-md"><span id="p2p-tx-from" style="color: var(--color-primary);">@sender</span> wants to send you:</p>
-            <p style="font-size: 2.5rem; font-weight: bold; color: var(--color-success);" id="p2p-tx-amount">0</p>
-            <p class="text-muted" id="p2p-tx-description">description</p>
-          </div>
-          <div class="mt-lg" style="display: flex; gap: var(--spacing-md);">
-            <button id="p2p-tx-reject-btn" class="btn btn-secondary" style="flex: 1;">Reject</button>
-            <button id="p2p-tx-accept-btn" class="btn btn-primary" style="flex: 1;">Accept</button>
+          <div class="tx-request-card">
+            <div class="tx-request-icon">💸</div>
+            <p class="tx-request-from"><span id="p2p-tx-from">@sender</span> wants to send you</p>
+            <div id="p2p-tx-amount" class="tx-request-amount">0</div>
+            <div id="p2p-tx-description" class="tx-request-description">No description</div>
+            <div class="tx-request-buttons">
+              <button id="p2p-tx-reject-btn" class="btn-reject">Decline</button>
+              <button id="p2p-tx-accept-btn" class="btn-accept">Accept</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Success Overlay -->
+  <div id="success-overlay" class="success-overlay">
+    <div class="success-particles" id="success-particles"></div>
+    <div class="success-icon">✓</div>
+    <div id="success-amount" class="success-amount incoming">0</div>
+    <div id="success-label" class="success-label">credits received</div>
+    <div id="success-details" class="success-details"></div>
   </div>
 
   <!-- Toast Container -->
