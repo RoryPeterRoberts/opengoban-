@@ -190,6 +190,39 @@ const OGLedger = (function() {
   }
 
   /**
+   * Save a scanned member to local database (as contact)
+   */
+  async function saveScannedMember(memberId, handle, publicKey, circleId = null) {
+    // Check if we already have this member
+    const existing = await getMember(memberId);
+    if (existing) {
+      return existing;
+    }
+
+    const member = {
+      _id: memberId,
+      type: 'member',
+      handle: handle,
+      public_key: publicKey,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      circle_id: circleId,
+      vouchers: [],
+      offers: [],
+      wants: [],
+      status: 'active', // Scanned members are trusted
+      role: 'member',
+      source: 'scanned' // Mark as externally scanned
+    };
+
+    const result = await db.put(member);
+    member._rev = result.rev;
+
+    console.log('[Member] Saved scanned contact:', handle);
+    return member;
+  }
+
+  /**
    * Get all members in a circle
    */
   async function getCircleMembers(circleId) {
@@ -738,6 +771,7 @@ const OGLedger = (function() {
     getMember,
     getMemberByPublicKey,
     getCurrentMember,
+    saveScannedMember,
     getCircleMembers,
     searchMembers,
     getAllMembers,

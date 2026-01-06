@@ -273,13 +273,14 @@ const OGQR = (function() {
   /**
    * Create a member info QR payload (for sharing your identity)
    */
-  function createMemberPayload(memberId, handle, circleId) {
+  function createMemberPayload(memberId, handle, publicKey, circleId) {
     return JSON.stringify({
       t: QR_TYPES.MEMBER_INFO,
       v: 1,
       m: {
         id: memberId,
         h: handle,
+        pk: publicKey,
         c: circleId
       }
     });
@@ -302,6 +303,7 @@ const OGQR = (function() {
         member: {
           id: parsed.m.id,
           handle: parsed.m.h,
+          publicKey: parsed.m.pk,
           circleId: parsed.m.c
         }
       };

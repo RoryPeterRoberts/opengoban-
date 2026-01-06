@@ -401,6 +401,7 @@ const OGApp = (function() {
     const payload = OGQR.createMemberPayload(
       member._id,
       member.handle,
+      member.public_key,
       member.circle_id
     );
 
@@ -447,7 +448,13 @@ const OGApp = (function() {
         const parsed = OGQR.parseQR(data);
 
         if (parsed.type === 'member') {
-          // Got a member QR - set as recipient
+          // Got a member QR - save to local DB and set as recipient
+          await OGLedger.saveScannedMember(
+            parsed.member.id,
+            parsed.member.handle,
+            parsed.member.publicKey,
+            parsed.member.circleId
+          );
           setRecipient(parsed.member.id, parsed.member.handle);
           showModal('send-modal');
         } else {
