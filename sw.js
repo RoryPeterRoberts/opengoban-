@@ -3,7 +3,7 @@
  * Enables offline-first operation for the PWA
  */
 
-const CACHE_NAME = 'opengoban-v9';
+const CACHE_NAME = 'opengoban-v10';
 
 // Files to cache for offline use
 const CACHE_URLS = [
@@ -15,12 +15,13 @@ const CACHE_URLS = [
   '/js/crypto.js',
   '/js/qr.js',
   '/js/ledger.js',
-  '/js/ui.js',
+  '/js/p2p.js',
   '/lib/pouchdb.min.js',
   '/lib/tweetnacl.min.js',
   '/lib/tweetnacl-util.min.js',
   '/lib/qrcode.min.js',
   '/lib/jsqr.min.js',
+  '/lib/peerjs.min.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png'
 ];

@@ -103,9 +103,9 @@
             <span class="icon">&#9783;</span>
             <span class="label">My ID</span>
           </button>
-          <button class="action-btn" onclick="OGApp.showScreen('members')">
-            <span class="icon">&#128101;</span>
-            <span class="label">Directory</span>
+          <button id="p2p-sync-btn" class="action-btn">
+            <span class="icon">&#128259;</span>
+            <span class="label">Sync</span>
           </button>
         </div>
 
@@ -379,6 +379,62 @@
     </div>
   </div>
 
+  <!-- P2P Sync Modal -->
+  <div id="p2p-modal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Sync Nearby</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Host Mode (showing code) -->
+        <div id="p2p-host-mode">
+          <p class="text-center text-muted mb-md">Share this code with the other device:</p>
+          <div id="p2p-code-display" class="text-center" style="font-size: 2.5rem; font-weight: bold; letter-spacing: 0.5rem; font-family: var(--font-mono); padding: var(--spacing-lg); background: var(--bg-input); border-radius: 8px;">
+            ------
+          </div>
+          <p class="text-center text-muted mt-md" id="p2p-host-status">Waiting for connection...</p>
+          <button id="p2p-switch-to-join" class="btn btn-secondary btn-block mt-lg">
+            I want to enter a code instead
+          </button>
+        </div>
+
+        <!-- Join Mode (entering code) -->
+        <div id="p2p-join-mode" class="hidden">
+          <p class="text-center text-muted mb-md">Enter the 6-digit code from the other device:</p>
+          <input
+            type="text"
+            id="p2p-code-input"
+            class="form-input form-input-lg text-center"
+            style="font-size: 1.5rem; letter-spacing: 0.3rem; font-family: var(--font-mono);"
+            placeholder="------"
+            maxlength="6"
+            autocomplete="off"
+            autocapitalize="off"
+          >
+          <button id="p2p-connect-btn" class="btn btn-primary btn-block mt-md">Connect</button>
+          <p class="text-center text-muted mt-md" id="p2p-join-status"></p>
+          <button id="p2p-switch-to-host" class="btn btn-secondary btn-block mt-lg">
+            Show my code instead
+          </button>
+        </div>
+
+        <!-- Connected Mode -->
+        <div id="p2p-connected-mode" class="hidden">
+          <div class="text-center">
+            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">&#9989;</div>
+            <p style="font-size: 1.25rem; font-weight: 500;">Connected!</p>
+            <p class="text-muted mt-sm" id="p2p-sync-status">Syncing data...</p>
+            <div id="p2p-sync-progress" class="mt-md">
+              <div class="spinner"></div>
+            </div>
+          </div>
+          <button id="p2p-disconnect-btn" class="btn btn-secondary btn-block mt-lg">Disconnect</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div id="toast-container" class="toast-container"></div>
 
@@ -396,11 +452,13 @@
   <script src="/lib/tweetnacl-util.min.js"></script>
   <script src="/lib/qrcode.min.js"></script>
   <script src="/lib/jsqr.min.js"></script>
+  <script src="/lib/peerjs.min.js"></script>
 
   <!-- Application -->
   <script src="/js/crypto.js"></script>
   <script src="/js/qr.js"></script>
   <script src="/js/ledger.js"></script>
+  <script src="/js/p2p.js"></script>
   <script src="/js/app.js"></script>
 
 </body>

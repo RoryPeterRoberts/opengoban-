@@ -824,6 +824,150 @@ const OGApp = (function() {
   }
 
   // ========================================
+  // P2P SYNC (Device-to-Device)
+  // ========================================
+
+  /**
+   * Open P2P sync modal and start hosting
+   */
+  async function openP2PSync() {
+    showModal('p2p-modal');
+    showP2PHostMode();
+
+    // Set up P2P callbacks
+    OGP2P.setOnStatusChange(handleP2PStatus);
+    OGP2P.setOnSyncComplete(handleP2PSyncComplete);
+
+    // Start hosting
+    try {
+      const code = await OGP2P.startHosting();
+      document.getElementById('p2p-code-display').textContent = code;
+    } catch (err) {
+      console.error('[App] P2P hosting failed:', err);
+      showToast('Failed to start P2P: ' + err.message, 'error');
+    }
+  }
+
+  /**
+   * Switch to host mode (show code)
+   */
+  async function showP2PHostMode() {
+    document.getElementById('p2p-host-mode').classList.remove('hidden');
+    document.getElementById('p2p-join-mode').classList.add('hidden');
+    document.getElementById('p2p-connected-mode').classList.add('hidden');
+
+    // Start hosting if not already
+    if (!OGP2P.isConnected()) {
+      try {
+        const code = await OGP2P.startHosting();
+        document.getElementById('p2p-code-display').textContent = code;
+        document.getElementById('p2p-host-status').textContent = 'Waiting for connection...';
+      } catch (err) {
+        console.error('[App] P2P hosting failed:', err);
+      }
+    }
+  }
+
+  /**
+   * Switch to join mode (enter code)
+   */
+  function showP2PJoinMode() {
+    OGP2P.disconnect();
+    document.getElementById('p2p-host-mode').classList.add('hidden');
+    document.getElementById('p2p-join-mode').classList.remove('hidden');
+    document.getElementById('p2p-connected-mode').classList.add('hidden');
+    document.getElementById('p2p-code-input').value = '';
+    document.getElementById('p2p-join-status').textContent = '';
+  }
+
+  /**
+   * Show connected mode
+   */
+  function showP2PConnectedMode() {
+    document.getElementById('p2p-host-mode').classList.add('hidden');
+    document.getElementById('p2p-join-mode').classList.add('hidden');
+    document.getElementById('p2p-connected-mode').classList.remove('hidden');
+  }
+
+  /**
+   * Connect to peer using entered code
+   */
+  async function connectP2P() {
+    const code = document.getElementById('p2p-code-input').value.trim();
+
+    if (!code || code.length !== 6) {
+      showToast('Please enter a 6-digit code', 'error');
+      return;
+    }
+
+    document.getElementById('p2p-join-status').textContent = 'Connecting...';
+
+    try {
+      await OGP2P.connectToHost(code);
+    } catch (err) {
+      document.getElementById('p2p-join-status').textContent = 'Failed: ' + err.message;
+      showToast('Connection failed', 'error');
+    }
+  }
+
+  /**
+   * Disconnect from P2P peer
+   */
+  function disconnectP2P() {
+    OGP2P.disconnect();
+    closeModal('p2p-modal');
+    showToast('Disconnected', 'info');
+  }
+
+  /**
+   * Handle P2P status changes
+   */
+  function handleP2PStatus(status, message) {
+    console.log('[App] P2P status:', status, message);
+
+    switch (status) {
+      case 'waiting':
+        document.getElementById('p2p-host-status').textContent = 'Waiting for connection...';
+        break;
+
+      case 'connecting':
+        document.getElementById('p2p-join-status').textContent = 'Connecting...';
+        break;
+
+      case 'connected':
+        showP2PConnectedMode();
+        document.getElementById('p2p-sync-status').textContent = 'Connected! Starting sync...';
+        break;
+
+      case 'syncing':
+        document.getElementById('p2p-sync-status').textContent = 'Syncing data...';
+        break;
+
+      case 'complete':
+        document.getElementById('p2p-sync-status').textContent = message || 'Sync complete!';
+        document.getElementById('p2p-sync-progress').innerHTML = '<div style="font-size: 2rem;">&#9989;</div>';
+        break;
+
+      case 'error':
+        showToast('P2P Error: ' + message, 'error');
+        break;
+
+      case 'disconnected':
+        break;
+    }
+  }
+
+  /**
+   * Handle P2P sync complete
+   */
+  function handleP2PSyncComplete(result) {
+    console.log('[App] P2P sync complete:', result);
+    showToast(`Synced ${result.imported} items`, 'success');
+    updateBalance();
+    loadTransactions();
+  }
+
+  // ========================================
   // MODALS
   // ========================================
 
@@ -990,6 +1134,35 @@ const OGApp = (function() {
     const syncDisconnectBtn = document.getElementById('sync-disconnect-btn');
     if (syncDisconnectBtn) {
       syncDisconnectBtn.addEventListener('click', disconnectSync);
+    }
+
+    // P2P Sync button
+    const p2pSyncBtn = document.getElementById('p2p-sync-btn');
+    if (p2pSyncBtn) {
+      p2pSyncBtn.addEventListener('click', openP2PSync);
+    }
+
+    // P2P mode switches
+    const p2pSwitchToJoin = document.getElementById('p2p-switch-to-join');
+    if (p2pSwitchToJoin) {
+      p2pSwitchToJoin.addEventListener('click', showP2PJoinMode);
+    }
+
+    const p2pSwitchToHost = document.getElementById('p2p-switch-to-host');
+    if (p2pSwitchToHost) {
+      p2pSwitchToHost.addEventListener('click', showP2PHostMode);
+    }
+
+    // P2P connect button
+    const p2pConnectBtn = document.getElementById('p2p-connect-btn');
+    if (p2pConnectBtn) {
+      p2pConnectBtn.addEventListener('click', connectP2P);
+    }
+
+    // P2P disconnect button
+    const p2pDisconnectBtn = document.getElementById('p2p-disconnect-btn');
+    if (p2pDisconnectBtn) {
+      p2pDisconnectBtn.addEventListener('click', disconnectP2P);
     }
 
     // Modal close buttons
