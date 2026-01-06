@@ -1,10 +1,13 @@
 # OpenGoban Stress Test Scenarios
+## Complete Use Case Documentation
 
-**Purpose:** Document edge cases, attack vectors, and expected system behavior for the TechnoCommune mutual credit system.
+**Purpose:** Document all edge cases, attack vectors, and expected system behavior for the TechnoCommune mutual credit system.
 
 **Principle:** Trust-based system on trustless infrastructure. Friction points occur where human nature collides with cryptographic logic.
 
 ---
+
+# PART 1: IMPLEMENTED DEFENSES
 
 ## Category 1: Malicious Actors
 
@@ -14,8 +17,8 @@
 "Slippery Sam" has a balance of **10 Credits** and a credit limit of **-50**. He goes offline (Airplane Mode).
 
 **The Attack:**
-1. Sam meets Alice, buys eggs → Sends 10 CR (Balance: 0)
-2. Sam walks to Bob, buys wood → Sends 10 CR again (same credits!)
+1. Sam meets Alice, buys eggs -> Sends 10 CR (Balance: 0)
+2. Sam walks to Bob, buys wood -> Sends 10 CR again (same credits!)
 3. Both Alice and Bob accept the transactions (they're cryptographically valid)
 4. Sam reconnects and syncs
 
@@ -37,7 +40,7 @@ const actions = await OGLedger.runPostSyncValidation();
 // Returns: [{ type: 'account_frozen', member_id: 'member_sam', breach_amount: 10 }]
 ```
 
-**Key Insight:** System accepts the "bad check" but freezes the account. Bob has valid credits - the system inflates slightly rather than invalidate Bob's transaction. Social shame (frozen status visible) prevents repeat offenses.
+**Implementation Status:** IMPLEMENTED
 
 ---
 
@@ -62,20 +65,8 @@ const actions = await OGLedger.runPostSyncValidation();
 | Multi-Sig Approval | 3+ elders sign | `signForgiveness()` collects signatures |
 | Jubilee Execution | Debt cancelled, key burned | `executeForgiveness()` mints +50, revokes Dave |
 
-**Code Path:**
-```javascript
-// Elders initiate Jubilee:
-const request = await OGValidation.createForgivenessRequest(db, 'member_dave', 'member_elder1', 'Left town with debt');
-await OGValidation.signForgiveness(db, request._id, 'member_elder1', sig1);
-await OGValidation.signForgiveness(db, request._id, 'member_elder2', sig2);
-await OGValidation.signForgiveness(db, request._id, 'member_elder3', sig3);
-await OGValidation.executeForgiveness(db, request._id);
-// Creates mint_*_jubilee transaction, sets member status: 'revoked'
-```
-
 **Mitigation - Entry Limits:**
 ```javascript
-// New member progression (validation.js):
 CREDIT_LIMIT_PROGRESSION: [
   { months: 0, limit: 0 },      // Day 1: Can't go negative at all
   { months: 1, limit: -10 },    // 1 month: Small trust
@@ -84,7 +75,7 @@ CREDIT_LIMIT_PROGRESSION: [
 ]
 ```
 
-**Key Insight:** Exit scams are capped by entry limits. New members can't extract value until they've demonstrated commitment. Jubilee protocol allows community to write off bad debt without it permanently deflating the currency.
+**Implementation Status:** IMPLEMENTED
 
 ---
 
@@ -111,7 +102,6 @@ A bad actor creates 10 fake accounts to game the system.
 
 **Code Path:**
 ```javascript
-// When viewing a member's profile:
 const analysis = await OGLedger.analyzeTrustGraph('member_suspicious');
 // Returns:
 {
@@ -123,7 +113,7 @@ const analysis = await OGLedger.analyzeTrustGraph('member_suspicious');
 }
 ```
 
-**Key Insight:** The "Web of Trust" visualization exposes Sybil clusters. Legitimate members trade with diverse partners; fake clusters only trade with themselves. UI should show: *"⚠️ Verified by unknown cluster"* when encountering potential Sybils.
+**Implementation Status:** IMPLEMENTED
 
 ---
 
@@ -147,23 +137,10 @@ Alice pays Bob 15 CR for a basket of vegetables. Two days later, she discovers t
 | Problem Discovered | Alice finds rotten vegetables | Real-world event |
 | Dispute Created | Alice flags the transaction | `OGLedger.createDispute(txId, reason)` |
 | Reputation Impact | Bob's profile shows dispute | `getDisputeCount()` returns {open: 1} |
-| Social Pressure | Others see warning on Bob | "⚠️ 1 Unresolved Dispute" badge |
+| Social Pressure | Others see warning on Bob | "1 Unresolved Dispute" badge |
 | Resolution Options | Bob refunds OR dispute stays | `resolveDispute()` with 'refunded'/'dismissed' |
 
-**Code Path:**
-```javascript
-// Alice creates dispute:
-await OGLedger.createDispute('tx_12345_abc', 'Vegetables were rotten on delivery');
-
-// When anyone views Bob's profile:
-const disputes = await OGLedger.getDisputeCount('member_bob');
-// Returns: { open: 1, total: 1 }
-
-// If Bob refunds (creates new transaction back to Alice):
-await OGValidation.resolveDispute(db, 'dispute_xxx', 'refunded', ['member_bob']);
-```
-
-**Key Insight:** The ledger is immutable, but reputation is not. Disputes create *social* pressure rather than *technical* reversals. Bob is incentivized to resolve fairly to maintain his standing.
+**Implementation Status:** IMPLEMENTED
 
 ---
 
@@ -171,11 +148,6 @@ await OGValidation.resolveDispute(db, 'dispute_xxx', 'refunded', ['member_bob'])
 
 **The Situation:**
 Gran wants to send **5** credits for milk. She accidentally types **500** and hits send.
-
-**The Conflict:**
-- The recipient (honest or not) might accept it
-- Gran's account would be devastated
-- No central authority to "fix" the mistake
 
 **Expected Behavior:**
 
@@ -186,27 +158,14 @@ Gran wants to send **5** credits for milk. She accidentally types **500** and hi
 | Error Displayed | "CIRCUIT BREAKER" message | Transaction never created |
 | No Ledger Entry | Nothing to reverse | Protected at source |
 
-**Code Path:**
-```javascript
-// In OGLedger.createTransaction():
-const validation = OGValidation.validateTransactionAmount(500, balance, creditLimit);
-// Returns:
-{
-  valid: false,
-  error: 'CIRCUIT BREAKER: Transaction exceeds 100 credit limit. Split into smaller transactions.'
-}
-// Transaction BLOCKED - never reaches the ledger
-```
-
 **Configuration:**
 ```javascript
-// validation.js
 LIMITS: {
   MAX_TRANSACTION: 100,  // Circuit breaker threshold
 }
 ```
 
-**Key Insight:** The circuit breaker blocks catastrophic mistakes at the client level. For legitimate large purchases, users must split into multiple transactions (which also creates natural pause points for verification).
+**Implementation Status:** IMPLEMENTED
 
 ---
 
@@ -217,12 +176,6 @@ LIMITS: {
 **The Situation:**
 A storm knocks out the bridge and internet. The village is split into **East Side** and **West Side** for 3 days.
 
-**The Chaos:**
-- East trades with East (100 transactions)
-- West trades with West (80 transactions)
-- Some users exist on both sides (crossed before storm)
-- Transaction IDs may collide
-
 **Expected Behavior:**
 
 | Step | What Happens | Technical Mechanism |
@@ -232,32 +185,15 @@ A storm knocks out the bridge and internet. The village is split into **East Sid
 | Databases Merge | All transactions interleave | PouchDB replication protocol |
 | ID Collision | UUIDs prevent collision | `tx_${Date.now()}_${randomId}` format |
 | Balance Calculation | All transactions counted | `getBalance()` sums all confirmed tx |
-| Breach Detection | Post-sync validation runs | `runPostSyncValidation()` |
 
-**Code Path:**
-```javascript
-// When devices reconnect via P2P:
-// PouchDB sync event fires
-// Our handler calls:
-await OGLedger.runPostSyncValidation();
-// This detects any users who over-spent during the partition
-```
-
-**Key Insight:** CouchDB/PouchDB's replication protocol is designed for exactly this scenario. It uses Merkle trees to efficiently merge divergent histories. Transaction IDs include timestamps AND random components to prevent collision.
+**Implementation Status:** IMPLEMENTED (built into PouchDB)
 
 ---
 
 ### Scenario G: The "Zombie" Transaction (Interrupted Commit)
 
 **The Situation:**
-Alice sends a P2P transaction to Bob.
-
-**The Glitch:**
-- Bob's phone receives the transaction
-- Bob hits "Accept"
-- Battery dies EXACTLY before the write completes
-- Alice's phone shows: "Sent successfully!"
-- Bob's phone (when charged): Shows nothing
+Alice sends a P2P transaction to Bob. Bob's battery dies EXACTLY as he hits "Accept" but before his phone writes to disk.
 
 **The Problem:**
 - Alice: -10 CR (she signed the send)
@@ -273,34 +209,16 @@ Alice sends a P2P transaction to Bob.
 | Crash Occurs | Write never completes | IndexedDB transaction fails |
 | Bob Reboots | Transaction not in his DB | Pending tx lost |
 | Alice's View | Still shows "pending" | No confirmation received |
-| Resolution | Alice can re-send or cancel | Pending tx times out |
+| Resolution | Alice re-sends or waits for timeout | Pending tx expires |
 
-**Current Gap:**
-The current implementation doesn't have explicit timeout for pending transactions.
-
-**Recommended Enhancement:**
-```javascript
-// Add to validation.js:
-async function cleanupStalePendingTransactions(db, maxAgeHours = 24) {
-  const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000);
-  // Find pending tx older than cutoff
-  // Mark as 'expired' - credits returned to sender
-}
-```
-
-**Key Insight:** True atomic commits require both parties to write, which is impossible to guarantee across devices. Solution: Treat unconfirmed transactions as "pending" with timeout. Credits aren't "gone" - they're locked in sender's pending outbox.
+**Implementation Status:** PARTIAL - Needs pending transaction timeout
 
 ---
 
 ### Scenario H: The "Lost Key" (Hardware Failure)
 
 **The Situation:**
-Farmer Joe drops his phone in the cow trough. It is destroyed. He never backed up his recovery phrase.
-
-**The Crisis:**
-- Joe has +80 CR balance (80 hours of labor stored)
-- His private key is cryptographically locked on a dead device
-- No one can access or spend those credits
+Farmer Joe drops his phone in the cow trough. It is destroyed. He never backed up his recovery phrase. He has +80 CR balance.
 
 **Expected Behavior:**
 
@@ -315,87 +233,580 @@ Farmer Joe drops his phone in the cow trough. It is destroyed. He never backed u
 | Migration Executes | Balance transferred | `executeMigration()` |
 | Old Key Revoked | Cannot be used again | `status: 'revoked'` |
 
-**Code Path:**
+**Implementation Status:** IMPLEMENTED
+
+---
+
+# PART 2: ADDITIONAL SCENARIOS (NOT YET IMPLEMENTED)
+
+## Category 4: Advanced Technical Attacks
+
+### Scenario I: The "Time Traveler" (Clock Manipulation)
+
+**The Situation:**
+Malicious user sets their device clock back to an earlier date/time.
+
+**The Attack:**
+1. User sets clock to yesterday
+2. Creates transaction with old timestamp
+3. Attempts to reorder transaction history
+4. Could potentially manipulate balance calculations
+
+**Impact:**
+- Transaction ordering could be confused
+- Might bypass time-based validations
+- Could claim transactions happened before debts
+
+**Proposed Defense:**
 ```javascript
-// Joe contacts elders, gets new phone, generates new key
-const newPublicKey = await OGCrypto.getPublicKey();
+// In createTransaction():
+const serverTime = await getNetworkTime(); // Use NTP or peer consensus
+const localTime = new Date();
+const drift = Math.abs(serverTime - localTime);
 
-// Elder 1 creates migration request:
-const migration = await OGValidation.createMigrationRequest(
-  db,
-  'member_joe_old_id',
-  newPublicKey,
-  'member_elder1'
-);
-
-// Elders meet Joe physically, verify identity, sign:
-await OGValidation.signMigration(db, migration._id, 'member_elder1', sig1);
-await OGValidation.signMigration(db, migration._id, 'member_elder2', sig2);
-await OGValidation.signMigration(db, migration._id, 'member_elder3', sig3);
-// migration.status is now 'approved'
-
-// Execute the migration:
-const result = await OGValidation.executeMigration(db, migration._id);
-// Creates new member doc, transfers balance, revokes old key
+if (drift > MAX_CLOCK_DRIFT) {
+  throw new Error('Clock drift detected. Please sync your device time.');
+}
 ```
 
-**Security Notes:**
-- Requires MIN_ELDERS_FOR_RECOVERY (3) physical verifications
-- Old key is marked revoked (can never be used again)
-- Tenure (credit limit progression) transfers to new account
-- All historical transactions remain attributed to old ID
-
-**Key Insight:** Social recovery replaces "trustless" with "trust-in-community". The multi-sig requirement prevents a single compromised elder from stealing accounts. Physical verification prevents remote impersonation.
+**Implementation Status:** NOT IMPLEMENTED
 
 ---
 
-## Implementation Status
+### Scenario J: The "Replay Attack" (Transaction Duplication)
 
-| Scenario | Status | Implementation |
-|----------|--------|----------------|
-| A: Double Dip | ✅ Implemented | `detectLimitBreaches()`, `freezeAccount()` |
-| B: Exit Scam | ✅ Implemented | Entry limits + Jubilee protocol |
-| C: Sybil Attack | ✅ Implemented | `analyzeTrustGraph()` |
-| D: Disputes | ✅ Implemented | `createDispute()`, `getDisputeCount()` |
-| E: Fat Finger | ✅ Implemented | Circuit breaker (MAX_TRANSACTION: 100) |
-| F: Network Partition | ✅ Built-in | PouchDB replication handles this |
-| G: Zombie Transaction | ⚠️ Partial | Needs pending tx timeout |
-| H: Lost Key | ✅ Implemented | Phoenix account migration |
+**The Situation:**
+Attacker captures a valid signed transaction and attempts to submit it again.
 
----
+**The Attack:**
+1. Intercept a valid transaction (e.g., Alice -> Bob, 10 CR)
+2. Wait for original to be processed
+3. Submit the exact same transaction again
+4. Bob receives 20 CR instead of 10 CR
 
-## Testing Checklist
+**Current Protection:**
+- Transactions have unique IDs with timestamp + nonce
+- `receiveTransferQR()` checks for existing transaction
 
-### Day 1 Critical Tests
+**Proposed Enhancement:**
+```javascript
+// Add explicit nonce tracking per sender
+const usedNonces = await db.get('nonces_' + senderId);
+if (usedNonces.includes(tx.nonce)) {
+  throw new Error('Transaction already processed (replay detected)');
+}
+usedNonces.push(tx.nonce);
+await db.put({ _id: 'nonces_' + senderId, nonces: usedNonces });
+```
 
-- [ ] **Circuit Breaker:** Try to send 150 credits → Should be blocked
-- [ ] **Entry Limit:** New account tries to spend → Should be blocked (limit: 0)
-- [ ] **Frozen Account:** Freeze an account manually → Verify can't send
-
-### Week 1 Tests
-
-- [ ] **Double Spend Simulation:** Create conflicting offline transactions, sync, verify freeze
-- [ ] **Dispute Flow:** Create dispute, verify it shows on member profile
-- [ ] **Trust Graph:** Create isolated trading cluster, verify warning
-
-### Month 1 Tests
-
-- [ ] **Social Recovery:** Simulate lost phone, run full migration flow
-- [ ] **Jubilee Protocol:** Simulate abandoned debt, run full forgiveness flow
-- [ ] **Network Partition:** Two groups trade offline, merge, verify all transactions present
+**Implementation Status:** PARTIAL - Basic check exists, could be stronger
 
 ---
 
-## Configuration Reference
+### Scenario K: The "Man-in-the-Middle" (P2P Interception)
+
+**The Situation:**
+Attacker intercepts P2P WebRTC connection between two users.
+
+**The Attack:**
+1. Attacker positions between Alice and Bob's P2P connection
+2. Intercepts key exchange
+3. Decrypts, modifies, re-encrypts messages
+4. Could change transaction amounts or recipients
+
+**Current Protection:**
+- E2EE using NaCl box (X25519 + XSalsa20-Poly1305)
+- Key exchange happens at connection time
+
+**Proposed Enhancement:**
+```javascript
+// Add key verification step (show fingerprint to verify verbally)
+const fingerprint = await OGCrypto.getKeyFingerprint(peerPublicKey);
+// UI shows: "Verify with peer: XXXX-XXXX-XXXX"
+```
+
+**Implementation Status:** PARTIAL - E2EE exists, fingerprint verification not implemented
+
+---
+
+### Scenario L: The "Storage Bomb" (Database Corruption)
+
+**The Situation:**
+Attacker or bug causes database to grow uncontrollably or become corrupted.
+
+**The Attack:**
+1. Sync with malicious peer that has millions of fake transactions
+2. IndexedDB fills up browser storage quota
+3. App crashes or becomes unusable
+4. User loses all their data
+
+**Proposed Defense:**
+```javascript
+// Validate incoming sync data
+function validateSyncDocument(doc) {
+  if (doc.type === 'transaction' && doc.amount > LIMITS.MAX_TRANSACTION) {
+    return false; // Reject obviously invalid
+  }
+  if (doc._id.length > 100) {
+    return false; // Reject suspicious IDs
+  }
+  return true;
+}
+
+// In sync handler:
+db.sync(remote, {
+  filter: function(doc) {
+    return validateSyncDocument(doc);
+  }
+});
+```
+
+**Implementation Status:** NOT IMPLEMENTED
+
+---
+
+### Scenario M: The "Version Mismatch" (Protocol Incompatibility)
+
+**The Situation:**
+Users running different versions of the app try to sync.
+
+**The Problem:**
+- New version has different transaction format
+- Old version can't validate new signatures
+- Sync fails or produces corrupt data
+
+**Proposed Defense:**
+```javascript
+// Add version negotiation to P2P handshake
+const PROTOCOL_VERSION = '1.0.0';
+
+// During connection:
+if (peerVersion !== PROTOCOL_VERSION) {
+  if (!isCompatible(peerVersion, PROTOCOL_VERSION)) {
+    throw new Error(`Incompatible app version. You: ${PROTOCOL_VERSION}, Peer: ${peerVersion}`);
+  }
+}
+```
+
+**Implementation Status:** NOT IMPLEMENTED
+
+---
+
+## Category 5: Social/Economic Gaming
+
+### Scenario N: The "Credit Hoarder" (Deflationary Spiral)
+
+**The Situation:**
+Wealthy member accumulates +500 CR and refuses to spend, causing credit scarcity.
+
+**The Problem:**
+- Other members can't earn because no one is spending
+- Economy stagnates
+- New members can't participate
+
+**Proposed Defenses:**
+1. **Demurrage (negative interest):** Credits decay 1% per month
+2. **Maximum balance cap:** Can't accumulate more than +200 CR
+3. **Velocity incentives:** Discounts for frequent traders
+
+```javascript
+// Demurrage implementation
+async function applyDemurrage() {
+  const members = await getAllMembers();
+  for (const member of members) {
+    const balance = await getBalance(member._id);
+    if (balance > 0) {
+      const decay = Math.floor(balance * 0.01); // 1% decay
+      if (decay > 0) {
+        // Create demurrage transaction
+        await createDemurrageTransaction(member._id, decay);
+      }
+    }
+  }
+}
+```
+
+**Implementation Status:** NOT IMPLEMENTED
+
+---
+
+### Scenario O: The "Elder Corruption" (Governance Attack)
+
+**The Situation:**
+3 elders collude to abuse their multi-sig powers.
+
+**The Attack:**
+1. Three elders secretly agree to steal from a member
+2. Create fake "migration request" claiming member lost their phone
+3. Migrate balance to a controlled account
+4. Split the stolen credits
+
+**Proposed Defenses:**
+1. **Time lock:** Migration requires 7-day waiting period
+2. **Victim notification:** Original key holder gets push notification
+3. **Community veto:** Any 5 members can veto a migration
+4. **Elder rotation:** Elders must be re-elected annually
+
+```javascript
+// Time lock on migrations
+const MIGRATION_TIME_LOCK = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+async function executeMigration(migrationId) {
+  const migration = await db.get(migrationId);
+  const elapsed = Date.now() - new Date(migration.approved_at);
+
+  if (elapsed < MIGRATION_TIME_LOCK) {
+    throw new Error(`Migration locked. ${Math.ceil((MIGRATION_TIME_LOCK - elapsed) / 86400000)} days remaining.`);
+  }
+  // ... proceed with execution
+}
+```
+
+**Implementation Status:** NOT IMPLEMENTED
+
+---
+
+### Scenario P: The "Circular Wash" (Fake Activity)
+
+**The Situation:**
+Group creates circular transactions to inflate their apparent activity.
+
+**The Attack:**
+1. Alice sends 100 to Bob
+2. Bob sends 100 to Carol
+3. Carol sends 100 to Alice
+4. Repeat daily
+5. All three appear to be "active traders" with zero net economic activity
+
+**Detection Method:**
+```javascript
+async function detectCircularTrading(memberId, windowDays = 30) {
+  const txs = await getTransactions(memberId, { days: windowDays });
+
+  // Build flow graph
+  const inflow = {};
+  const outflow = {};
+
+  for (const tx of txs) {
+    if (tx.sender_id === memberId) {
+      outflow[tx.recipient_id] = (outflow[tx.recipient_id] || 0) + tx.amount;
+    } else {
+      inflow[tx.sender_id] = (inflow[tx.sender_id] || 0) + tx.amount;
+    }
+  }
+
+  // Check for balanced pairs (sign of wash trading)
+  const suspiciousPairs = [];
+  for (const partner in outflow) {
+    if (inflow[partner]) {
+      const ratio = Math.min(outflow[partner], inflow[partner]) /
+                    Math.max(outflow[partner], inflow[partner]);
+      if (ratio > 0.9) { // 90%+ balanced = suspicious
+        suspiciousPairs.push({ partner, ratio });
+      }
+    }
+  }
+
+  return { suspicious: suspiciousPairs.length > 0, pairs: suspiciousPairs };
+}
+```
+
+**Implementation Status:** NOT IMPLEMENTED
+
+---
+
+### Scenario Q: The "Shell Game" (Identity Fragmentation)
+
+**The Situation:**
+User maintains multiple legitimate-looking identities to game entry limits.
+
+**The Attack:**
+1. Create Account A (limit: 0)
+2. Wait 1 month, Account A limit becomes -10
+3. Create Account B (limit: 0)
+4. Transfer 10 CR from A to B
+5. Now A is at -10, B has +10
+6. Repeat with more accounts
+
+**Proposed Defense:**
+Device fingerprinting or social graph analysis
+
+```javascript
+// Track device fingerprints
+async function checkForDuplicateDevices(newMemberId) {
+  const fingerprint = await getDeviceFingerprint();
+  const existing = await db.query('members/by_fingerprint', { key: fingerprint });
+
+  if (existing.rows.length > 0) {
+    return {
+      warning: 'Device already has registered account',
+      existing_member: existing.rows[0].id
+    };
+  }
+}
+```
+
+**Implementation Status:** NOT IMPLEMENTED
+
+---
+
+## Category 6: Usability Edge Cases
+
+### Scenario R: The "Orphan Circle" (No Elders Available)
+
+**The Situation:**
+Small circle of 5 members. All 3 elders move away or become unavailable. New member needs a migration but can't get elder signatures.
+
+**Proposed Defense:**
+```javascript
+// Elder succession protocol
+async function nominateSuccessorElder(currentElderId, nomineeId) {
+  // Any elder can nominate their successor
+  // Requires community vote (majority of active members)
+}
+
+// Emergency elder election
+async function emergencyElderElection(circleId) {
+  const members = await getCircleMembers(circleId);
+  const activeElders = members.filter(m => m.role === 'elder' && m.status === 'active');
+
+  if (activeElders.length < 3) {
+    // Trigger emergency election
+    // Most active traders become interim elders
+  }
+}
+```
+
+**Implementation Status:** NOT IMPLEMENTED
+
+---
+
+### Scenario S: The "Cold Start" (Bootstrap Problem)
+
+**The Situation:**
+New community wants to start a circle. But to join, you need a vouch. But there are no members yet.
+
+**Current Solution:**
+- First member (creator) becomes Elder automatically
+- Creator can vouch for initial members
+
+**Proposed Enhancement:**
+```javascript
+// Bootstrap mode for new circles
+const circle = await createCircle('Village Circle');
+// Creator automatically becomes active elder
+// First 5 members need only creator vouch
+// After 5 members, normal vouch requirements apply
+```
+
+**Implementation Status:** PARTIAL - Creator becomes elder, but no explicit bootstrap mode
+
+---
+
+### Scenario T: The "Inheritance" (Member Death)
+
+**The Situation:**
+Member with +200 CR balance passes away. Family wants to claim the credits.
+
+**Proposed Protocol:**
+1. Family member contacts elders
+2. Provides proof of death (death certificate)
+3. Designates beneficiary
+4. Elders create special "inheritance migration"
+5. Balance transfers to beneficiary
+
+```javascript
+// Inheritance transfer type
+const inheritance = {
+  _id: `inherit_${Date.now()}`,
+  type: 'inheritance',
+  deceased_member_id: 'member_deceased',
+  beneficiary_member_id: 'member_heir',
+  death_certificate_hash: hashOf(certificate),
+  elder_signatures: [],
+  required_signatures: 3
+};
+```
+
+**Implementation Status:** NOT IMPLEMENTED
+
+---
+
+### Scenario U: The "Split Circle" (Community Schism)
+
+**The Situation:**
+Political dispute causes half the circle to want to leave and form their own circle.
+
+**The Problem:**
+- How do balances transfer?
+- What happens to debts owed across the split?
+- Who keeps the circle identity?
+
+**Proposed Protocol:**
+1. Fork creates new circle with subset of members
+2. Cross-circle debts become "foreign" obligations
+3. Members can settle debts before fork
+4. Unsettled debts are recorded as "external claims"
+
+**Implementation Status:** NOT IMPLEMENTED
+
+---
+
+## Category 7: Regulatory/External
+
+### Scenario V: The "Taxman Cometh" (Legal Compliance)
+
+**The Situation:**
+Tax authority demands records of all transactions for audit.
+
+**The Problem:**
+- Community credits may be taxable as barter income
+- Need export capability for compliance
+
+**Proposed Feature:**
+```javascript
+async function exportForTax(memberId, year) {
+  const txs = await getTransactions(memberId);
+  const yearTxs = txs.filter(tx =>
+    new Date(tx.created_at).getFullYear() === year
+  );
+
+  return {
+    member_handle: member.handle,
+    tax_year: year,
+    total_income: yearTxs.filter(tx => tx.recipient_id === memberId).reduce((sum, tx) => sum + tx.amount, 0),
+    total_expenses: yearTxs.filter(tx => tx.sender_id === memberId).reduce((sum, tx) => sum + tx.amount, 0),
+    transactions: yearTxs.map(tx => ({
+      date: tx.created_at,
+      counterparty: tx.sender_id === memberId ? tx.recipient_id : tx.sender_id,
+      amount: tx.amount,
+      description: tx.description,
+      type: tx.sender_id === memberId ? 'expense' : 'income'
+    }))
+  };
+}
+```
+
+**Implementation Status:** NOT IMPLEMENTED
+
+---
+
+### Scenario W: The "Data Request" (GDPR/Privacy)
+
+**The Situation:**
+Member invokes right to be forgotten (GDPR Article 17).
+
+**The Problem:**
+- Ledger is designed to be immutable
+- But user has legal right to data deletion
+
+**Proposed Approach:**
+- Personal data (handle, profile) can be anonymized
+- Transaction history preserved but de-identified
+- "Deleted Member #12345" replaces actual identity
+
+```javascript
+async function anonymizeMember(memberId) {
+  const member = await getMember(memberId);
+  const anonId = `anon_${Date.now()}`;
+
+  member.handle = 'Deleted Member';
+  member.public_key = 'REDACTED';
+  member.status = 'anonymized';
+  member.anonymized_at = new Date().toISOString();
+
+  await db.put(member);
+  // Transactions remain with member_id intact but profile is gone
+}
+```
+
+**Implementation Status:** NOT IMPLEMENTED
+
+---
+
+### Scenario X: The "Fiat Bridge" (Currency Exchange)
+
+**The Situation:**
+Member wants to convert credits to/from government currency.
+
+**The Risk:**
+- Exchange rate manipulation
+- Money laundering concerns
+- Regulatory licensing requirements
+
+**Proposed Approach:**
+- No official exchange rate
+- P2P marketplace for exchange (like LocalBitcoins)
+- Disclaimer: "Exchange at your own risk"
+- No platform-facilitated fiat conversion
+
+**Implementation Status:** OUT OF SCOPE (intentionally)
+
+---
+
+# PART 3: IMPLEMENTATION PRIORITY MATRIX
+
+## Critical (Day 1)
+
+| Scenario | Risk Level | Implemented |
+|----------|------------|-------------|
+| E: Fat Finger | HIGH | YES |
+| B: Exit Scam (Entry Limits) | HIGH | YES |
+| A: Double Dip (Freeze) | HIGH | YES |
+
+## Important (Week 1)
+
+| Scenario | Risk Level | Implemented |
+|----------|------------|-------------|
+| D: Disputes | MEDIUM | YES |
+| C: Sybil Attack | MEDIUM | YES |
+| H: Lost Key (Recovery) | MEDIUM | YES |
+| G: Zombie Transaction | MEDIUM | PARTIAL |
+
+## Enhancement (Month 1)
+
+| Scenario | Risk Level | Implemented |
+|----------|------------|-------------|
+| I: Time Traveler | LOW | NO |
+| J: Replay Attack | LOW | PARTIAL |
+| K: Man-in-the-Middle | LOW | PARTIAL |
+| M: Version Mismatch | LOW | NO |
+
+## Future Consideration
+
+| Scenario | Risk Level | Implemented |
+|----------|------------|-------------|
+| N: Credit Hoarder | LOW | NO |
+| O: Elder Corruption | MEDIUM | NO |
+| P: Circular Wash | LOW | NO |
+| Q: Shell Game | LOW | NO |
+| R: Orphan Circle | LOW | NO |
+| S: Cold Start | LOW | PARTIAL |
+| T: Inheritance | LOW | NO |
+| U: Split Circle | LOW | NO |
+| V: Tax Export | LOW | NO |
+| W: GDPR/Privacy | MEDIUM | NO |
+| X: Fiat Bridge | N/A | OUT OF SCOPE |
+
+---
+
+# PART 4: CONFIGURATION REFERENCE
 
 ```javascript
 // validation.js - Key parameters
 const LIMITS = {
-  MAX_TRANSACTION: 100,                    // Circuit breaker
-  NEW_MEMBER_CREDIT_LIMIT: 0,              // Entry limit (earn before spend)
-  MIN_ELDERS_FOR_RECOVERY: 3,              // Phoenix account requirement
-  MIN_ELDERS_FOR_FORGIVENESS: 3,           // Jubilee requirement
-  FREEZE_THRESHOLD: 0,                      // Any breach triggers freeze
+  // Circuit breaker - max single transaction
+  MAX_TRANSACTION: 100,
+
+  // Entry limits
+  NEW_MEMBER_CREDIT_LIMIT: 0,
+
+  // Multi-sig requirements
+  MIN_ELDERS_FOR_RECOVERY: 3,
+  MIN_ELDERS_FOR_FORGIVENESS: 3,
+
+  // Breach detection
+  FREEZE_THRESHOLD: 0,
 
   // Credit limit progression
   CREDIT_LIMIT_PROGRESSION: [
@@ -410,6 +821,32 @@ const LIMITS = {
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: 2026-01-06*
-*Prepared by: Sentinel Analysis Module*
+# PART 5: TESTING CHECKLIST
+
+## Pre-Launch Critical
+
+- [ ] Circuit Breaker: Send 150 CR -> BLOCKED
+- [ ] Entry Limit: New user sends 1 CR -> BLOCKED
+- [ ] Frozen Account: Freeze account, try to send -> BLOCKED
+- [ ] Double Spend: Create conflicting offline tx, sync, verify freeze
+
+## Week 1 Tests
+
+- [ ] Dispute Flow: Create, view on profile, resolve
+- [ ] Trust Graph: Create isolated cluster, verify warning
+- [ ] Social Recovery: Full migration flow with 3 elders
+- [ ] Jubilee: Full debt forgiveness flow
+
+## Ongoing Monitoring
+
+- [ ] Watch for isolated trading clusters (Sybil)
+- [ ] Monitor account freeze events
+- [ ] Track dispute resolution rates
+- [ ] Audit elder actions quarterly
+
+---
+
+**Document Version:** 2.0
+**Last Updated:** 2026-01-06
+**Prepared by:** Sentinel Analysis Module
+**Total Scenarios:** 24
