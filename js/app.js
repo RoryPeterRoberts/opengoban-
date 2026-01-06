@@ -39,6 +39,7 @@ const OGApp = (function() {
         showApp();
         updateBalance();
         loadTransactions();
+        autoConnectSync();
       } else {
         // Has keys but no member record - recovery needed
         showScreen('setup');
@@ -60,6 +61,24 @@ const OGApp = (function() {
 
     window.addEventListener('tc-transaction-received', (e) => {
       showToast(`Received ${e.detail.amount} credits!`, 'success');
+      updateBalance();
+      loadTransactions();
+    });
+
+    // Listen for sync events
+    window.addEventListener('tc-sync-status', (e) => {
+      const syncStatus = document.getElementById('sync-status');
+      if (syncStatus) {
+        syncStatus.textContent = e.detail.online ? 'Synced' : 'Offline';
+      }
+      const syncDot = document.querySelector('.sync-dot');
+      if (syncDot) {
+        syncDot.style.background = e.detail.online ? 'var(--color-success)' : 'var(--color-muted)';
+      }
+    });
+
+    window.addEventListener('tc-sync-change', (e) => {
+      // Refresh data when sync brings new changes
       updateBalance();
       loadTransactions();
     });
@@ -711,6 +730,100 @@ const OGApp = (function() {
   }
 
   // ========================================
+  // CLOUD SYNC
+  // ========================================
+
+  let syncActive = false;
+
+  /**
+   * Connect to remote sync
+   */
+  function connectSync() {
+    const urlInput = document.getElementById('sync-url-input');
+    const url = urlInput?.value?.trim();
+
+    if (!url) {
+      showToast('Please enter a sync URL', 'error');
+      return;
+    }
+
+    try {
+      OGLedger.startSync(url);
+      syncActive = true;
+
+      // Save URL for auto-reconnect
+      localStorage.setItem('og_sync_url', url);
+
+      // Update UI
+      updateSyncUI(true);
+      showToast('Sync connected!', 'success');
+
+    } catch (err) {
+      console.error('[App] Sync connect failed:', err);
+      showToast('Sync failed: ' + err.message, 'error');
+    }
+  }
+
+  /**
+   * Disconnect from remote sync
+   */
+  function disconnectSync() {
+    OGLedger.stopSync();
+    syncActive = false;
+
+    // Clear saved URL
+    localStorage.removeItem('og_sync_url');
+
+    // Update UI
+    updateSyncUI(false);
+    showToast('Sync disconnected', 'info');
+  }
+
+  /**
+   * Update sync UI state
+   */
+  function updateSyncUI(connected) {
+    const statusText = document.getElementById('sync-status-text');
+    const connectBtn = document.getElementById('sync-connect-btn');
+    const disconnectBtn = document.getElementById('sync-disconnect-btn');
+    const urlInput = document.getElementById('sync-url-input');
+
+    if (connected) {
+      if (statusText) statusText.textContent = 'Connected';
+      if (statusText) statusText.style.color = 'var(--color-success)';
+      if (connectBtn) connectBtn.classList.add('hidden');
+      if (disconnectBtn) disconnectBtn.classList.remove('hidden');
+      if (urlInput) urlInput.disabled = true;
+    } else {
+      if (statusText) statusText.textContent = 'Not connected';
+      if (statusText) statusText.style.color = '';
+      if (connectBtn) connectBtn.classList.remove('hidden');
+      if (disconnectBtn) disconnectBtn.classList.add('hidden');
+      if (urlInput) urlInput.disabled = false;
+    }
+  }
+
+  /**
+   * Auto-connect to saved sync URL
+   */
+  function autoConnectSync() {
+    const savedUrl = localStorage.getItem('og_sync_url');
+    if (savedUrl) {
+      const urlInput = document.getElementById('sync-url-input');
+      if (urlInput) urlInput.value = savedUrl;
+
+      try {
+        OGLedger.startSync(savedUrl);
+        syncActive = true;
+        updateSyncUI(true);
+        console.log('[App] Auto-connected to sync');
+      } catch (err) {
+        console.error('[App] Auto-connect failed:', err);
+      }
+    }
+  }
+
+  // ========================================
   // MODALS
   // ========================================
 
@@ -866,6 +979,17 @@ const OGApp = (function() {
     const restoreSubmitBtn = document.getElementById('restore-submit-btn');
     if (restoreSubmitBtn) {
       restoreSubmitBtn.addEventListener('click', restoreFromBackup);
+    }
+
+    // Sync buttons
+    const syncConnectBtn = document.getElementById('sync-connect-btn');
+    if (syncConnectBtn) {
+      syncConnectBtn.addEventListener('click', connectSync);
+    }
+
+    const syncDisconnectBtn = document.getElementById('sync-disconnect-btn');
+    if (syncDisconnectBtn) {
+      syncDisconnectBtn.addEventListener('click', disconnectSync);
     }
 
     // Modal close buttons

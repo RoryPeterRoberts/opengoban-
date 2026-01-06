@@ -164,6 +164,24 @@
         </div>
 
         <div class="card">
+          <h3 class="card-title">Cloud Sync</h3>
+          <p class="text-muted" style="font-size: 0.875rem; margin-bottom: var(--spacing-md);">
+            Sync with other devices via CouchDB/Cloudant.
+          </p>
+          <div id="sync-status-display" class="mb-sm" style="font-size: 0.875rem;">
+            <span id="sync-status-text">Not connected</span>
+          </div>
+          <input
+            type="url"
+            id="sync-url-input"
+            class="form-input mb-sm"
+            placeholder="https://user:pass@account.cloudant.com/dbname"
+          >
+          <button id="sync-connect-btn" class="btn btn-primary btn-block">Connect</button>
+          <button id="sync-disconnect-btn" class="btn btn-secondary btn-block mt-sm hidden">Disconnect</button>
+        </div>
+
+        <div class="card">
           <h3 class="card-title">Identity Backup</h3>
           <p class="text-muted" style="font-size: 0.875rem; margin-bottom: var(--spacing-md);">
             Save your identity to restore if you clear browser data or switch devices.
