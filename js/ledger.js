@@ -65,7 +65,7 @@ const OGLedger = (function() {
     }
 
     const circle = {
-      _id: `circle_${TCCrypto.generateId()}`,
+      _id: `circle_${OGCrypto.generateId()}`,
       type: 'circle',
       name: name,
       description: description,
