@@ -655,7 +655,7 @@ const OGApp = (function() {
 
       // Stop scanner if it was the scanner modal
       if (modalId === 'scanner-modal') {
-        TCQR.stopScanner();
+        OGQR.stopScanner();
       }
     }
   }
