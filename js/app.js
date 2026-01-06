@@ -936,11 +936,15 @@ const OGApp = (function() {
 
       case 'connected':
         showP2PConnectedMode();
-        document.getElementById('p2p-sync-status').textContent = 'Connected! Starting sync...';
+        document.getElementById('p2p-sync-status').textContent = 'Connected! Exchanging keys...';
+        break;
+
+      case 'encrypted':
+        document.getElementById('p2p-sync-status').innerHTML = '&#128274; Encrypted connection established';
         break;
 
       case 'syncing':
-        document.getElementById('p2p-sync-status').textContent = 'Syncing data...';
+        document.getElementById('p2p-sync-status').innerHTML = '&#128274; Syncing data (encrypted)...';
         break;
 
       case 'complete':

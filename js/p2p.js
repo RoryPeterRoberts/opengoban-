@@ -13,6 +13,10 @@ const OGP2P = (function() {
   let connection = null;
   let syncInProgress = false;
 
+  // E2EE: Store peer's encryption public key
+  let peerEncryptionPubKey = null;
+  let e2eeEnabled = true; // Can be disabled for debugging
+
   // Callbacks
   let onStatusChange = null;
   let onSyncComplete = null;
@@ -138,12 +142,26 @@ const OGP2P = (function() {
    * Set up connection event handlers
    */
   function setupConnection(conn) {
-    conn.on('open', () => {
+    conn.on('open', async () => {
       console.log('[P2P] Connection opened');
       updateStatus('connected');
 
-      // Start sync automatically
-      initiateSync();
+      // E2EE: Send our encryption public key first
+      if (e2eeEnabled) {
+        try {
+          const myEncPubKey = await OGCrypto.getEncryptionPublicKey();
+          conn.send({
+            type: 'key-exchange',
+            encryptionPubKey: myEncPubKey
+          });
+          console.log('[P2P] Sent encryption key');
+        } catch (err) {
+          console.error('[P2P] Failed to send encryption key:', err);
+        }
+      } else {
+        // No E2EE, start sync immediately
+        initiateSync();
+      }
     });
 
     conn.on('data', (data) => {
@@ -175,6 +193,7 @@ const OGP2P = (function() {
       peer = null;
     }
     syncInProgress = false;
+    peerEncryptionPubKey = null; // Reset E2EE state
     updateStatus('idle');
     console.log('[P2P] Disconnected');
   }
@@ -221,9 +240,25 @@ const OGP2P = (function() {
    * Handle incoming messages
    */
   async function handleMessage(data) {
+    // Handle encrypted messages
+    if (data.type === 'encrypted' && data.version === 1) {
+      try {
+        const decrypted = await OGCrypto.decryptSyncData(data);
+        console.log('[P2P] Decrypted message:', decrypted.type);
+        return handleMessage(decrypted); // Process decrypted message
+      } catch (err) {
+        console.error('[P2P] Failed to decrypt message:', err);
+        return;
+      }
+    }
+
     console.log('[P2P] Received:', data.type);
 
     switch (data.type) {
+      case 'key-exchange':
+        await handleKeyExchange(data);
+        break;
+
       case 'sync-request':
         await handleSyncRequest(data);
         break;
@@ -243,6 +278,31 @@ const OGP2P = (function() {
       default:
         console.warn('[P2P] Unknown message type:', data.type);
     }
+  }
+
+  /**
+   * Handle key exchange from peer
+   */
+  async function handleKeyExchange(data) {
+    peerEncryptionPubKey = data.encryptionPubKey;
+    console.log('[P2P] Received peer encryption key');
+
+    // If we haven't sent our key yet, send it now
+    if (e2eeEnabled && connection && connection.open) {
+      const myEncPubKey = await OGCrypto.getEncryptionPublicKey();
+      // Only send if this is a response (peer initiated)
+      // Check if we already sent by seeing if sync is in progress
+      if (!syncInProgress) {
+        connection.send({
+          type: 'key-exchange',
+          encryptionPubKey: myEncPubKey
+        });
+      }
+    }
+
+    // Now that we have keys, start sync
+    updateStatus('encrypted');
+    initiateSync();
   }
 
   /**
@@ -391,12 +451,27 @@ const OGP2P = (function() {
 
   /**
    * Send a message to the peer
+   * Encrypts the message if E2EE is enabled and we have peer's key
    */
-  function sendMessage(data) {
-    if (connection && connection.open) {
-      connection.send(data);
-    } else {
+  async function sendMessage(data) {
+    if (!connection || !connection.open) {
       console.warn('[P2P] Cannot send - no connection');
+      return;
+    }
+
+    // Encrypt if E2EE is enabled and we have peer's key
+    // Don't encrypt key-exchange messages themselves
+    if (e2eeEnabled && peerEncryptionPubKey && data.type !== 'key-exchange') {
+      try {
+        const encrypted = await OGCrypto.encryptSyncData(data, peerEncryptionPubKey);
+        connection.send(encrypted);
+        console.log('[P2P] Sent encrypted:', data.type);
+      } catch (err) {
+        console.error('[P2P] Encryption failed, sending unencrypted:', err);
+        connection.send(data);
+      }
+    } else {
+      connection.send(data);
     }
   }
 
@@ -442,6 +517,13 @@ const OGP2P = (function() {
     return syncInProgress;
   }
 
+  /**
+   * Check if E2EE is active (keys exchanged)
+   */
+  function isEncrypted() {
+    return e2eeEnabled && peerEncryptionPubKey !== null;
+  }
+
   // ========================================
   // PUBLIC API
   // ========================================
@@ -453,6 +535,7 @@ const OGP2P = (function() {
     disconnect,
     isConnected,
     isSyncing,
+    isEncrypted,
 
     // Callbacks
     setOnStatusChange,

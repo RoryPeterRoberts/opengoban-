@@ -323,6 +323,162 @@ const OGCrypto = (function() {
   }
 
   // ========================================
+  // END-TO-END ENCRYPTION (E2EE)
+  // ========================================
+
+  /**
+   * Convert Ed25519 public key to X25519 (Curve25519) for encryption
+   * NaCl box uses X25519, not Ed25519
+   */
+  function ed25519PublicKeyToX25519(ed25519PubKey) {
+    // TweetNaCl doesn't have built-in conversion, but we can use the box keypair
+    // For now, we'll use a separate X25519 keypair stored alongside Ed25519
+    // This is the safest approach
+    throw new Error('Use getEncryptionPublicKey() instead');
+  }
+
+  /**
+   * Generate or retrieve X25519 keypair for encryption
+   * Stored separately from Ed25519 signing keys
+   */
+  async function ensureEncryptionKeypair() {
+    let encSecretKey = await getKey('encryptionSecretKey');
+    let encPublicKey = await getKey('encryptionPublicKey');
+
+    if (!encSecretKey || !encPublicKey) {
+      // Generate new X25519 keypair
+      const keypair = nacl.box.keyPair();
+      await storeKey('encryptionSecretKey', keypair.secretKey);
+      await storeKey('encryptionPublicKey', keypair.publicKey);
+      encSecretKey = keypair.secretKey;
+      encPublicKey = keypair.publicKey;
+      console.log('[Crypto] Generated new encryption keypair');
+    }
+
+    return { secretKey: encSecretKey, publicKey: encPublicKey };
+  }
+
+  /**
+   * Get the public encryption key (X25519) as base64
+   * This is shared with others so they can encrypt messages for you
+   */
+  async function getEncryptionPublicKey() {
+    const keypair = await ensureEncryptionKeypair();
+    return encodeBase64(keypair.publicKey);
+  }
+
+  /**
+   * Encrypt a message for a specific recipient
+   * Only the recipient's private key can decrypt this
+   * @param {string|object} message - Message to encrypt
+   * @param {string} recipientEncryptionPubKey - Recipient's X25519 public key (base64)
+   * @returns {Promise<string>} Encrypted message as base64 with nonce prepended
+   */
+  async function encryptForRecipient(message, recipientEncryptionPubKey) {
+    const keypair = await ensureEncryptionKeypair();
+
+    // Convert message to bytes
+    const messageStr = typeof message === 'string'
+      ? message
+      : JSON.stringify(message);
+    const messageBytes = new TextEncoder().encode(messageStr);
+
+    // Decode recipient's public key
+    const recipientPubKeyBytes = decodeBase64(recipientEncryptionPubKey);
+
+    // Generate random nonce
+    const nonce = nacl.randomBytes(nacl.box.nonceLength);
+
+    // Encrypt with NaCl box (X25519 + XSalsa20-Poly1305)
+    const encrypted = nacl.box(
+      messageBytes,
+      nonce,
+      recipientPubKeyBytes,
+      keypair.secretKey
+    );
+
+    if (!encrypted) {
+      throw new Error('Encryption failed');
+    }
+
+    // Combine nonce + ciphertext
+    const combined = new Uint8Array(nonce.length + encrypted.length);
+    combined.set(nonce, 0);
+    combined.set(encrypted, nonce.length);
+
+    return encodeBase64(combined);
+  }
+
+  /**
+   * Decrypt a message from a sender
+   * @param {string} encryptedBase64 - Encrypted message (nonce + ciphertext as base64)
+   * @param {string} senderEncryptionPubKey - Sender's X25519 public key (base64)
+   * @returns {Promise<string>} Decrypted message
+   */
+  async function decryptFromSender(encryptedBase64, senderEncryptionPubKey) {
+    const keypair = await ensureEncryptionKeypair();
+
+    // Decode
+    const combined = decodeBase64(encryptedBase64);
+    const senderPubKeyBytes = decodeBase64(senderEncryptionPubKey);
+
+    // Extract nonce and ciphertext
+    const nonce = combined.slice(0, nacl.box.nonceLength);
+    const ciphertext = combined.slice(nacl.box.nonceLength);
+
+    // Decrypt
+    const decrypted = nacl.box.open(
+      ciphertext,
+      nonce,
+      senderPubKeyBytes,
+      keypair.secretKey
+    );
+
+    if (!decrypted) {
+      throw new Error('Decryption failed - wrong key or corrupted data');
+    }
+
+    return new TextDecoder().decode(decrypted);
+  }
+
+  /**
+   * Encrypt sync data (for P2P transfer)
+   * Creates an envelope with encrypted content and routing info
+   * @param {object} data - Data to encrypt
+   * @param {string} recipientEncryptionPubKey - Recipient's encryption public key
+   * @returns {Promise<object>} Encrypted envelope
+   */
+  async function encryptSyncData(data, recipientEncryptionPubKey) {
+    const myEncPubKey = await getEncryptionPublicKey();
+    const encrypted = await encryptForRecipient(data, recipientEncryptionPubKey);
+
+    return {
+      version: 1,
+      type: 'encrypted',
+      senderEncPubKey: myEncPubKey,
+      payload: encrypted
+    };
+  }
+
+  /**
+   * Decrypt sync data (from P2P transfer)
+   * @param {object} envelope - Encrypted envelope from encryptSyncData
+   * @returns {Promise<object>} Decrypted data
+   */
+  async function decryptSyncData(envelope) {
+    if (envelope.version !== 1 || envelope.type !== 'encrypted') {
+      throw new Error('Unknown envelope format');
+    }
+
+    const decrypted = await decryptFromSender(
+      envelope.payload,
+      envelope.senderEncPubKey
+    );
+
+    return JSON.parse(decrypted);
+  }
+
+  // ========================================
   // BACKUP & RESTORE
   // ========================================
 
@@ -523,6 +679,13 @@ const OGCrypto = (function() {
     signTransactionAsRecipient,
     verifyTransactionSignature,
     canonicalTransactionMessage,
+
+    // End-to-End Encryption (E2EE)
+    getEncryptionPublicKey,
+    encryptForRecipient,
+    decryptFromSender,
+    encryptSyncData,
+    decryptSyncData,
 
     // Utilities
     encodeBase64,
