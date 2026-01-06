@@ -374,6 +374,108 @@ const OGApp = (function() {
   }
 
   // ========================================
+  // SEND FLOW
+  // ========================================
+
+  // Store selected recipient
+  let selectedRecipient = null;
+
+  /**
+   * Open send modal (reset state)
+   */
+  function openSendModal() {
+    clearRecipient();
+    document.getElementById('send-amount').value = '';
+    document.getElementById('send-description').value = '';
+    showModal('send-modal');
+  }
+
+  /**
+   * Scan recipient's QR code
+   */
+  async function scanRecipient() {
+    const hasCamera = await OGQR.hasCamera();
+    if (!hasCamera) {
+      showToast('No camera available', 'error');
+      return;
+    }
+
+    // Close send modal temporarily
+    closeModal('send-modal');
+    showModal('scanner-modal');
+
+    OGQR.startScanner('scanner-video', async (data) => {
+      OGQR.stopScanner();
+      closeModal('scanner-modal');
+
+      try {
+        const parsed = OGQR.parseQR(data);
+
+        if (parsed.type === 'member') {
+          // Got a member QR - set as recipient
+          setRecipient(parsed.member.id, parsed.member.handle);
+          showModal('send-modal');
+        } else {
+          showToast('Please scan a member ID QR code', 'error');
+          showModal('send-modal');
+        }
+      } catch (err) {
+        console.error('[App] Scan recipient error:', err);
+        showToast('Failed to read QR: ' + err.message, 'error');
+        showModal('send-modal');
+      }
+    }, (err) => {
+      console.error('[App] Scanner error:', err);
+      showToast('Camera error: ' + err.message, 'error');
+      closeModal('scanner-modal');
+      showModal('send-modal');
+    });
+  }
+
+  /**
+   * Set the selected recipient
+   */
+  function setRecipient(id, handle) {
+    selectedRecipient = { id, handle };
+
+    // Update hidden input
+    document.getElementById('send-recipient').value = id;
+
+    // Show recipient display
+    document.getElementById('recipient-display').classList.remove('hidden');
+    document.getElementById('scan-recipient-btn').classList.add('hidden');
+    document.getElementById('recipient-handle').textContent = handle || 'Unknown';
+    document.getElementById('recipient-id-display').textContent = id.substring(0, 20) + '...';
+    document.getElementById('recipient-avatar').textContent = (handle || '?').charAt(0).toUpperCase();
+
+    // Enable submit button
+    const submitBtn = document.getElementById('send-submit-btn');
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Generate QR Code';
+
+    showToast('Recipient: ' + handle, 'success');
+  }
+
+  /**
+   * Clear the selected recipient
+   */
+  function clearRecipient() {
+    selectedRecipient = null;
+
+    // Clear hidden input
+    document.getElementById('send-recipient').value = '';
+
+    // Hide recipient display, show scan button
+    document.getElementById('recipient-display').classList.add('hidden');
+    document.getElementById('scan-recipient-btn').classList.remove('hidden');
+
+    // Disable submit button
+    const submitBtn = document.getElementById('send-submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Scan recipient first';
+  }
+
+  // ========================================
   // MODALS
   // ========================================
 
@@ -477,6 +579,18 @@ const OGApp = (function() {
       myQRBtn.addEventListener('click', showMyQR);
     }
 
+    // Scan Recipient button (in Send modal)
+    const scanRecipientBtn = document.getElementById('scan-recipient-btn');
+    if (scanRecipientBtn) {
+      scanRecipientBtn.addEventListener('click', scanRecipient);
+    }
+
+    // Clear Recipient button
+    const clearRecipientBtn = document.getElementById('clear-recipient-btn');
+    if (clearRecipientBtn) {
+      clearRecipientBtn.addEventListener('click', clearRecipient);
+    }
+
     // Modal close buttons
     document.querySelectorAll('.modal-close').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -507,8 +621,12 @@ const OGApp = (function() {
         const amount = document.getElementById('send-amount')?.value;
         const description = document.getElementById('send-description')?.value?.trim();
 
-        if (!recipientId || !amount) {
-          showToast('Please fill in recipient and amount', 'error');
+        if (!recipientId) {
+          showToast('Please scan a recipient first', 'error');
+          return;
+        }
+        if (!amount || amount <= 0) {
+          showToast('Please enter an amount', 'error');
           return;
         }
 
