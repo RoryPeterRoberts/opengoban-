@@ -124,6 +124,41 @@ const OGApp = (function() {
       document.querySelectorAll('.nav-item').forEach(n => {
         n.classList.toggle('active', n.dataset.screen === screenId);
       });
+
+      // Load screen-specific data
+      if (screenId === 'settings') {
+        loadSettingsScreen();
+      }
+    }
+  }
+
+  /**
+   * Load settings screen data
+   */
+  async function loadSettingsScreen() {
+    const member = OGLedger.getCurrentMember();
+
+    // Update handle display
+    const handleEl = document.getElementById('my-handle');
+    if (handleEl) {
+      handleEl.textContent = member?.handle || 'No identity';
+    }
+
+    // Update public key display
+    const pkEl = document.getElementById('my-public-key');
+    if (pkEl && member) {
+      pkEl.textContent = member.public_key || '';
+    }
+
+    // Update circle info
+    const circleEl = document.getElementById('my-circle');
+    if (circleEl) {
+      if (member?.circle_id) {
+        const circle = await OGLedger.getCircle(member.circle_id);
+        circleEl.textContent = circle?.name || member.circle_id;
+      } else {
+        circleEl.textContent = 'Not in a circle yet';
+      }
     }
   }
 
