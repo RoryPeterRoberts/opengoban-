@@ -325,16 +325,10 @@ const OGApp = (function() {
   /**
    * Open QR scanner
    */
-  async function openScanner() {
-    const hasCamera = await OGQR.hasCamera();
-    if (!hasCamera) {
-      showToast('No camera available', 'error');
-      return;
-    }
-
+  function openScanner() {
     showModal('scanner-modal');
 
-    // Start scanning
+    // Start scanning immediately (no async before getUserMedia for iOS)
     OGQR.startScanner('scanner-video', async (data) => {
       OGQR.stopScanner();
       closeModal('scanner-modal');
@@ -429,17 +423,12 @@ const OGApp = (function() {
   /**
    * Scan recipient's QR code
    */
-  async function scanRecipient() {
-    const hasCamera = await OGQR.hasCamera();
-    if (!hasCamera) {
-      showToast('No camera available', 'error');
-      return;
-    }
-
+  function scanRecipient() {
     // Close send modal temporarily
     closeModal('send-modal');
     showModal('scanner-modal');
 
+    // Start scanning immediately (no async before getUserMedia for iOS)
     OGQR.startScanner('scanner-video', async (data) => {
       OGQR.stopScanner();
       closeModal('scanner-modal');
@@ -486,6 +475,7 @@ const OGApp = (function() {
     // Show recipient display
     document.getElementById('recipient-display').classList.remove('hidden');
     document.getElementById('scan-recipient-btn').classList.add('hidden');
+    document.getElementById('paste-recipient-btn').classList.add('hidden');
     document.getElementById('recipient-handle').textContent = handle || 'Unknown';
     document.getElementById('recipient-id-display').textContent = id.substring(0, 20) + '...';
     document.getElementById('recipient-avatar').textContent = (handle || '?').charAt(0).toUpperCase();
@@ -510,11 +500,93 @@ const OGApp = (function() {
     // Hide recipient display, show scan button
     document.getElementById('recipient-display').classList.add('hidden');
     document.getElementById('scan-recipient-btn').classList.remove('hidden');
+    document.getElementById('paste-recipient-btn').classList.remove('hidden');
 
     // Disable submit button
     const submitBtn = document.getElementById('send-submit-btn');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Scan recipient first';
+  }
+
+  /**
+   * Copy my member ID to clipboard (for sharing when camera unavailable)
+   */
+  async function copyMyId() {
+    const member = OGLedger.getCurrentMember();
+    if (!member) {
+      showToast('No member data', 'error');
+      return;
+    }
+
+    // Create a shareable payload (same as QR but as text)
+    const payload = OGQR.createMemberPayload(
+      member._id,
+      member.handle,
+      member.public_key,
+      member.circle_id
+    );
+
+    try {
+      await navigator.clipboard.writeText(payload);
+      showToast('ID copied! Share via message.', 'success');
+    } catch (err) {
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = payload;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showToast('ID copied! Share via message.', 'success');
+    }
+  }
+
+  /**
+   * Paste recipient ID from clipboard
+   */
+  async function pasteRecipientId() {
+    try {
+      const text = await navigator.clipboard.readText();
+
+      // Try to parse as member payload
+      const parsed = OGQR.parseQR(text);
+
+      if (parsed && parsed.type === 'member') {
+        // Save to local DB
+        await OGLedger.saveScannedMember(
+          parsed.member.id,
+          parsed.member.handle,
+          parsed.member.publicKey,
+          parsed.member.circleId
+        );
+        setRecipient(parsed.member.id, parsed.member.handle);
+        showToast('Recipient set: ' + parsed.member.handle, 'success');
+      } else {
+        showToast('Invalid ID format. Copy from "My ID" screen.', 'error');
+      }
+    } catch (err) {
+      // Clipboard read failed - show manual input prompt
+      const text = prompt('Paste the member ID here:');
+      if (text) {
+        try {
+          const parsed = OGQR.parseQR(text);
+          if (parsed && parsed.type === 'member') {
+            await OGLedger.saveScannedMember(
+              parsed.member.id,
+              parsed.member.handle,
+              parsed.member.publicKey,
+              parsed.member.circleId
+            );
+            setRecipient(parsed.member.id, parsed.member.handle);
+            showToast('Recipient set: ' + parsed.member.handle, 'success');
+          } else {
+            showToast('Invalid ID format', 'error');
+          }
+        } catch (e) {
+          showToast('Invalid ID format', 'error');
+        }
+      }
+    }
   }
 
   // ========================================
@@ -752,6 +824,18 @@ const OGApp = (function() {
     const clearRecipientBtn = document.getElementById('clear-recipient-btn');
     if (clearRecipientBtn) {
       clearRecipientBtn.addEventListener('click', clearRecipient);
+    }
+
+    // Paste Recipient button
+    const pasteRecipientBtn = document.getElementById('paste-recipient-btn');
+    if (pasteRecipientBtn) {
+      pasteRecipientBtn.addEventListener('click', pasteRecipientId);
+    }
+
+    // Copy My ID button
+    const copyMyIdBtn = document.getElementById('copy-my-id-btn');
+    if (copyMyIdBtn) {
+      copyMyIdBtn.addEventListener('click', copyMyId);
     }
 
     // Backup button
