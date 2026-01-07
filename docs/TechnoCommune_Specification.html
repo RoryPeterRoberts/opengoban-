@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TechnoCommune Application Specification</title>
+<style>
+@page {
+    size: A4;
+    margin: 1.5cm;
+    @top-center {
+        content: "TechnoCommune Application Specification v1.0";
+        font-size: 9px;
+        color: #666;
+    }
+    @bottom-center {
+        content: "Page " counter(page);
+        font-size: 9px;
+        color: #666;
+    }
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    line-height: 1.5;
+    color: #1a1a1a;
+    font-size: 10pt;
+}
+
+h1 {
+    color: #0066cc;
+    border-bottom: 2px solid #0066cc;
+    padding-bottom: 8px;
+    page-break-before: always;
+    font-size: 18pt;
+    margin-top: 20px;
+}
+
+h1:first-of-type {
+    page-break-before: avoid;
+}
+
+h2 {
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 4px;
+    margin-top: 20px;
+    font-size: 14pt;
+}
+
+h3 {
+    color: #0066cc;
+    margin-top: 15px;
+    font-size: 12pt;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 9pt;
+}
+
+th, td {
+    border: 1px solid #ccc;
+    padding: 6px 10px;
+    text-align: left;
+}
+
+th {
+    background-color: #0066cc;
+    color: white;
+    font-weight: 600;
+}
+
+tr:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+code {
+    background-color: #f0f0f0;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 9pt;
+}
+
+pre {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    padding: 12px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 8pt;
+    page-break-inside: avoid;
+    margin: 10px 0;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+blockquote {
+    border-left: 3px solid #0066cc;
+    margin: 12px 0;
+    padding-left: 12px;
+    color: #555;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 20px 0;
+}
+
+strong {
+    color: #0066cc;
+}
+
+ul, ol {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+li {
+    margin: 3px 0;
+}
+
+p {
+    margin: 8px 0;
+}
+</style>
+</head>
+<body>
+<h1 id="technocommune-application-specification">TechnoCommune Application Specification</h1>
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2026-01-07
+<strong>Status:</strong> Implementation Ready</p>
+<hr />
+<h1 id="executive-summary">Executive Summary</h1>
+<p>TechnoCommune is a <strong>mutual credit system</strong> for local community coordination and crisis resilience. It enables:</p>
+<ul>
+<li><strong>Day-to-day trading</strong> of goods and services without fiat currency</li>
+<li><strong>Crisis provisioning</strong> for members facing hardship (job loss, illness)</li>
+<li><strong>Dignity-first support</strong> that protects providers and respects recipients</li>
+<li><strong>Offline-first operation</strong> via PWA with P2P synchronization</li>
+</ul>
+<p><strong>Core Principle:</strong> No hidden issuance. All balances sum to zero. Compassion is explicit and bounded.</p>
+<hr />
+<h1 id="part-1-mathematical-model">PART 1: MATHEMATICAL MODEL</h1>
+<h2 id="11-entities">1.1 Entities</h2>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Symbol</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Members</td>
+<td>i in {1...N}</td>
+<td>Circle participants</td>
+</tr>
+<tr>
+<td>Community Pool</td>
+<td>G</td>
+<td>Pays crisis support, funded by contributions</td>
+</tr>
+<tr>
+<td>Loss Sink</td>
+<td>L</td>
+<td>Records forgiven obligations (socialized loss)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="12-ledger-types">1.2 Ledger Types</h2>
+<h3 id="balance-ledger-mutual-credit">Balance Ledger (Mutual Credit)</h3>
+<pre><code>b_i = Member balance (can be negative down to credit limit)
+b_G = Community pool balance (can go negative down to L_G)
+b_L = Loss sink balance (goes negative when obligations forgiven)
+</code></pre>
+<p><strong>Conservation Invariant:</strong></p>
+<pre><code>SUM(b_i) + b_G + b_L = 0
+</code></pre>
+<p>This is the <strong>"not a scam" property</strong> - no hidden issuance, no inflation except explicit community decisions.</p>
+<h3 id="obligation-ledger-non-transferable">Obligation Ledger (Non-Transferable)</h3>
+<pre><code>o_i &gt;= 0 = Crisis support received, owed back to community
+</code></pre>
+<p>Obligations are separate from balances. They represent "I received help and will contribute back when able."</p>
+<h2 id="13-credit-limits">1.3 Credit Limits</h2>
+<p>Each member has:
+- <strong>Floor (L_i):</strong> Maximum negative balance allowed (e.g., -50)
+- <strong>Ceiling (U_i):</strong> Optional maximum positive balance (anti-hoarding)</p>
+<p>Transaction validity:</p>
+<pre><code>b_sender - amount &gt;= L_sender
+b_recipient + amount &lt;= U_recipient (optional)
+</code></pre>
+<hr />
+<h1 id="part-2-transaction-types">PART 2: TRANSACTION TYPES</h1>
+<h2 id="21-normal-transfer-day-to-day">2.1 Normal Transfer (Day-to-Day)</h2>
+<p><strong>Purpose:</strong> Exchange of goods/services between members</p>
+<p><strong>Ledger Effect:</strong></p>
+<pre><code>b_sender -= amount
+b_recipient += amount
+</code></pre>
+<p><strong>Validation:</strong>
+1. Signatures valid (sender + recipient)
+2. Sender not frozen/revoked
+3. Post-tx balance respects limit: <code>b_sender - amount &gt;= L_sender</code>
+4. Idempotency: canonical hash not previously applied
+5. Amount &lt;= MAX_TRANSACTION (circuit breaker)</p>
+<h2 id="22-crisis-payment-pool-underwritten">2.2 Crisis Payment (Pool-Underwritten)</h2>
+<p><strong>Purpose:</strong> Essential support for members in crisis, paid by community pool</p>
+<p><strong>Ledger Effect:</strong></p>
+<pre><code>b_G -= amount           (pool pays provider)
+b_provider += amount    (provider credited)
+o_recipient += amount   (recipient accrues obligation)
+</code></pre>
+<p><strong>Validation:</strong>
+1. Category in essentials allowlist
+2. Provider signature present
+3. Pool capacity: <code>b_G - amount &gt;= L_G</code>
+4. Recipient caps not exceeded (weekly/monthly)
+5. Recipient in approved crisis status</p>
+<h2 id="23-repayment-obligation-reduction">2.3 Repayment (Obligation Reduction)</h2>
+<p><strong>Purpose:</strong> Member pays back community support when able</p>
+<p><strong>Ledger Effect:</strong></p>
+<pre><code>b_member -= amount
+b_G += amount
+o_member -= amount
+</code></pre>
+<p><strong>Validation:</strong>
+1. Member has sufficient balance
+2. Amount &lt;= current obligation
+3. Member signature valid</p>
+<h2 id="24-compassion-forgiveness-write-off">2.4 Compassion Forgiveness (Write-Off)</h2>
+<p><strong>Purpose:</strong> Cancel unrecoverable obligations (illness, disability, death)</p>
+<p><strong>Ledger Effect:</strong></p>
+<pre><code>o_member -= amount
+b_L -= amount   (loss sink absorbs cost)
+</code></pre>
+<p><strong>Validation:</strong>
+1. Elder signatures &gt;= threshold (3)
+2. Timelock satisfied (7 days)
+3. Loss budget: <code>b_L - amount &gt;= L_L</code>
+4. Optional community veto not triggered</p>
+<hr />
+<h1 id="part-3-account-states">PART 3: ACCOUNT STATES</h1>
+<h2 id="31-member-status-values">3.1 Member Status Values</h2>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Can Send</th>
+<th>Can Receive</th>
+<th>Can Repay</th>
+<th>Crisis Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>active</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>If approved</td>
+</tr>
+<tr>
+<td>frozen</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Steward discretion</td>
+</tr>
+<tr>
+<td>revoked</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>anonymized</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<h2 id="32-freeze-triggers">3.2 Freeze Triggers</h2>
+<p>Account frozen when:
+- Post-sync validation finds <code>b_i &lt; L_i</code> (over credit limit)</p>
+<p>Unfreeze when:
+- Balance &gt;= credit limit</p>
+<h2 id="33-crisis-status">3.3 Crisis Status</h2>
+<p>Separate from member status:
+- <strong>crisis_status:</strong> none | active | expired
+- <strong>crisis_approved_by:</strong> steward ID
+- <strong>crisis_expires:</strong> date (default 8 weeks)
+- <strong>crisis_caps:</strong> weekly/monthly limits</p>
+<hr />
+<h1 id="part-4-parameterization">PART 4: PARAMETERIZATION</h1>
+<h2 id="41-credit-unit-convention">4.1 Credit Unit Convention</h2>
+<p><strong>Soft norm:</strong> 1 CR ≈ 10 minutes of ordinary local labour</p>
+<table>
+<thead>
+<tr>
+<th>Activity</th>
+<th>Suggested Credits</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dog walk (30-40 min)</td>
+<td>3-4 CR</td>
+</tr>
+<tr>
+<td>Grass cut (60-90 min)</td>
+<td>6-9 CR</td>
+</tr>
+<tr>
+<td>Bag of vegetables</td>
+<td>2-5 CR</td>
+</tr>
+<tr>
+<td>Beach clean (2 hours)</td>
+<td>12 CR</td>
+</tr>
+</tbody>
+</table>
+<h2 id="42-circuit-breaker">4.2 Circuit Breaker</h2>
+<pre><code class="language-javascript">MAX_TRANSACTION = 100  // Maximum single transaction
+LARGE_TRANSFER_CONFIRM = 20  // Prompt for confirmation
+</code></pre>
+<h2 id="43-credit-limit-progression-entry-limits">4.3 Credit Limit Progression (Entry Limits)</h2>
+<table>
+<thead>
+<tr>
+<th>Tenure</th>
+<th>Credit Limit</th>
+<th>Integration Requirement</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 months</td>
+<td>0</td>
+<td>-</td>
+</tr>
+<tr>
+<td>1 month</td>
+<td>-10</td>
+<td>3+ unique trade partners</td>
+</tr>
+<tr>
+<td>3 months</td>
+<td>-25</td>
+<td>6+ unique trade partners</td>
+</tr>
+<tr>
+<td>6 months</td>
+<td>-50</td>
+<td>10+ unique trade partners</td>
+</tr>
+<tr>
+<td>12 months</td>
+<td>-100</td>
+<td>15+ unique trade partners</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rationale:</strong> Time alone is Sybil-friendly; unique partners make trust "real."</p>
+<h2 id="44-pool-capacity">4.4 Pool Capacity</h2>
+<pre><code>L_G = -20 * N credits (N = number of members)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Circle Size</th>
+<th>Max Pool Deficit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>N=50</td>
+<td>-1000 CR</td>
+</tr>
+<tr>
+<td>N=100</td>
+<td>-2000 CR</td>
+</tr>
+</tbody>
+</table>
+<h2 id="45-compassion-budget">4.5 Compassion Budget</h2>
+<pre><code>L_L = -5 * N credits
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Circle Size</th>
+<th>Max Forgiveness</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>N=50</td>
+<td>-250 CR</td>
+</tr>
+<tr>
+<td>N=100</td>
+<td>-500 CR</td>
+</tr>
+</tbody>
+</table>
+<h2 id="46-crisis-caps">4.6 Crisis Caps</h2>
+<pre><code class="language-javascript">CRISIS_WEEKLY_CAP = 20    // CR per week per member
+CRISIS_MONTHLY_CAP = 60   // CR per month per member
+CRISIS_DURATION = 8       // weeks default
+PROVIDER_WEEKLY_CAP = 100 // CR per week per provider
+AUTO_REPAY_FRACTION = 0.20 // 20% of incoming credits
+</code></pre>
+<h2 id="47-governance-thresholds">4.7 Governance Thresholds</h2>
+<pre><code class="language-javascript">MIN_ELDERS_FOR_MIGRATION = 3
+MIN_ELDERS_FOR_FORGIVENESS = 3
+FORGIVENESS_TIMELOCK = 7  // days
+VETO_THRESHOLD = max(5, 0.10 * N)  // members
+</code></pre>
+<hr />
+<h1 id="part-5-data-model">PART 5: DATA MODEL</h1>
+<h2 id="51-document-types">5.1 Document Types</h2>
+<h3 id="member">member</h3>
+<pre><code class="language-javascript">{
+  _id: &quot;member_&lt;uuid&gt;&quot;,
+  type: &quot;member&quot;,
+  public_key: &quot;&lt;Ed25519&gt;&quot;,
+  handle: &quot;display_name&quot;,
+  status: &quot;active&quot; | &quot;frozen&quot; | &quot;revoked&quot; | &quot;anonymized&quot;,
+  roles: [&quot;elder&quot;, &quot;steward&quot;],
+  joined_at: &quot;ISO8601&quot;,
+  vouchers: [&quot;member_id1&quot;, &quot;member_id2&quot;],
+  credit_limit: -50,
+  credit_limit_override: null,  // Elder-set override
+  positive_cap: null,  // Optional hoarding prevention
+  circle_id: &quot;circle_&lt;uuid&gt;&quot;,
+  crisis_status: &quot;none&quot; | &quot;active&quot; | &quot;expired&quot;,
+  crisis_expires: &quot;ISO8601&quot;,
+  crisis_approved_by: &quot;member_id&quot;
+}
+</code></pre>
+<h3 id="tx-normal-transfer">tx (Normal Transfer)</h3>
+<pre><code class="language-javascript">{
+  _id: &quot;tx_&lt;uuid&gt;&quot;,
+  type: &quot;transfer&quot;,
+  circle_id: &quot;circle_&lt;uuid&gt;&quot;,
+  sender_id: &quot;member_&lt;uuid&gt;&quot;,
+  recipient_id: &quot;member_&lt;uuid&gt;&quot;,
+  amount: 10,  // Positive integer
+  description: &quot;Grass cutting&quot;,
+  nonce: &quot;&lt;random&gt;&quot;,
+  canonical_hash: &quot;&lt;sha256&gt;&quot;,
+  created_at: &quot;ISO8601&quot;,
+  sender_signature: &quot;&lt;sig&gt;&quot;,
+  recipient_signature: &quot;&lt;sig&gt;&quot;,
+  status: &quot;pending&quot; | &quot;confirmed&quot; | &quot;rejected&quot; | &quot;expired&quot;
+}
+</code></pre>
+<h3 id="obligation">obligation</h3>
+<pre><code class="language-javascript">{
+  _id: &quot;obl_&lt;member_id&gt;&quot;,
+  type: &quot;obligation&quot;,
+  member_id: &quot;member_&lt;uuid&gt;&quot;,
+  circle_id: &quot;circle_&lt;uuid&gt;&quot;,
+  amount_outstanding: 120,  // &gt;= 0
+  updated_at: &quot;ISO8601&quot;,
+  history: []  // Optional audit trail
+}
+</code></pre>
+<h3 id="crisis_payment">crisis_payment</h3>
+<pre><code class="language-javascript">{
+  _id: &quot;cp_&lt;uuid&gt;&quot;,
+  type: &quot;crisis_payment&quot;,
+  circle_id: &quot;circle_&lt;uuid&gt;&quot;,
+  recipient_id: &quot;member_&lt;uuid&gt;&quot;,  // Crisis member
+  provider_id: &quot;member_&lt;uuid&gt;&quot;,   // Service provider
+  amount: 15,
+  category: &quot;food&quot; | &quot;heat&quot; | &quot;transport&quot; | &quot;care&quot; | &quot;repair&quot; | &quot;hygiene&quot;,
+  created_at: &quot;ISO8601&quot;,
+  steward_approvals: [&quot;member_id&quot;],
+  provider_signature: &quot;&lt;sig&gt;&quot;,
+  recipient_ack_signature: &quot;&lt;sig&gt;&quot;,  // Optional
+  canonical_hash: &quot;&lt;sha256&gt;&quot;,
+  status: &quot;confirmed&quot; | &quot;rejected&quot;
+}
+</code></pre>
+<h3 id="repayment">repayment</h3>
+<pre><code class="language-javascript">{
+  _id: &quot;rp_&lt;uuid&gt;&quot;,
+  type: &quot;repayment&quot;,
+  circle_id: &quot;circle_&lt;uuid&gt;&quot;,
+  member_id: &quot;member_&lt;uuid&gt;&quot;,
+  amount: 6,
+  created_at: &quot;ISO8601&quot;,
+  signature: &quot;&lt;sig&gt;&quot;,
+  canonical_hash: &quot;&lt;sha256&gt;&quot;,
+  status: &quot;confirmed&quot; | &quot;rejected&quot;
+}
+</code></pre>
+<h3 id="compassion_forgiveness">compassion_forgiveness</h3>
+<pre><code class="language-javascript">{
+  _id: &quot;cf_&lt;uuid&gt;&quot;,
+  type: &quot;compassion_forgiveness&quot;,
+  circle_id: &quot;circle_&lt;uuid&gt;&quot;,
+  member_id: &quot;member_&lt;uuid&gt;&quot;,
+  amount: 60,
+  reason_code: &quot;illness&quot; | &quot;disability&quot; | &quot;death&quot; | &quot;long_term_incapacity&quot;,
+  evidence_hashes: [],  // Privacy-aware
+  created_at: &quot;ISO8601&quot;,
+  elder_signatures: [
+    { elder_id: &quot;member_&lt;uuid&gt;&quot;, signature: &quot;&lt;sig&gt;&quot;, signed_at: &quot;ISO8601&quot; }
+  ],
+  timelock_until: &quot;ISO8601&quot;,
+  status: &quot;proposed&quot; | &quot;approved&quot; | &quot;executed&quot; | &quot;vetoed&quot;
+}
+</code></pre>
+<h3 id="circle_policy">circle_policy</h3>
+<pre><code class="language-javascript">{
+  _id: &quot;policy_&lt;circle_id&gt;&quot;,
+  type: &quot;circle_policy&quot;,
+  circle_id: &quot;circle_&lt;uuid&gt;&quot;,
+  protocol_version: &quot;1.0.0&quot;,
+  max_transaction: 100,
+  crisis_weekly_cap: 20,
+  crisis_monthly_cap: 60,
+  auto_repay_fraction: 0.20,
+  pool_limit: -1000,  // L_G
+  loss_limit: -250,   // L_L
+  min_vouchers: 1,
+  min_elders_forgiveness: 3,
+  forgiveness_timelock_days: 7,
+  essentials_categories: [&quot;food&quot;, &quot;heat&quot;, &quot;transport&quot;, &quot;care&quot;, &quot;repair&quot;, &quot;hygiene&quot;]
+}
+</code></pre>
+<h3 id="need-coordination-non-ledger">need (Coordination, Non-Ledger)</h3>
+<pre><code class="language-javascript">{
+  _id: &quot;need_&lt;uuid&gt;&quot;,
+  type: &quot;need&quot;,
+  circle_id: &quot;circle_&lt;uuid&gt;&quot;,
+  posted_by: &quot;member_&lt;uuid&gt;&quot;,
+  category: &quot;garden&quot;,
+  template: &quot;grass_cutting&quot;,
+  description: &quot;Front yard only&quot;,
+  location_radius_km: 2,
+  time_window: { start: &quot;ISO8601&quot;, end: &quot;ISO8601&quot; },
+  settlement_mode: &quot;credits&quot; | &quot;swap&quot; | &quot;crisis_supported&quot;,
+  status: &quot;open&quot; | &quot;scheduled&quot; | &quot;completed&quot; | &quot;cancelled&quot;,
+  created_at: &quot;ISO8601&quot;
+}
+</code></pre>
+<h3 id="commitment-coordination-non-ledger">commitment (Coordination, Non-Ledger)</h3>
+<pre><code class="language-javascript">{
+  _id: &quot;commitment_&lt;uuid&gt;&quot;,
+  type: &quot;commitment&quot;,
+  need_id: &quot;need_&lt;uuid&gt;&quot;,
+  helper_id: &quot;member_&lt;uuid&gt;&quot;,
+  proposed_time: &quot;ISO8601&quot;,
+  status: &quot;proposed&quot; | &quot;scheduled&quot; | &quot;arrived&quot; | &quot;completed&quot; | &quot;no_show&quot; | &quot;cancelled&quot;,
+  created_at: &quot;ISO8601&quot;,
+  completed_at: &quot;ISO8601&quot;
+}
+</code></pre>
+<hr />
+<h1 id="part-6-validation-engine">PART 6: VALIDATION ENGINE</h1>
+<h2 id="61-schema-gate-anti-corruption">6.1 Schema Gate (Anti-Corruption)</h2>
+<p>Reject any document that:
+- Has unknown type
+- Exceeds 32KB
+- Missing required fields
+- Fails signature verification</p>
+<h2 id="62-balance-computation">6.2 Balance Computation</h2>
+<p>Compute from confirmed documents only:</p>
+<pre><code class="language-javascript">function computeBalance(memberId) {
+  let balance = 0;
+
+  // Normal transfers
+  for (tx of confirmedTransfers) {
+    if (tx.sender_id === memberId) balance -= tx.amount;
+    if (tx.recipient_id === memberId) balance += tx.amount;
+  }
+
+  // Crisis payments (providers get credits)
+  for (cp of confirmedCrisisPayments) {
+    if (cp.provider_id === memberId) balance += cp.amount;
+  }
+
+  // Repayments (members pay back)
+  for (rp of confirmedRepayments) {
+    if (rp.member_id === memberId) balance -= rp.amount;
+  }
+
+  return balance;
+}
+
+function computePoolBalance() {
+  let balance = 0;
+
+  // Crisis payments drain pool
+  for (cp of confirmedCrisisPayments) balance -= cp.amount;
+
+  // Repayments refill pool
+  for (rp of confirmedRepayments) balance += rp.amount;
+
+  // Voluntary contributions
+  for (contrib of confirmedContributions) balance += contrib.amount;
+
+  return balance;
+}
+
+function computeLossSink() {
+  let balance = 0;
+
+  // Forgiveness creates loss
+  for (cf of executedForgiveness) balance -= cf.amount;
+
+  return balance;
+}
+</code></pre>
+<p><strong>Check Conservation:</strong></p>
+<pre><code class="language-javascript">SUM(memberBalances) + poolBalance + lossBalance === 0
+</code></pre>
+<h2 id="63-obligation-computation">6.3 Obligation Computation</h2>
+<pre><code class="language-javascript">function computeObligation(memberId) {
+  let obligation = 0;
+
+  // Crisis payments received
+  for (cp of confirmedCrisisPayments) {
+    if (cp.recipient_id === memberId) obligation += cp.amount;
+  }
+
+  // Repayments made
+  for (rp of confirmedRepayments) {
+    if (rp.member_id === memberId) obligation -= rp.amount;
+  }
+
+  // Forgiveness granted
+  for (cf of executedForgiveness) {
+    if (cf.member_id === memberId) obligation -= cf.amount;
+  }
+
+  return Math.max(0, obligation);  // Never negative
+}
+</code></pre>
+<hr />
+<h1 id="part-7-user-workflows">PART 7: USER WORKFLOWS</h1>
+<h2 id="71-post-a-need-elder-friendly">7.1 Post a Need (Elder-Friendly)</h2>
+<ol>
+<li>Open "Request Help"</li>
+<li>Choose category tile (Food/Heat/Transport/Garden/Pets/Other)</li>
+<li>Set time window + location radius</li>
+<li>Add optional note</li>
+<li>Choose settlement: Credits / Swap / Community-Supported</li>
+<li>Tap "Post" (single large button)</li>
+</ol>
+<p><strong>Creates:</strong> <code>need_&lt;uuid&gt;</code> document</p>
+<h2 id="72-accept-help">7.2 Accept Help</h2>
+<ol>
+<li>Open "Nearby Needs"</li>
+<li>Filter by category/urgency</li>
+<li>Tap "I can help"</li>
+<li>Propose time slot</li>
+<li>Wait for requester acceptance</li>
+</ol>
+<p><strong>Creates:</strong> <code>commitment_&lt;uuid&gt;</code> with status "proposed"</p>
+<h2 id="73-complete-and-settle">7.3 Complete and Settle</h2>
+<ol>
+<li>Helper marks "Done"</li>
+<li>Requester confirms "Done"</li>
+<li>Settlement screen shows amount</li>
+<li>If normal: "Pay X CR" -&gt; creates <code>tx</code></li>
+<li>If crisis-supported: "Paid by Community Pool" -&gt; creates <code>crisis_payment</code></li>
+</ol>
+<h2 id="74-enter-crisis-mode">7.4 Enter Crisis Mode</h2>
+<ol>
+<li>Member toggles "I'm in crisis" (private)</li>
+<li>Select reason (job loss/illness/other)</li>
+<li>Request goes to stewards only</li>
+<li>Steward approves with expiry date</li>
+<li>Member can now request community-supported essentials</li>
+</ol>
+<p><strong>Updates:</strong> member.crisis_status, crisis_expires, crisis_approved_by</p>
+<h2 id="75-auto-repayment">7.5 Auto-Repayment</h2>
+<p>When crisis member earns credits via normal trades:
+- System routes <code>rho</code> fraction (20%) to pool automatically
+- Display: "Repayment: 2 CR to Community (20%)"
+- Member can request temporary pause via steward</p>
+<h2 id="76-compassion-forgiveness">7.6 Compassion Forgiveness</h2>
+<ol>
+<li>Steward proposes forgiveness (member_id, amount, reason)</li>
+<li>Evidence hashes attached (optional)</li>
+<li>Timelock set (7 days)</li>
+<li>Elders sign (3 required)</li>
+<li>Visible in Governance Log (redacted details)</li>
+<li>After timelock: execute if not vetoed</li>
+<li>Loss sink absorbs cost</li>
+</ol>
+<hr />
+<h1 id="part-8-ui-architecture">PART 8: UI ARCHITECTURE</h1>
+<h2 id="81-design-principles">8.1 Design Principles</h2>
+<ol>
+<li><strong>No public feed</strong> - home screen shows tasks, not opinions</li>
+<li><strong>Task-shaped content</strong> - Needs, Offers, Projects, Commitments</li>
+<li><strong>Private by default</strong> - transactions visible only to counterparties</li>
+<li><strong>Summarized reputation</strong> - reliability signals, not popularity metrics</li>
+<li><strong>Two-tap actions</strong> - accessible for older users</li>
+</ol>
+<h2 id="82-navigation-3-tabs-profile">8.2 Navigation (3 Tabs + Profile)</h2>
+<h3 id="tab-a-needs">Tab A: Needs</h3>
+<ul>
+<li>Nearby needs filtered by: Essentials / Skills / Elder support</li>
+<li>Sort by: urgency -&gt; proximity -&gt; social distance -&gt; recency</li>
+<li>No public comments, only "Message about this task"</li>
+</ul>
+<h3 id="tab-b-offers">Tab B: Offers</h3>
+<ul>
+<li>Goods &amp; Swaps (vegetables, tools)</li>
+<li>Services (dog walking, repairs)</li>
+<li>Request / Propose swap / Schedule buttons</li>
+</ul>
+<h3 id="tab-c-projects">Tab C: Projects</h3>
+<ul>
+<li>Community events (beach clean, repair cafe)</li>
+<li>Join button, steward-managed check-in</li>
+<li>Optional small credit reward from pool (capped)</li>
+</ul>
+<h3 id="profile-capability-card">Profile (Capability Card)</h3>
+<ul>
+<li>Vouches, skills, availability</li>
+<li><strong>Not shown:</strong> balances, leaderboards, total credits</li>
+</ul>
+<h2 id="83-reputation-display-anti-toxic">8.3 Reputation Display (Anti-Toxic)</h2>
+<p><strong>Visible to others:</strong>
+- Vouched by: 3 people
+- Commitments completed (60 days): 12
+- No-shows (60 days): 0
+- Open disputes: 0</p>
+<p><strong>Never shown:</strong>
+- Total credits
+- Transaction history
+- Rankings / "top contributors"</p>
+<h2 id="84-crisis-mode-ui">8.4 Crisis Mode UI</h2>
+<p><strong>Recipient sees (private):</strong>
+- Weekly cap remaining: 12/20 CR
+- Monthly cap remaining: 45/60 CR
+- Outstanding obligation: 120 CR
+- Auto-repay rate: 20%</p>
+<p><strong>Provider sees:</strong>
+- "Paid by Community Pool"
+- No stigma wording visible</p>
+<p><strong>Stewards see:</strong>
+- Full crisis status and history</p>
+<h2 id="85-governance-log">8.5 Governance Log</h2>
+<ul>
+<li>Shows proposals: migrations, forgiveness, policy changes</li>
+<li>Redacted personal details</li>
+<li>Timelock countdown</li>
+<li>Signature counts</li>
+<li>No comment threads (only Support/Veto if enabled)</li>
+</ul>
+<h2 id="86-notifications-no-dopamine-loops">8.6 Notifications (No Dopamine Loops)</h2>
+<p>Only send for:
+- Someone accepted your help offer
+- Commitment reminders (day-of)
+- Completion confirmation
+- Disputes requiring action
+- Governance items to sign</p>
+<p><strong>Never:</strong> "Someone posted something you might like"</p>
+<h2 id="87-steward-mode">8.7 Steward Mode</h2>
+<p>For assisted access (elders, disabled members):
+- Post needs on their behalf
+- Accept commitments for them
+- Confirm completion (with audit trail)
+- Cannot transfer credits without second confirmation</p>
+<hr />
+<h1 id="part-9-privacy-defaults">PART 9: PRIVACY DEFAULTS</h1>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Default Visibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transaction details</td>
+<td>Counterparties only</td>
+</tr>
+<tr>
+<td>Balances</td>
+<td>Private</td>
+</tr>
+<tr>
+<td>Location</td>
+<td>Approximate until commitment accepted</td>
+</tr>
+<tr>
+<td>Crisis status</td>
+<td>Stewards only</td>
+</tr>
+<tr>
+<td>Obligations</td>
+<td>Member + stewards</td>
+</tr>
+<tr>
+<td>Dispute details</td>
+<td>Parties + mediators</td>
+</tr>
+<tr>
+<td>Reputation stats</td>
+<td>Public (minimal)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="part-10-operational-cadence">PART 10: OPERATIONAL CADENCE</h1>
+<h2 id="weekly">Weekly</h2>
+<ul>
+<li>Stewards review crisis renewals and cap exceptions</li>
+</ul>
+<h2 id="monthly">Monthly</h2>
+<ul>
+<li>Review pool health (b_G), repayments, outstanding obligations</li>
+</ul>
+<h2 id="quarterly">Quarterly</h2>
+<ul>
+<li>Audit governance actions (migrations, forgiveness)</li>
+</ul>
+<h2 id="annually">Annually</h2>
+<ul>
+<li>Elder rotation/reconfirmation (optional)</li>
+</ul>
+<hr />
+<h1 id="part-11-non-fiat-covenant">PART 11: NON-FIAT COVENANT</h1>
+<p><strong>Credits are:</strong>
+- Non-redeemable for fiat currency
+- Non-convertible (no exchange rate)
+- Valid only inside the circle
+- Not "money" - they are claims/obligations within community capacity</p>
+<p><strong>The system never:</strong>
+- Displays prices in euros/dollars
+- Provides cash-out functionality
+- Establishes official exchange rates
+- Integrates with fiat payment systems</p>
+<hr />
+<h1 id="part-12-culture-statement">PART 12: CULTURE STATEMENT</h1>
+<p><em>Include in onboarding:</em></p>
+<ol>
+<li>We are here to meet needs and build resilience.</li>
+<li>Commitments matter more than posts.</li>
+<li>Privacy is respected; gossip is discouraged.</li>
+<li>Crisis help is given with dignity and bounded by shared capacity.</li>
+<li>Compassion is explicit, accountable, and renewable.</li>
+</ol>
+<hr />
+<h1 id="part-13-threat-model-minimal-set">PART 13: THREAT MODEL (MINIMAL SET)</h1>
+<h2 id="must-engineer-day-1">Must Engineer (Day 1)</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Threat</th>
+<th>Defense</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>E</td>
+<td>Fat Finger</td>
+<td>Circuit breaker (MAX_TRANSACTION)</td>
+</tr>
+<tr>
+<td>G</td>
+<td>Zombie Transaction</td>
+<td>Pending-safe ledger with timeout</td>
+</tr>
+<tr>
+<td>H</td>
+<td>Lost Key</td>
+<td>Multi-sig migration with timelock</td>
+</tr>
+<tr>
+<td>M</td>
+<td>Version Mismatch</td>
+<td>Protocol negotiation, reject incompatible</td>
+</tr>
+<tr>
+<td>L</td>
+<td>Storage Bomb</td>
+<td>Schema validation, size limits, rate limiting</td>
+</tr>
+<tr>
+<td>A</td>
+<td>Double Spend</td>
+<td>Post-sync freeze + remediation</td>
+</tr>
+<tr>
+<td>J</td>
+<td>Replay Attack</td>
+<td>Canonical hash + nonce idempotency</td>
+</tr>
+</tbody>
+</table>
+<h2 id="engineer-lightly">Engineer Lightly</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Threat</th>
+<th>Defense</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C</td>
+<td>Sybil</td>
+<td>Trust graph warnings, vouch requirements</td>
+</tr>
+<tr>
+<td>I</td>
+<td>Clock Manipulation</td>
+<td>Time is display-only, no hard enforcement</td>
+</tr>
+<tr>
+<td>K</td>
+<td>MITM</td>
+<td>E2EE (implemented), add key fingerprint later</td>
+</tr>
+</tbody>
+</table>
+<h2 id="handle-socially-implement-later">Handle Socially (Implement Later)</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Threat</th>
+<th>Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D</td>
+<td>Disputes</td>
+<td>Dispute system (implemented)</td>
+</tr>
+<tr>
+<td>N</td>
+<td>Credit Hoarding</td>
+<td>Cultural; add demurrage if stagnation</td>
+</tr>
+<tr>
+<td>O</td>
+<td>Elder Corruption</td>
+<td>Timelock + public log + veto</td>
+</tr>
+<tr>
+<td>P</td>
+<td>Circular Trading</td>
+<td>Detection later if needed</td>
+</tr>
+<tr>
+<td>T</td>
+<td>Inheritance</td>
+<td>Special migration case</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="part-14-implementation-checklist">PART 14: IMPLEMENTATION CHECKLIST</h1>
+<h2 id="phase-1-core-system-week-1-2">Phase 1: Core System (Week 1-2)</h2>
+<ul>
+<li>[ ] Conservation invariant enforced</li>
+<li>[ ] Normal transfer with dual signatures</li>
+<li>[ ] Credit limit validation with entry progression</li>
+<li>[ ] Circuit breaker (100 CR max)</li>
+<li>[ ] Account freeze/unfreeze logic</li>
+<li>[ ] Idempotency via canonical hash</li>
+</ul>
+<h2 id="phase-2-crisis-provisioning-week-3-4">Phase 2: Crisis Provisioning (Week 3-4)</h2>
+<ul>
+<li>[ ] Community Pool account</li>
+<li>[ ] Crisis payment transaction type</li>
+<li>[ ] Obligation tracking</li>
+<li>[ ] Repayment with auto-route</li>
+<li>[ ] Weekly/monthly caps enforcement</li>
+<li>[ ] Provider protection caps</li>
+</ul>
+<h2 id="phase-3-governance-week-5-6">Phase 3: Governance (Week 5-6)</h2>
+<ul>
+<li>[ ] Compassion forgiveness with multi-sig</li>
+<li>[ ] Loss sink account</li>
+<li>[ ] Timelock enforcement</li>
+<li>[ ] Migration (Phoenix account)</li>
+<li>[ ] Governance log visibility</li>
+</ul>
+<h2 id="phase-4-uiux-week-7-8">Phase 4: UI/UX (Week 7-8)</h2>
+<ul>
+<li>[ ] Needs/Offers/Projects tabs</li>
+<li>[ ] Commitment workflow</li>
+<li>[ ] Crisis mode privacy UI</li>
+<li>[ ] Steward mode</li>
+<li>[ ] Reputation display (minimal)</li>
+<li>[ ] No-feed home screen</li>
+</ul>
+<h2 id="phase-5-hardening-week-9-10">Phase 5: Hardening (Week 9-10)</h2>
+<ul>
+<li>[ ] Version negotiation</li>
+<li>[ ] Sync size/rate limits</li>
+<li>[ ] Pending transaction timeout</li>
+<li>[ ] Trust graph analysis</li>
+<li>[ ] Sybil warnings</li>
+</ul>
+<hr />
+<h1 id="appendix-a-worked-example">APPENDIX A: WORKED EXAMPLE</h1>
+<p><strong>Scenario:</strong> Job loss crisis, 8 weeks, 50-member circle</p>
+<p><strong>Setup:</strong>
+- N = 50, L_G = -1000, L_L = -250
+- Weekly cap = 20 CR, Monthly cap = 60 CR
+- Auto-repay = 20%</p>
+<p><strong>Crisis Period:</strong>
+- Member draws ~15 CR/week in essentials
+- Total support: 8 x 15 = 120 CR
+- Pool: b_G -= 120
+- Obligation: o_member = 120</p>
+<p><strong>Recovery:</strong>
+- Member earns 30 CR/month via normal work
+- Auto-repay: 0.20 x 30 = 6 CR/month
+- Time to repay: 120 / 6 = 20 months (humane pace)</p>
+<p><strong>Forgiveness (if needed):</strong>
+- If permanently unable to repay, elders forgive 60 CR
+- o_member -= 60, b_L -= 60
+- Loss absorbed by community, no individual debited</p>
+<hr />
+<h1 id="appendix-b-configuration-defaults">APPENDIX B: CONFIGURATION DEFAULTS</h1>
+<pre><code class="language-javascript">const CIRCLE_DEFAULTS = {
+  // Transaction limits
+  MAX_TRANSACTION: 100,
+  LARGE_TRANSFER_CONFIRM: 20,
+
+  // Entry limits
+  CREDIT_LIMIT_PROGRESSION: [
+    { months: 0, limit: 0, partners: 0 },
+    { months: 1, limit: -10, partners: 3 },
+    { months: 3, limit: -25, partners: 6 },
+    { months: 6, limit: -50, partners: 10 },
+    { months: 12, limit: -100, partners: 15 }
+  ],
+
+  // Pool and loss
+  POOL_LIMIT_PER_MEMBER: 20,    // L_G = -20 * N
+  LOSS_LIMIT_PER_MEMBER: 5,     // L_L = -5 * N
+
+  // Crisis
+  CRISIS_WEEKLY_CAP: 20,
+  CRISIS_MONTHLY_CAP: 60,
+  CRISIS_DURATION_WEEKS: 8,
+  PROVIDER_WEEKLY_CAP: 100,
+  AUTO_REPAY_FRACTION: 0.20,
+
+  // Governance
+  MIN_ELDERS_FORGIVENESS: 3,
+  MIN_ELDERS_MIGRATION: 3,
+  FORGIVENESS_TIMELOCK_DAYS: 7,
+  MIGRATION_TIMELOCK_DAYS: 7,
+
+  // Membership
+  MIN_VOUCHERS: 1,
+  MIN_VOUCHERS_LARGE_CIRCLE: 2,  // When N &gt; 50
+
+  // Essentials
+  ESSENTIALS_CATEGORIES: [
+    &quot;food&quot;, &quot;heat&quot;, &quot;transport&quot;, &quot;care&quot;, &quot;repair&quot;, &quot;hygiene&quot;
+  ],
+
+  // Protocol
+  PROTOCOL_VERSION: &quot;1.0.0&quot;,
+  MAX_DOC_SIZE: 32768,
+  PENDING_TIMEOUT_HOURS: 24
+};
+</code></pre>
+<hr />
+<p><strong>Document Version:</strong> 1.0
+<strong>Source:</strong> TechnoCommune Mathematical Model v0.1-0.7
+<strong>Implementation Status:</strong> Ready for Development</p>
+</body>
+</html>
