@@ -12,6 +12,8 @@ import { CellIdentity, MembershipChange } from '../types/identity';
 import { Commitment, CommitmentId, CommitmentStatus, TaskCategory } from '../types/commitment';
 import { Proposal, ProposalId, ProposalStatus, Dispute, DisputeId, DisputeStatus, GovernanceCouncil } from '../types/governance';
 import { TaskSlot, TaskSlotId, TaskSlotStatus, TaskTemplate, TaskTemplateId, MemberSupply } from '../types/scheduler';
+import { EmergencyState, StateHistoryEntry } from '../types/emergency';
+import { FederationState, FederationTransaction, FederationTxId, FederationTxStatus, LinkProposal, LinkProposalId } from '../types/federation';
 import { Result, ok, err } from '../utils/result';
 
 // ============================================
@@ -124,6 +126,32 @@ export interface IStorage {
   saveMemberSupply(supply: MemberSupply): Promise<Result<void, StorageError>>;
   getMemberSupply(memberId: IdentityId): Promise<Result<MemberSupply | null, StorageError>>;
   getAllMemberSupplies(): Promise<Result<MemberSupply[], StorageError>>;
+
+  // ============================================
+  // PHASE 3: EMERGENCY OPERATIONS
+  // ============================================
+
+  saveEmergencyState(state: EmergencyState): Promise<Result<void, StorageError>>;
+  getEmergencyState(cellId: CellId): Promise<Result<EmergencyState | null, StorageError>>;
+  appendStateHistoryEntry(entry: StateHistoryEntry, cellId: CellId): Promise<Result<void, StorageError>>;
+  getStateHistory(cellId: CellId, since: Timestamp): Promise<Result<StateHistoryEntry[], StorageError>>;
+
+  // ============================================
+  // PHASE 3: FEDERATION OPERATIONS
+  // ============================================
+
+  saveFederationState(state: FederationState): Promise<Result<void, StorageError>>;
+  getFederationState(cellId: CellId): Promise<Result<FederationState | null, StorageError>>;
+  saveFederationTransaction(tx: FederationTransaction): Promise<Result<void, StorageError>>;
+  getFederationTransaction(id: FederationTxId): Promise<Result<FederationTransaction | null, StorageError>>;
+  getFederationTransactions(filter: {
+    cellId?: CellId;
+    remoteCellId?: CellId;
+    status?: FederationTxStatus;
+    since?: Timestamp;
+  }): Promise<Result<FederationTransaction[], StorageError>>;
+  saveLinkProposal(proposal: LinkProposal): Promise<Result<void, StorageError>>;
+  getLinkProposal(id: LinkProposalId): Promise<Result<LinkProposal | null, StorageError>>;
 }
 
 // ============================================
@@ -149,6 +177,13 @@ export class InMemoryStorage implements IStorage {
   private taskSlots = new Map<TaskSlotId, TaskSlot>();
   private taskTemplates = new Map<TaskTemplateId, TaskTemplate>();
   private memberSupplies = new Map<IdentityId, MemberSupply>();
+
+  // Phase 3 storage
+  private emergencyStates = new Map<CellId, EmergencyState>();
+  private stateHistories = new Map<CellId, StateHistoryEntry[]>();
+  private federationStates = new Map<CellId, FederationState>();
+  private federationTransactions = new Map<FederationTxId, FederationTransaction>();
+  private linkProposals = new Map<LinkProposalId, LinkProposal>();
 
   // Ledger operations
   async saveLedgerState(state: CellLedgerState): Promise<Result<void, StorageError>> {
@@ -487,6 +522,109 @@ export class InMemoryStorage implements IStorage {
     return ok(supplies);
   }
 
+  // ============================================
+  // PHASE 3: EMERGENCY OPERATIONS
+  // ============================================
+
+  async saveEmergencyState(state: EmergencyState): Promise<Result<void, StorageError>> {
+    this.emergencyStates.set(state.cellId, { ...state });
+    return ok(undefined);
+  }
+
+  async getEmergencyState(cellId: CellId): Promise<Result<EmergencyState | null, StorageError>> {
+    const state = this.emergencyStates.get(cellId);
+    return ok(state ? { ...state } : null);
+  }
+
+  async appendStateHistoryEntry(entry: StateHistoryEntry, cellId: CellId): Promise<Result<void, StorageError>> {
+    if (!this.stateHistories.has(cellId)) {
+      this.stateHistories.set(cellId, []);
+    }
+    this.stateHistories.get(cellId)!.push({ ...entry });
+    return ok(undefined);
+  }
+
+  async getStateHistory(cellId: CellId, since: Timestamp): Promise<Result<StateHistoryEntry[], StorageError>> {
+    const history = this.stateHistories.get(cellId) || [];
+    const filtered = history
+      .filter(e => e.timestamp >= since)
+      .map(e => ({ ...e }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+    return ok(filtered);
+  }
+
+  // ============================================
+  // PHASE 3: FEDERATION OPERATIONS
+  // ============================================
+
+  async saveFederationState(state: FederationState): Promise<Result<void, StorageError>> {
+    this.federationStates.set(state.cellId, {
+      ...state,
+      connectedCells: [...state.connectedCells.map(c => ({ ...c }))],
+    });
+    return ok(undefined);
+  }
+
+  async getFederationState(cellId: CellId): Promise<Result<FederationState | null, StorageError>> {
+    const state = this.federationStates.get(cellId);
+    if (!state) return ok(null);
+    return ok({
+      ...state,
+      connectedCells: [...state.connectedCells.map(c => ({ ...c }))],
+    });
+  }
+
+  async saveFederationTransaction(tx: FederationTransaction): Promise<Result<void, StorageError>> {
+    this.federationTransactions.set(tx.id, { ...tx });
+    return ok(undefined);
+  }
+
+  async getFederationTransaction(id: FederationTxId): Promise<Result<FederationTransaction | null, StorageError>> {
+    const tx = this.federationTransactions.get(id);
+    return ok(tx ? { ...tx } : null);
+  }
+
+  async getFederationTransactions(filter: {
+    cellId?: CellId;
+    remoteCellId?: CellId;
+    status?: FederationTxStatus;
+    since?: Timestamp;
+  }): Promise<Result<FederationTransaction[], StorageError>> {
+    let transactions = Array.from(this.federationTransactions.values());
+
+    if (filter.cellId) {
+      transactions = transactions.filter(t =>
+        t.sourceCell === filter.cellId || t.targetCell === filter.cellId
+      );
+    }
+
+    if (filter.remoteCellId) {
+      transactions = transactions.filter(t =>
+        t.sourceCell === filter.remoteCellId || t.targetCell === filter.remoteCellId
+      );
+    }
+
+    if (filter.status) {
+      transactions = transactions.filter(t => t.status === filter.status);
+    }
+
+    if (filter.since) {
+      transactions = transactions.filter(t => t.createdAt >= filter.since!);
+    }
+
+    return ok(transactions.map(t => ({ ...t })).sort((a, b) => b.createdAt - a.createdAt));
+  }
+
+  async saveLinkProposal(proposal: LinkProposal): Promise<Result<void, StorageError>> {
+    this.linkProposals.set(proposal.id, { ...proposal, proposedTerms: { ...proposal.proposedTerms } });
+    return ok(undefined);
+  }
+
+  async getLinkProposal(id: LinkProposalId): Promise<Result<LinkProposal | null, StorageError>> {
+    const proposal = this.linkProposals.get(id);
+    return ok(proposal ? { ...proposal, proposedTerms: { ...proposal.proposedTerms } } : null);
+  }
+
   // Utility methods for testing
   clear(): void {
     this.ledgerStates.clear();
@@ -506,6 +644,12 @@ export class InMemoryStorage implements IStorage {
     this.taskSlots.clear();
     this.taskTemplates.clear();
     this.memberSupplies.clear();
+    // Phase 3
+    this.emergencyStates.clear();
+    this.stateHistories.clear();
+    this.federationStates.clear();
+    this.federationTransactions.clear();
+    this.linkProposals.clear();
   }
 }
 
@@ -1322,6 +1466,232 @@ export class PouchDBStorage implements IStorage {
       }));
     } catch (e) {
       return err({ code: 'READ_FAILED', message: `Failed to get all member supplies: ${e}` });
+    }
+  }
+
+  // ============================================
+  // PHASE 3: EMERGENCY OPERATIONS
+  // ============================================
+
+  async saveEmergencyState(state: EmergencyState): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `emergency:${state.cellId}`;
+      let doc: any = {
+        _id: docId,
+        type: 'emergency',
+        data: state,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save emergency state: ${e}` });
+    }
+  }
+
+  async getEmergencyState(cellId: CellId): Promise<Result<EmergencyState | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`emergency:${cellId}`);
+      return ok(doc.data);
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get emergency state: ${e}` });
+    }
+  }
+
+  async appendStateHistoryEntry(entry: StateHistoryEntry, cellId: CellId): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `statehistory:${cellId}:${entry.timestamp}`;
+      await this.db.put({
+        _id: docId,
+        type: 'statehistory',
+        data: { ...entry, cellId },
+        createdAt: now(),
+        updatedAt: now(),
+      });
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to append state history: ${e}` });
+    }
+  }
+
+  async getStateHistory(cellId: CellId, since: Timestamp): Promise<Result<StateHistoryEntry[], StorageError>> {
+    try {
+      const result = await this.db.find({
+        selector: {
+          type: 'statehistory',
+          'data.cellId': cellId,
+          'data.timestamp': { $gte: since },
+        },
+      });
+      const history = result.docs
+        .map(d => d.data as StateHistoryEntry)
+        .sort((a, b) => a.timestamp - b.timestamp);
+      return ok(history);
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get state history: ${e}` });
+    }
+  }
+
+  // ============================================
+  // PHASE 3: FEDERATION OPERATIONS
+  // ============================================
+
+  async saveFederationState(state: FederationState): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `federation:${state.cellId}`;
+      let doc: any = {
+        _id: docId,
+        type: 'federation',
+        data: state,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save federation state: ${e}` });
+    }
+  }
+
+  async getFederationState(cellId: CellId): Promise<Result<FederationState | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`federation:${cellId}`);
+      return ok(doc.data);
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get federation state: ${e}` });
+    }
+  }
+
+  async saveFederationTransaction(tx: FederationTransaction): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `fedtx:${tx.id}`;
+      let doc: any = {
+        _id: docId,
+        type: 'fedtx',
+        data: tx,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save federation transaction: ${e}` });
+    }
+  }
+
+  async getFederationTransaction(id: FederationTxId): Promise<Result<FederationTransaction | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`fedtx:${id}`);
+      return ok(doc.data);
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get federation transaction: ${e}` });
+    }
+  }
+
+  async getFederationTransactions(filter: {
+    cellId?: CellId;
+    remoteCellId?: CellId;
+    status?: FederationTxStatus;
+    since?: Timestamp;
+  }): Promise<Result<FederationTransaction[], StorageError>> {
+    try {
+      const selector: any = { type: 'fedtx' };
+
+      if (filter.status) {
+        selector['data.status'] = filter.status;
+      }
+      if (filter.since) {
+        selector['data.createdAt'] = { $gte: filter.since };
+      }
+
+      const result = await this.db.find({ selector });
+
+      let transactions = result.docs.map(d => d.data as FederationTransaction);
+
+      // Apply cellId filter (need to check both source and target)
+      if (filter.cellId) {
+        transactions = transactions.filter(t =>
+          t.sourceCell === filter.cellId || t.targetCell === filter.cellId
+        );
+      }
+
+      // Apply remoteCellId filter
+      if (filter.remoteCellId) {
+        transactions = transactions.filter(t =>
+          t.sourceCell === filter.remoteCellId || t.targetCell === filter.remoteCellId
+        );
+      }
+
+      return ok(transactions.sort((a, b) => b.createdAt - a.createdAt));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get federation transactions: ${e}` });
+    }
+  }
+
+  async saveLinkProposal(proposal: LinkProposal): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `linkproposal:${proposal.id}`;
+      let doc: any = {
+        _id: docId,
+        type: 'linkproposal',
+        data: proposal,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save link proposal: ${e}` });
+    }
+  }
+
+  async getLinkProposal(id: LinkProposalId): Promise<Result<LinkProposal | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`linkproposal:${id}`);
+      return ok(doc.data);
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get link proposal: ${e}` });
     }
   }
 }

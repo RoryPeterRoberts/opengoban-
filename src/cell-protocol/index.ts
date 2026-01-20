@@ -147,6 +147,58 @@ export {
 } from './types/scheduler';
 
 // ============================================
+// PHASE 3 TYPE EXPORTS
+// ============================================
+
+// Emergency types
+export {
+  RiskState,
+  AdmissionMode,
+  CommitmentMode,
+  SchedulerPriority,
+  StressIndicators,
+  EmergencyPolicy,
+  TransitionThresholds,
+  TransitionReason,
+  StateTransitionResult,
+  StateHistoryEntry,
+  ThresholdProximityReport,
+  EmergencyState,
+  EmergencyError,
+  EmergencyErrorCode,
+  IEmergencyEngine,
+  DEFAULT_POLICIES,
+  DEFAULT_THRESHOLDS,
+} from './types/emergency';
+
+// Federation types
+export {
+  FederationTxId,
+  LinkProposalId,
+  FederationStatus,
+  LinkStatus,
+  FederationTxStatus,
+  QuarantineReason,
+  FederationLink,
+  LinkProposal,
+  FederationTerms,
+  FederationState,
+  FederationTransaction,
+  CreateFederationTxInput,
+  FederationTxResult,
+  QuarantineStatus,
+  FederationParameters,
+  ExposureAnalysis,
+  FederationError,
+  FederationErrorCode,
+  IFederationEngine,
+  DEFAULT_FEDERATION_TERMS,
+  DEFAULT_FEDERATION_PARAMETERS,
+  generateFederationTxId,
+  generateLinkProposalId,
+} from './types/federation';
+
+// ============================================
 // RESULT TYPE EXPORTS
 // ============================================
 
@@ -213,6 +265,22 @@ export {
 } from './engines/scheduler-engine';
 
 // ============================================
+// PHASE 3 ENGINE EXPORTS
+// ============================================
+
+export {
+  EmergencyEngine,
+  EmergencyValidationError,
+  createEmergencyEngine,
+} from './engines/emergency-engine';
+
+export {
+  FederationEngine,
+  FederationValidationError,
+  createFederationEngine,
+} from './engines/federation-engine';
+
+// ============================================
 // STORAGE EXPORTS
 // ============================================
 
@@ -251,12 +319,16 @@ export {
 
 import { CellId, IdentityId } from './types/common';
 import { LedgerParameters } from './types/ledger';
+import { TransitionThresholds } from './types/emergency';
+import { FederationParameters } from './types/federation';
 import { LedgerEngine, createLedgerEngine } from './engines/ledger-engine';
 import { TransactionEngine, createTransactionEngine } from './engines/transaction-engine';
 import { IdentityEngine, createIdentityEngine } from './engines/identity-engine';
 import { CommitmentEngine, createCommitmentEngine } from './engines/commitment-engine';
 import { GovernanceEngine, createGovernanceEngine } from './engines/governance-engine';
 import { SchedulerEngine, createSchedulerEngine } from './engines/scheduler-engine';
+import { EmergencyEngine, createEmergencyEngine } from './engines/emergency-engine';
+import { FederationEngine, createFederationEngine } from './engines/federation-engine';
 import { IStorage, createInMemoryStorage } from './storage/pouchdb-adapter';
 import { CryptoAdapter, cryptoAdapter } from './crypto/crypto-adapter';
 
@@ -271,6 +343,8 @@ export interface CellProtocol {
   commitments: CommitmentEngine;      // Phase 2
   governance: GovernanceEngine;        // Phase 2
   scheduler: SchedulerEngine;          // Phase 2
+  emergency: EmergencyEngine;          // Phase 3
+  federation?: FederationEngine;       // Phase 3 (optional)
   storage: IStorage;
   crypto: CryptoAdapter;
 }
@@ -283,6 +357,10 @@ export interface CellProtocolOptions {
   ledgerParameters?: Partial<LedgerParameters>;
   storage?: IStorage;
   crypto?: CryptoAdapter;
+  // Phase 3 options
+  enableFederation?: boolean;
+  federationParameters?: Partial<FederationParameters>;
+  emergencyThresholds?: Partial<TransitionThresholds>;
 }
 
 /**
@@ -324,6 +402,20 @@ export async function createCellProtocol(options: CellProtocolOptions): Promise<
   const governance = createGovernanceEngine(cellId, ledger, identity, commitments, storage);
   const scheduler = createSchedulerEngine(ledger, commitments, storage);
 
+  // Phase 3: Create resilience layer engines
+  const emergency = createEmergencyEngine(cellId, ledger, storage, options.emergencyThresholds);
+
+  // Wire up circular dependencies
+  emergency.setGovernanceEngine(governance);
+  emergency.setIdentityEngine(identity);
+
+  // Create federation if enabled
+  let federation: FederationEngine | undefined;
+  if (options.enableFederation) {
+    federation = await createFederationEngine(cellId, ledger, storage, options.federationParameters);
+    federation.setEmergencyEngine(emergency);
+  }
+
   return {
     cellId,
     ledger,
@@ -332,6 +424,8 @@ export async function createCellProtocol(options: CellProtocolOptions): Promise<
     commitments,
     governance,
     scheduler,
+    emergency,
+    federation,
     storage,
     crypto,
   };
