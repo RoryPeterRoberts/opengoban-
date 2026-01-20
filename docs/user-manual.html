@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenGoban User Manual</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background: #fff;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: #1a1a1a;
+      border-bottom: 3px solid #4a90d9;
+      padding-bottom: 10px;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      color: #2c3e50;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      font-size: 1.3rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      color: #34495e;
+    }
+
+    h4 {
+      font-size: 1.1rem;
+      margin-top: 1.25rem;
+      margin-bottom: 0.5rem;
+      color: #555;
+    }
+
+    p {
+      margin-bottom: 1rem;
+    }
+
+    ul, ol {
+      margin-bottom: 1rem;
+      padding-left: 2rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      color: #666;
+      margin-bottom: 2rem;
+    }
+
+    .version {
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 2rem;
+    }
+
+    .warning {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px 20px;
+      margin: 1.5rem 0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .info {
+      background: #d1ecf1;
+      border-left: 4px solid #17a2b8;
+      padding: 15px 20px;
+      margin: 1.5rem 0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    .important {
+      background: #f8d7da;
+      border-left: 4px solid #dc3545;
+      padding: 15px 20px;
+      margin: 1.5rem 0;
+      border-radius: 0 4px 4px 0;
+    }
+
+    code {
+      background: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 0.9em;
+    }
+
+    .toc {
+      background: #f8f9fa;
+      padding: 20px 30px;
+      border-radius: 8px;
+      margin: 2rem 0;
+    }
+
+    .toc h3 {
+      margin-top: 0;
+    }
+
+    .toc ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .toc li {
+      margin-bottom: 0.3rem;
+    }
+
+    .toc a {
+      color: #4a90d9;
+      text-decoration: none;
+    }
+
+    .toc a:hover {
+      text-decoration: underline;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    th {
+      background: #f4f4f4;
+      font-weight: 600;
+    }
+
+    .disclaimer {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      padding: 20px;
+      margin: 2rem 0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .step {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      margin: 1rem 0;
+      border-radius: 8px;
+      border-left: 4px solid #4a90d9;
+    }
+
+    .step-number {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      background: #4a90d9;
+      color: white;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 28px;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+
+    @media print {
+      body {
+        padding: 20px;
+      }
+
+      h2 {
+        page-break-before: always;
+      }
+
+      h2:first-of-type {
+        page-break-before: avoid;
+      }
+
+      .warning, .info, .important, .step {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<h1>OpenGoban User Manual</h1>
+<p class="subtitle">Community Coordination & Mutual Support System</p>
+<p class="version">Version 1.0 | January 2026</p>
+
+<div class="disclaimer">
+  <strong>Important Notice:</strong> OpenGoban is a community coordination tool for tracking mutual aid, time contributions, and resource sharing within voluntary associations. It is NOT a currency, investment vehicle, or replacement for legal tender. Credits within OpenGoban have no monetary value outside your community and cannot be exchanged for government-issued currency. All participants should comply with applicable local laws regarding community organizations and cooperative activities.
+</div>
+
+<div class="toc">
+  <h3>Table of Contents</h3>
+  <ul>
+    <li><a href="#introduction">1. Introduction</a></li>
+    <li><a href="#getting-started">2. Getting Started</a></li>
+    <li><a href="#core-features">3. Core Features</a></li>
+    <li><a href="#making-transfers">4. Making Transfers</a></li>
+    <li><a href="#commitments">5. Commitments & Tasks</a></li>
+    <li><a href="#membership">6. Membership & Identity</a></li>
+    <li><a href="#offline-mode">7. Offline Mode</a></li>
+    <li><a href="#backup-restore">8. Backup & Restore</a></li>
+    <li><a href="#governance">9. Community Governance</a></li>
+    <li><a href="#federation">10. Multi-Community Federation</a></li>
+    <li><a href="#emergency-mode">11. Emergency Mode</a></li>
+    <li><a href="#best-practices">12. Best Practices</a></li>
+    <li><a href="#troubleshooting">13. Troubleshooting</a></li>
+    <li><a href="#glossary">14. Glossary</a></li>
+    <li><a href="#legal">15. Legal Considerations</a></li>
+  </ul>
+</div>
+
+<h2 id="introduction">1. Introduction</h2>
+
+<h3>What is OpenGoban?</h3>
+<p>OpenGoban is a community coordination tool that helps groups track mutual support, time contributions, and resource sharing. It operates on the principle of <strong>mutual credit</strong>: when you help someone in your community, you receive credits; when someone helps you, you give credits.</p>
+
+<p>Unlike conventional money, credits in OpenGoban:</p>
+<ul>
+  <li>Are created through community participation, not by banks or governments</li>
+  <li>Cannot be exchanged for legal tender</li>
+  <li>Have meaning only within your participating community</li>
+  <li>Encourage reciprocity and mutual support</li>
+</ul>
+
+<h3>Key Principles</h3>
+<ol>
+  <li><strong>Mutual Credit:</strong> The total of all credits in the system always equals zero. When Alice gives 10 credits to Bob, Alice's balance decreases by 10 and Bob's increases by 10.</li>
+  <li><strong>Credit Limits:</strong> Each member has a limit on how far their balance can go negative, preventing runaway debt.</li>
+  <li><strong>Community Trust:</strong> The system works because community members trust each other to contribute back over time.</li>
+  <li><strong>Privacy First:</strong> Your identity is generated locally on your device. No email, password, or government ID required.</li>
+  <li><strong>Offline Capable:</strong> Transfer credits even without internet using QR codes.</li>
+</ol>
+
+<div class="info">
+  <strong>Think of it like a favor bank:</strong> When you help a neighbor, you "deposit" goodwill. When you need help, you "withdraw." OpenGoban simply keeps track of these contributions in a transparent, fair way.
+</div>
+
+<h2 id="getting-started">2. Getting Started</h2>
+
+<h3>Creating Your Identity</h3>
+
+<div class="step">
+  <span class="step-number">1</span>
+  <strong>Open OpenGoban</strong> in your web browser or install the app.
+</div>
+
+<div class="step">
+  <span class="step-number">2</span>
+  <strong>Choose a handle</strong> (your display name in the community). This could be your first name, nickname, or any identifier you prefer.
+</div>
+
+<div class="step">
+  <span class="step-number">3</span>
+  <strong>Tap "Create Identity"</strong> - Your cryptographic keys are generated locally on your device. No data is sent to any server.
+</div>
+
+<div class="warning">
+  <strong>Important:</strong> Your identity exists only on your device. If you clear browser data or lose your device, you will need a backup to recover. See <a href="#backup-restore">Section 8: Backup & Restore</a>.
+</div>
+
+<h3>Joining a Community (Circle)</h3>
+
+<p>After creating your identity, you need to join an existing community or create a new one:</p>
+
+<h4>Option A: Get Vouched by an Existing Member</h4>
+<ol>
+  <li>Show your QR code to a current member</li>
+  <li>They scan it and vouch for you</li>
+  <li>You're added to the community with an initial credit limit</li>
+</ol>
+
+<h4>Option B: Create a New Circle</h4>
+<ol>
+  <li>Go to Settings</li>
+  <li>Tap "Create Circle"</li>
+  <li>Invite others by having them scan your QR code</li>
+</ol>
+
+<h3>Understanding Your Balance</h3>
+
+<p>Your balance can be positive, negative, or zero:</p>
+<ul>
+  <li><strong>Positive balance:</strong> You've contributed more than you've received. Others owe the community on your behalf.</li>
+  <li><strong>Zero balance:</strong> You've given and received equally.</li>
+  <li><strong>Negative balance:</strong> You've received more than you've contributed. You owe contributions back to the community.</li>
+</ul>
+
+<p>Your <strong>credit limit</strong> is the maximum negative balance allowed. For example, with a limit of 100, your balance can range from -100 to any positive amount.</p>
+
+<h2 id="core-features">3. Core Features</h2>
+
+<h3>Home Screen</h3>
+<p>The home screen shows:</p>
+<ul>
+  <li><strong>Your Balance:</strong> Current credit balance in the community</li>
+  <li><strong>Transfer Button:</strong> Start a new credit transfer</li>
+  <li><strong>Offline Button:</strong> Transfer credits without internet</li>
+  <li><strong>My ID Button:</strong> Show your QR code to receive credits</li>
+  <li><strong>Recent Activity:</strong> Latest transactions</li>
+</ul>
+
+<h3>Navigation</h3>
+<table>
+  <tr>
+    <th>Tab</th>
+    <th>Purpose</th>
+  </tr>
+  <tr>
+    <td>Home</td>
+    <td>Balance overview and quick actions</td>
+  </tr>
+  <tr>
+    <td>History</td>
+    <td>Complete transaction history</td>
+  </tr>
+  <tr>
+    <td>Members</td>
+    <td>Browse and search community members</td>
+  </tr>
+  <tr>
+    <td>Settings</td>
+    <td>Identity, sync, backup, and preferences</td>
+  </tr>
+</table>
+
+<h2 id="making-transfers">4. Making Transfers</h2>
+
+<h3>Sending Credits</h3>
+
+<div class="step">
+  <span class="step-number">1</span>
+  Tap the <strong>Transfer</strong> button on the home screen.
+</div>
+
+<div class="step">
+  <span class="step-number">2</span>
+  <strong>Scan the recipient's QR code</strong> or paste their ID.
+</div>
+
+<div class="step">
+  <span class="step-number">3</span>
+  <strong>Enter the amount</strong> you want to send.
+</div>
+
+<div class="step">
+  <span class="step-number">4</span>
+  <strong>Add a description</strong> (optional but recommended) explaining what the credits are for.
+</div>
+
+<div class="step">
+  <span class="step-number">5</span>
+  <strong>Confirm</strong> the transfer.
+</div>
+
+<h3>Receiving Credits</h3>
+
+<div class="step">
+  <span class="step-number">1</span>
+  Tap <strong>My ID</strong> to display your QR code.
+</div>
+
+<div class="step">
+  <span class="step-number">2</span>
+  Have the sender <strong>scan your QR code</strong>.
+</div>
+
+<div class="step">
+  <span class="step-number">3</span>
+  You'll receive a notification when credits arrive.
+</div>
+
+<h3>Transfer Limits</h3>
+<ul>
+  <li>You cannot send credits that would push your balance below your floor (-limit).</li>
+  <li>Both parties must be active members of the community.</li>
+  <li>Transfers are instant and irreversible once confirmed.</li>
+</ul>
+
+<h2 id="commitments">5. Commitments & Tasks</h2>
+
+<h3>What are Commitments?</h3>
+<p>Commitments are promises to perform tasks or provide services for other community members. They're more formal than simple transfers and can include escrow protection.</p>
+
+<h3>Types of Commitments</h3>
+
+<table>
+  <tr>
+    <th>Type</th>
+    <th>Description</th>
+    <th>Use When</th>
+  </tr>
+  <tr>
+    <td><strong>Soft Commitment</strong></td>
+    <td>Trust-based promise, no credits reserved</td>
+    <td>Working with trusted members on small tasks</td>
+  </tr>
+  <tr>
+    <td><strong>Escrowed Commitment</strong></td>
+    <td>Credits are reserved until task is complete</td>
+    <td>Larger tasks or working with newer members</td>
+  </tr>
+</table>
+
+<h3>Task Categories</h3>
+<p>Commitments can be organized by essential community needs:</p>
+<ul>
+  <li><strong>Food:</strong> Food preparation, cooking, distribution</li>
+  <li><strong>Water & Sanitation:</strong> Water management, cleaning</li>
+  <li><strong>Energy & Heat:</strong> Energy provision, heating</li>
+  <li><strong>Shelter & Repair:</strong> Maintenance, construction, repairs</li>
+  <li><strong>Medical:</strong> Healthcare, first aid, wellness</li>
+  <li><strong>Childcare:</strong> Dependent care, education</li>
+  <li><strong>Security:</strong> Safety coordination, communication</li>
+  <li><strong>Procurement:</strong> Supply acquisition, transport</li>
+  <li><strong>General:</strong> Other community tasks</li>
+</ul>
+
+<h3>Commitment Lifecycle</h3>
+<ol>
+  <li><strong>Create:</strong> Promise to do a task for a specific member</li>
+  <li><strong>Accept:</strong> Recipient confirms they want the service</li>
+  <li><strong>Perform:</strong> Complete the promised task</li>
+  <li><strong>Confirm:</strong> Recipient confirms satisfactory completion</li>
+  <li><strong>Settle:</strong> Credits transfer (or escrow releases)</li>
+</ol>
+
+<h2 id="membership">6. Membership & Identity</h2>
+
+<h3>Member Statuses</h3>
+
+<table>
+  <tr>
+    <th>Status</th>
+    <th>Meaning</th>
+    <th>Capabilities</th>
+  </tr>
+  <tr>
+    <td>Pending</td>
+    <td>Application submitted, waiting for approval</td>
+    <td>None - waiting for vouching</td>
+  </tr>
+  <tr>
+    <td>Probation</td>
+    <td>New member with temporary restrictions</td>
+    <td>Limited credit, may require escrowed commitments</td>
+  </tr>
+  <tr>
+    <td>Active</td>
+    <td>Full member in good standing</td>
+    <td>All features available</td>
+  </tr>
+  <tr>
+    <td>Frozen</td>
+    <td>Temporarily suspended</td>
+    <td>Cannot transact, pending review</td>
+  </tr>
+  <tr>
+    <td>Excluded</td>
+    <td>Membership revoked</td>
+    <td>No access</td>
+  </tr>
+</table>
+
+<h3>Credit Limits</h3>
+<p>Each member has a credit limit that determines how far negative their balance can go. Limits are set by community governance based on:</p>
+<ul>
+  <li>Time as a member</li>
+  <li>Track record of fulfilling commitments</li>
+  <li>Community vouching</li>
+  <li>Participation in essential tasks</li>
+</ul>
+
+<h3>Sponsorship</h3>
+<p>When sponsoring a new member:</p>
+<ul>
+  <li>You vouch for their trustworthiness</li>
+  <li>A portion of your credit limit may be "bonded" as guarantee</li>
+  <li>If the new member defaults, you share some responsibility</li>
+  <li>Your bond is released after the probation period if they succeed</li>
+</ul>
+
+<h2 id="offline-mode">7. Offline Mode</h2>
+
+<h3>Why Offline Mode?</h3>
+<p>OpenGoban works without internet connectivity. This is useful when:</p>
+<ul>
+  <li>Internet is unavailable or unreliable</li>
+  <li>You want maximum privacy</li>
+  <li>You're in a remote location</li>
+  <li>During emergencies when networks are down</li>
+</ul>
+
+<h3>How Offline Transfers Work</h3>
+
+<h4>Sending Offline</h4>
+<div class="step">
+  <span class="step-number">1</span>
+  Tap <strong>Offline</strong> on the home screen
+</div>
+
+<div class="step">
+  <span class="step-number">2</span>
+  Choose <strong>"Send Credits"</strong>
+</div>
+
+<div class="step">
+  <span class="step-number">3</span>
+  Enter amount and description
+</div>
+
+<div class="step">
+  <span class="step-number">4</span>
+  A <strong>QR code is generated</strong> containing the signed transaction
+</div>
+
+<div class="step">
+  <span class="step-number">5</span>
+  <strong>Show this QR code</strong> to the recipient
+</div>
+
+<h4>Receiving Offline</h4>
+<div class="step">
+  <span class="step-number">1</span>
+  Tap <strong>Offline</strong> > <strong>"Receive Credits"</strong>
+</div>
+
+<div class="step">
+  <span class="step-number">2</span>
+  <strong>Scan the sender's QR code</strong>
+</div>
+
+<div class="step">
+  <span class="step-number">3</span>
+  The transaction is <strong>recorded locally</strong>
+</div>
+
+<div class="step">
+  <span class="step-number">4</span>
+  When you're back online, it will <strong>sync with the community</strong>
+</div>
+
+<div class="info">
+  <strong>Note:</strong> Offline transactions are cryptographically signed, ensuring they can't be forged or modified.
+</div>
+
+<h2 id="backup-restore">8. Backup & Restore</h2>
+
+<h3>Why Backup?</h3>
+<p>Your identity exists only on your device. Without a backup, you cannot recover your identity if you:</p>
+<ul>
+  <li>Clear your browser data</li>
+  <li>Lose or replace your device</li>
+  <li>Reinstall the app</li>
+</ul>
+
+<h3>Creating a Backup</h3>
+
+<div class="step">
+  <span class="step-number">1</span>
+  Go to <strong>Settings</strong> > <strong>Backup Identity</strong>
+</div>
+
+<div class="step">
+  <span class="step-number">2</span>
+  Enter a <strong>strong password</strong> (minimum 4 characters, but longer is safer)
+</div>
+
+<div class="step">
+  <span class="step-number">3</span>
+  Confirm the password
+</div>
+
+<div class="step">
+  <span class="step-number">4</span>
+  Tap <strong>"Generate Backup"</strong>
+</div>
+
+<div class="step">
+  <span class="step-number">5</span>
+  <strong>Copy and save</strong> the backup code starting with <code>OG1:</code>
+</div>
+
+<div class="important">
+  <strong>Store your backup safely!</strong> Anyone with your backup code AND password can access your identity. Store them separately - for example, backup code in a password manager, password memorized or written elsewhere.
+</div>
+
+<h3>Restoring from Backup</h3>
+
+<div class="step">
+  <span class="step-number">1</span>
+  Go to <strong>Settings</strong> > <strong>Restore from Backup</strong>
+</div>
+
+<div class="step">
+  <span class="step-number">2</span>
+  <strong>Paste your backup code</strong> (the <code>OG1:...</code> string)
+</div>
+
+<div class="step">
+  <span class="step-number">3</span>
+  Enter your <strong>backup password</strong>
+</div>
+
+<div class="step">
+  <span class="step-number">4</span>
+  Tap <strong>"Restore Identity"</strong>
+</div>
+
+<div class="warning">
+  <strong>Warning:</strong> Restoring will replace any existing identity on the device.
+</div>
+
+<h2 id="governance">9. Community Governance</h2>
+
+<h3>How Decisions Are Made</h3>
+<p>OpenGoban communities make collective decisions through a governance system. Major decisions require proposals and voting.</p>
+
+<h3>Types of Proposals</h3>
+<ul>
+  <li><strong>Member Admission:</strong> Approve new members</li>
+  <li><strong>Member Exclusion:</strong> Remove problematic members</li>
+  <li><strong>Credit Limit Changes:</strong> Adjust member limits</li>
+  <li><strong>Dispute Resolution:</strong> Settle conflicts between members</li>
+  <li><strong>Parameter Changes:</strong> Adjust community settings</li>
+  <li><strong>Emergency Declaration:</strong> Activate emergency protocols</li>
+</ul>
+
+<h3>Voting</h3>
+<ul>
+  <li>Most decisions require a simple majority (>50%)</li>
+  <li>Critical decisions (exclusion, emergency) may require supermajority (>66%)</li>
+  <li>Members can vote <strong>Yes</strong>, <strong>No</strong>, or <strong>Abstain</strong></li>
+  <li>A minimum number of votes (quorum) is required for validity</li>
+</ul>
+
+<h3>Disputes</h3>
+<p>If you have a dispute with another member:</p>
+<ol>
+  <li>Try to resolve it directly first</li>
+  <li>If unsuccessful, file a formal dispute with evidence</li>
+  <li>The community reviews and votes on resolution</li>
+  <li>Decisions can be appealed in serious cases</li>
+</ol>
+
+<h2 id="federation">10. Multi-Community Federation</h2>
+
+<h3>What is Federation?</h3>
+<p>Federation allows separate communities (cells) to trade with each other while maintaining their independence.</p>
+
+<h3>How It Works</h3>
+<ul>
+  <li>Communities establish bilateral links</li>
+  <li>Members can transact across community boundaries</li>
+  <li>Each community sets exposure limits to manage risk</li>
+  <li>If one community has problems, others are protected</li>
+</ul>
+
+<h3>Exposure Limits</h3>
+<p>To prevent one community's problems from affecting others:</p>
+<ul>
+  <li><strong>Position Cap:</strong> Maximum net balance with any single community</li>
+  <li><strong>Quarantine:</strong> Automatic isolation if limits are exceeded</li>
+  <li><strong>Beta Factor:</strong> Risk weighting based on community health</li>
+</ul>
+
+<h2 id="emergency-mode">11. Emergency Mode</h2>
+
+<h3>Risk States</h3>
+<p>Communities operate in one of three states:</p>
+
+<table>
+  <tr>
+    <th>State</th>
+    <th>Meaning</th>
+    <th>Automatic Changes</th>
+  </tr>
+  <tr>
+    <td><strong>Normal</strong></td>
+    <td>Healthy operation</td>
+    <td>All features available</td>
+  </tr>
+  <tr>
+    <td><strong>Stressed</strong></td>
+    <td>Warning indicators elevated</td>
+    <td>Tighter admission, encourage escrowed commitments</td>
+  </tr>
+  <tr>
+    <td><strong>Panic</strong></td>
+    <td>Critical emergency</td>
+    <td>Essential tasks only, restricted admission, mandatory escrow</td>
+  </tr>
+</table>
+
+<h3>Stress Indicators</h3>
+<p>The system monitors:</p>
+<ul>
+  <li><strong>Floor Mass:</strong> How many members are near their debt limit</li>
+  <li><strong>Balance Variance:</strong> How unequal balances have become</li>
+  <li><strong>Dispute Rate:</strong> Frequency of conflicts</li>
+  <li><strong>Member Churn:</strong> Rate of members leaving</li>
+  <li><strong>Resource Stress:</strong> Shortages in essential categories</li>
+</ul>
+
+<h3>What to Do in an Emergency</h3>
+<ol>
+  <li>Check the current risk state in your app</li>
+  <li>Prioritize essential community needs (food, water, medical, energy)</li>
+  <li>Use escrowed commitments for all significant tasks</li>
+  <li>Coordinate with community leadership</li>
+  <li>Help vulnerable members</li>
+</ol>
+
+<h2 id="best-practices">12. Best Practices</h2>
+
+<h3>For Individual Members</h3>
+<ul>
+  <li><strong>Back up your identity</strong> immediately after creating it</li>
+  <li><strong>Add descriptions</strong> to all transfers to maintain a clear record</li>
+  <li><strong>Keep your balance near zero</strong> over time - both large positive and negative balances indicate imbalance</li>
+  <li><strong>Fulfill commitments</strong> promptly and completely</li>
+  <li><strong>Participate in governance</strong> - vote on proposals</li>
+  <li><strong>Report issues</strong> early rather than letting them escalate</li>
+</ul>
+
+<h3>For Community Organizers</h3>
+<ul>
+  <li><strong>Start small</strong> - begin with people who already trust each other</li>
+  <li><strong>Set reasonable credit limits</strong> - too high creates risk, too low limits usefulness</li>
+  <li><strong>Establish clear norms</strong> about what credits represent</li>
+  <li><strong>Have regular check-ins</strong> to discuss community health</li>
+  <li><strong>Document decisions</strong> and their rationale</li>
+  <li><strong>Plan for emergencies</strong> before they happen</li>
+</ul>
+
+<h3>Security Tips</h3>
+<ul>
+  <li><strong>Never share your backup code</strong> publicly</li>
+  <li><strong>Verify recipients</strong> before sending credits</li>
+  <li><strong>Use a strong backup password</strong></li>
+  <li><strong>Be cautious of strangers</strong> asking for credits</li>
+  <li><strong>Report suspicious activity</strong> to community governance</li>
+</ul>
+
+<h2 id="troubleshooting">13. Troubleshooting</h2>
+
+<h3>Common Issues</h3>
+
+<h4>"Transfer failed - insufficient balance"</h4>
+<p>Your balance would go below your floor (-limit). Either:</p>
+<ul>
+  <li>Send a smaller amount</li>
+  <li>Wait until you receive credits</li>
+  <li>Request a limit increase from governance</li>
+</ul>
+
+<h4>"Cannot find member"</h4>
+<ul>
+  <li>Ensure you're scanning a valid OpenGoban QR code</li>
+  <li>Check that you're both in the same community</li>
+  <li>Try pasting their ID manually</li>
+</ul>
+
+<h4>"Sync failed"</h4>
+<ul>
+  <li>Check your internet connection</li>
+  <li>Verify the sync URL is correct</li>
+  <li>Try disconnecting and reconnecting</li>
+</ul>
+
+<h4>"Lost my identity"</h4>
+<ul>
+  <li>If you have a backup, restore from it</li>
+  <li>If not, you'll need to create a new identity and get re-vouched</li>
+  <li>Your old balance cannot be recovered without your keys</li>
+</ul>
+
+<h4>"QR code not scanning"</h4>
+<ul>
+  <li>Ensure good lighting</li>
+  <li>Hold the camera steady</li>
+  <li>Move closer or further from the code</li>
+  <li>Clean your camera lens</li>
+</ul>
+
+<h2 id="glossary">14. Glossary</h2>
+
+<table>
+  <tr>
+    <th>Term</th>
+    <th>Definition</th>
+  </tr>
+  <tr>
+    <td><strong>Balance</strong></td>
+    <td>Your current credit position (can be positive or negative)</td>
+  </tr>
+  <tr>
+    <td><strong>Cell</strong></td>
+    <td>A single community using OpenGoban</td>
+  </tr>
+  <tr>
+    <td><strong>Circle</strong></td>
+    <td>Another term for a community or cell</td>
+  </tr>
+  <tr>
+    <td><strong>Commitment</strong></td>
+    <td>A formal promise to perform a task for credits</td>
+  </tr>
+  <tr>
+    <td><strong>Credit Limit</strong></td>
+    <td>Maximum negative balance allowed (your "floor")</td>
+  </tr>
+  <tr>
+    <td><strong>Escrow</strong></td>
+    <td>Credits held in reserve until a task is completed</td>
+  </tr>
+  <tr>
+    <td><strong>Federation</strong></td>
+    <td>Network of interconnected communities</td>
+  </tr>
+  <tr>
+    <td><strong>Floor</strong></td>
+    <td>The lowest your balance can go (equals negative limit)</td>
+  </tr>
+  <tr>
+    <td><strong>Handle</strong></td>
+    <td>Your display name in the community</td>
+  </tr>
+  <tr>
+    <td><strong>Mutual Credit</strong></td>
+    <td>System where credits are created through transactions, totaling zero</td>
+  </tr>
+  <tr>
+    <td><strong>Probation</strong></td>
+    <td>Trial period for new members with limited privileges</td>
+  </tr>
+  <tr>
+    <td><strong>Reserve</strong></td>
+    <td>Portion of balance set aside for pending commitments</td>
+  </tr>
+  <tr>
+    <td><strong>Sponsor</strong></td>
+    <td>Existing member who vouches for a new member</td>
+  </tr>
+  <tr>
+    <td><strong>Transfer</strong></td>
+    <td>Movement of credits between members</td>
+  </tr>
+  <tr>
+    <td><strong>Vouch</strong></td>
+    <td>To sponsor or guarantee a new member</td>
+  </tr>
+</table>
+
+<h2 id="legal">15. Legal Considerations</h2>
+
+<div class="important">
+  <strong>This section provides general information only and is not legal advice. Consult with a qualified legal professional regarding your specific situation.</strong>
+</div>
+
+<h3>What OpenGoban Is</h3>
+<ul>
+  <li>A tool for tracking mutual aid within voluntary associations</li>
+  <li>A record-keeping system for community contributions</li>
+  <li>A coordination mechanism for time and resource sharing</li>
+</ul>
+
+<h3>What OpenGoban Is NOT</h3>
+<ul>
+  <li>A currency or money substitute</li>
+  <li>An investment or securities offering</li>
+  <li>A payment processing system</li>
+  <li>A way to avoid taxes or regulatory obligations</li>
+</ul>
+
+<h3>User Responsibilities</h3>
+<p>As an OpenGoban user, you are responsible for:</p>
+<ul>
+  <li>Complying with all applicable local, state, and federal laws</li>
+  <li>Properly reporting any income or benefits as required by tax authorities</li>
+  <li>Understanding that credits have no monetary value and cannot be converted to legal tender</li>
+  <li>Using the system only for legitimate community coordination purposes</li>
+  <li>Not using the system for any illegal activities</li>
+</ul>
+
+<h3>Community Responsibilities</h3>
+<p>Communities using OpenGoban should:</p>
+<ul>
+  <li>Operate as bona fide voluntary associations</li>
+  <li>Establish clear governance and dispute resolution procedures</li>
+  <li>Maintain records of community decisions</li>
+  <li>Consult with legal counsel regarding organizational structure if needed</li>
+</ul>
+
+<h3>No Warranty</h3>
+<p>OpenGoban is provided "as is" without warranty of any kind. The developers and contributors are not liable for any damages arising from use of this software. Users assume all risks associated with operating a mutual credit system.</p>
+
+<div class="disclaimer">
+  <strong>Final Reminder:</strong> OpenGoban credits are not money. They are a social coordination tool for tracking mutual support within communities. If you need financial services, please use licensed financial institutions. If you have legal questions about running a mutual aid organization, please consult a qualified attorney.
+</div>
+
+<hr style="margin: 3rem 0;">
+
+<p style="text-align: center; color: #888;">
+  <strong>OpenGoban User Manual</strong><br>
+  Version 1.0 | January 2026<br>
+  <br>
+  This manual is open source.<br>
+  Contributions welcome at github.com/opengoban
+</p>
+
+</body>
+</html>
