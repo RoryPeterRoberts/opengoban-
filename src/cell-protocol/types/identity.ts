@@ -74,6 +74,43 @@ export interface AdmissionInfo {
 
   /** When admission was requested */
   requestedAt: Timestamp;
+
+  // ============================================
+  // SYBIL RESISTANCE FIELDS (Phase 5)
+  // ============================================
+
+  /** Whether sponsor bond is required */
+  requireSponsorBond?: boolean;
+
+  /** Custom bond amount (overrides default) */
+  sponsorBondAmount?: Units;
+
+  /** Whether service bond is required */
+  requireServiceBond?: boolean;
+
+  /** Custom service hours required (overrides default) */
+  serviceHoursRequired?: number;
+
+  /** Whether to start member in probation */
+  startWithProbation?: boolean;
+
+  /** Custom probation duration in days */
+  probationDays?: number;
+}
+
+/** Result of an admission decision - extended for Sybil resistance */
+export interface AdmissionResultExtended extends AdmissionResult {
+  /** Created sponsor bond ID */
+  sponsorBondId?: string;
+
+  /** Created service bond ID */
+  serviceBondId?: string;
+
+  /** Whether member is on probation */
+  onProbation?: boolean;
+
+  /** Probation end date */
+  probationEndsAt?: Timestamp;
 }
 
 /** Result of an admission decision */

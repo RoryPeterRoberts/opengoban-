@@ -77,6 +77,7 @@ export {
   CellIdentity,
   AdmissionInfo,
   AdmissionResult,
+  AdmissionResultExtended,
   MembershipChange,
   IdentityError,
   IdentityErrorCode,
@@ -282,6 +283,7 @@ export {
   IdentityEngine,
   IdentityValidationError,
   createIdentityEngine,
+  SybilResistanceEngines,
 } from './engines/identity-engine';
 
 // ============================================
@@ -507,6 +509,13 @@ export async function createCellProtocol(options: CellProtocolOptions): Promise<
     crypto,
   };
 }
+
+// ============================================
+// PHASE 5 HARDENING EXPORTS
+// ============================================
+
+// Re-export all hardening components
+export * from './hardening';
 
 // ============================================
 // VERSION

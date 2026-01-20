@@ -18,6 +18,7 @@ import {
   CellIdentity,
   AdmissionInfo,
   AdmissionResult,
+  AdmissionResultExtended,
   MembershipChange,
   IdentityError,
   IdentityErrorCode,
@@ -30,19 +31,59 @@ import { IStorage } from '../storage/pouchdb-adapter';
 import { LedgerEngine, LedgerViolationError } from './ledger-engine';
 import { CryptoAdapter } from '../crypto/crypto-adapter';
 
+// Optional Sybil resistance imports (Phase 5)
+// These are conditionally used if engines are provided
+import type { SponsorBondEngine } from '../hardening/sybil/sponsor-bond-engine';
+import type { ServiceBondEngine } from '../hardening/sybil/service-bond-engine';
+import type { ProbationTracker } from '../hardening/sybil/probation-tracker';
+import type { ReputationSignals } from '../hardening/sybil/reputation-signals';
+
 // ============================================
 // IDENTITY ENGINE IMPLEMENTATION
 // ============================================
+
+/**
+ * Optional Sybil resistance engines for Phase 5 integration
+ */
+export interface SybilResistanceEngines {
+  sponsorBonds?: SponsorBondEngine;
+  serviceBonds?: ServiceBondEngine;
+  probation?: ProbationTracker;
+  reputation?: ReputationSignals;
+}
 
 export class IdentityEngine implements IIdentityEngine {
   private ledger: LedgerEngine;
   private storage: IStorage;
   private crypto: CryptoAdapter;
 
-  constructor(ledger: LedgerEngine, storage: IStorage, crypto: CryptoAdapter) {
+  // Optional Sybil resistance integration (Phase 5)
+  private sybilEngines?: SybilResistanceEngines;
+
+  constructor(
+    ledger: LedgerEngine,
+    storage: IStorage,
+    crypto: CryptoAdapter,
+    sybilEngines?: SybilResistanceEngines
+  ) {
     this.ledger = ledger;
     this.storage = storage;
     this.crypto = crypto;
+    this.sybilEngines = sybilEngines;
+  }
+
+  /**
+   * Configure Sybil resistance engines after construction
+   */
+  configureSybilResistance(engines: SybilResistanceEngines): void {
+    this.sybilEngines = engines;
+  }
+
+  /**
+   * Get Sybil resistance engines (if configured)
+   */
+  getSybilEngines(): SybilResistanceEngines | undefined {
+    return this.sybilEngines;
   }
 
   // ============================================
@@ -237,6 +278,7 @@ export class IdentityEngine implements IIdentityEngine {
 
   /**
    * Add a member to the cell (creates ledger entry)
+   * Basic admission without Sybil resistance features
    */
   async addMember(admission: AdmissionInfo): Promise<AdmissionResult> {
     const timestamp = now();
@@ -298,6 +340,259 @@ export class IdentityEngine implements IIdentityEngine {
       identity,
       decidedAt: timestamp,
     };
+  }
+
+  /**
+   * Add a member with full Sybil resistance integration (Phase 5)
+   * Creates sponsor bonds, service bonds, and probation as configured
+   */
+  async addMemberWithSybilResistance(
+    admission: AdmissionInfo
+  ): Promise<AdmissionResultExtended> {
+    const timestamp = now();
+
+    // Check if identity exists
+    let identity = await this.getIdentity(admission.applicantId);
+
+    // If identity doesn't exist, create it from admission info
+    if (!identity) {
+      identity = await this.importIdentity(
+        this.ledger.getCellId(),
+        admission.displayName,
+        admission.publicKey
+      );
+    }
+
+    // Validate sponsor if required
+    if (admission.requireSponsorBond && !admission.sponsorId) {
+      return {
+        approved: false,
+        rejectionReason: 'Sponsor bond required but no sponsor provided',
+        decidedAt: timestamp,
+      };
+    }
+
+    // Validate sponsor eligibility for bond
+    if (admission.sponsorId && this.sybilEngines?.sponsorBonds) {
+      const eligibility = await this.sybilEngines.sponsorBonds.canSponsor(admission.sponsorId);
+      if (!eligibility.eligible) {
+        return {
+          approved: false,
+          rejectionReason: `Sponsor not eligible: ${eligibility.reason}`,
+          decidedAt: timestamp,
+        };
+      }
+    } else if (admission.sponsorId) {
+      // Fallback check without sponsor bond engine
+      const sponsor = this.ledger.getMemberState(admission.sponsorId);
+      if (!sponsor || sponsor.status !== MembershipStatus.ACTIVE) {
+        return {
+          approved: false,
+          rejectionReason: 'Sponsor is not an active member',
+          decidedAt: timestamp,
+        };
+      }
+    }
+
+    // Add to ledger
+    try {
+      await this.ledger.addMember(admission.applicantId, admission.initialLimit);
+    } catch (e) {
+      return {
+        approved: false,
+        rejectionReason: e instanceof Error ? e.message : 'Failed to add member to ledger',
+        decidedAt: timestamp,
+      };
+    }
+
+    // Track created bonds and probation
+    let sponsorBondId: string | undefined;
+    let serviceBondId: string | undefined;
+    let onProbation = false;
+    let probationEndsAt: Timestamp | undefined;
+
+    // Create sponsor bond if requested and engine available
+    if (admission.requireSponsorBond && admission.sponsorId && this.sybilEngines?.sponsorBonds) {
+      try {
+        const bond = await this.sybilEngines.sponsorBonds.createBond({
+          sponsorId: admission.sponsorId,
+          sponseeId: admission.applicantId,
+          bondAmount: admission.sponsorBondAmount,
+          probationDays: admission.probationDays,
+        });
+        sponsorBondId = bond.id;
+      } catch (e) {
+        // Rollback member addition on bond failure
+        await this.ledger.removeMember(admission.applicantId);
+        return {
+          approved: false,
+          rejectionReason: e instanceof Error ? e.message : 'Failed to create sponsor bond',
+          decidedAt: timestamp,
+        };
+      }
+    }
+
+    // Create service bond if requested and engine available
+    if (admission.requireServiceBond && this.sybilEngines?.serviceBonds) {
+      try {
+        const bond = await this.sybilEngines.serviceBonds.createBond(admission.applicantId);
+        serviceBondId = bond.id;
+      } catch (e) {
+        // Rollback sponsor bond and member
+        if (sponsorBondId && this.sybilEngines?.sponsorBonds) {
+          try {
+            await this.sybilEngines.sponsorBonds.releaseBond(sponsorBondId, 'Admission rollback');
+          } catch { /* ignore rollback errors */ }
+        }
+        await this.ledger.removeMember(admission.applicantId);
+        return {
+          approved: false,
+          rejectionReason: e instanceof Error ? e.message : 'Failed to create service bond',
+          decidedAt: timestamp,
+        };
+      }
+    }
+
+    // Start probation if requested and tracker available
+    if (admission.startWithProbation && this.sybilEngines?.probation) {
+      try {
+        const probationDays = admission.probationDays ?? 90;
+        const probationState = await this.sybilEngines.probation.startProbation(
+          admission.applicantId,
+          probationDays,
+          sponsorBondId,
+          serviceBondId
+        );
+        onProbation = true;
+        probationEndsAt = probationState.scheduledEndAt;
+      } catch (e) {
+        // Probation failure is non-fatal - member is still admitted
+        console.warn(`Failed to start probation for ${admission.applicantId}:`, e);
+      }
+    }
+
+    // Update identity status based on probation
+    identity.membershipStatus = onProbation ? MembershipStatus.PROBATION : MembershipStatus.ACTIVE;
+    identity.updatedAt = timestamp;
+
+    await this.storage.saveIdentity(identity);
+
+    // Log membership change
+    const change: MembershipChange = {
+      memberId: admission.applicantId,
+      previousStatus: MembershipStatus.PENDING,
+      newStatus: identity.membershipStatus,
+      reason: admission.notes || (onProbation ? 'Admitted with probation' : 'Admitted'),
+      initiatorId: admission.sponsorId || admission.applicantId,
+      changedAt: timestamp,
+    };
+    await this.storage.saveMembershipChange(change);
+
+    return {
+      approved: true,
+      identity,
+      decidedAt: timestamp,
+      sponsorBondId,
+      serviceBondId,
+      onProbation,
+      probationEndsAt,
+    };
+  }
+
+  /**
+   * Graduate a member from probation
+   */
+  async graduateProbation(
+    memberId: IdentityId,
+    initiatorId: IdentityId
+  ): Promise<MembershipChange> {
+    if (!this.sybilEngines?.probation) {
+      throw new IdentityValidationError({
+        code: IdentityErrorCode.INVALID_STATUS_TRANSITION,
+        message: 'Probation tracker not configured',
+      });
+    }
+
+    const identity = await this.getIdentity(memberId);
+    if (!identity) {
+      throw new IdentityValidationError({
+        code: IdentityErrorCode.NOT_FOUND,
+        message: `Identity ${memberId} not found`,
+      });
+    }
+
+    if (identity.membershipStatus !== MembershipStatus.PROBATION) {
+      throw new IdentityValidationError({
+        code: IdentityErrorCode.INVALID_STATUS_TRANSITION,
+        message: `Member ${memberId} is not on probation`,
+      });
+    }
+
+    const timestamp = now();
+
+    // Graduate through probation tracker
+    await this.sybilEngines.probation.graduateProbation(memberId);
+
+    // Update identity
+    identity.membershipStatus = MembershipStatus.ACTIVE;
+    identity.updatedAt = timestamp;
+    await this.storage.saveIdentity(identity);
+
+    // Log change
+    const change: MembershipChange = {
+      memberId,
+      previousStatus: MembershipStatus.PROBATION,
+      newStatus: MembershipStatus.ACTIVE,
+      reason: 'Graduated from probation',
+      initiatorId,
+      changedAt: timestamp,
+    };
+    await this.storage.saveMembershipChange(change);
+
+    // Release sponsor bond if exists
+    const probationState = this.sybilEngines.probation.getProbationState(memberId);
+    if (probationState?.sponsorBondId && this.sybilEngines.sponsorBonds) {
+      try {
+        await this.sybilEngines.sponsorBonds.releaseBond(
+          probationState.sponsorBondId,
+          'Sponsee graduated'
+        );
+      } catch (e) {
+        console.warn(`Failed to release sponsor bond for ${memberId}:`, e);
+      }
+    }
+
+    return change;
+  }
+
+  /**
+   * Check if member is on probation
+   */
+  isOnProbation(memberId: IdentityId): boolean {
+    if (!this.sybilEngines?.probation) {
+      return false;
+    }
+    return this.sybilEngines.probation.isOnProbation(memberId);
+  }
+
+  /**
+   * Get member's reputation score (advisory only)
+   */
+  async getReputationScore(memberId: IdentityId): Promise<number | undefined> {
+    if (!this.sybilEngines?.reputation) {
+      return undefined;
+    }
+    return this.sybilEngines.reputation.getScore(memberId);
+  }
+
+  /**
+   * Compute and cache reputation for a member
+   */
+  async computeReputation(memberId: IdentityId): Promise<void> {
+    if (!this.sybilEngines?.reputation) {
+      return;
+    }
+    await this.sybilEngines.reputation.computeReputation(memberId);
   }
 
   /**
@@ -614,7 +909,8 @@ export class IdentityValidationError extends Error {
 export function createIdentityEngine(
   ledger: LedgerEngine,
   storage: IStorage,
-  crypto: CryptoAdapter
+  crypto: CryptoAdapter,
+  sybilEngines?: SybilResistanceEngines
 ): IdentityEngine {
-  return new IdentityEngine(ledger, storage, crypto);
+  return new IdentityEngine(ledger, storage, crypto, sybilEngines);
 }
