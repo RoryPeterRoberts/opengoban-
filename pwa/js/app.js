@@ -18,7 +18,401 @@
     currentScreen: null,
     db: null,
     pendingSend: null, // For confirmation flow
+    pendingJoin: null, // For join community flow
+    peerManager: null, // P2P sync
+    syncStatus: 'offline', // 'connected', 'syncing', 'offline', 'conflict'
   };
+
+  // ============================================
+  // INVITE CODE UTILITIES
+  // ============================================
+
+  const INVITE_PREFIX = 'HH-INVITE:';
+  const INVITE_VERSION = 1;
+
+  function encodeInviteCode(data) {
+    const payload = {
+      v: INVITE_VERSION,
+      cellId: data.cellId,
+      name: data.communityName,
+      peerId: data.peerId,
+      pk: data.publicKey,
+      created: Date.now(),
+    };
+    return INVITE_PREFIX + btoa(JSON.stringify(payload));
+  }
+
+  function decodeInviteCode(code) {
+    try {
+      if (!code.startsWith(INVITE_PREFIX)) {
+        return null;
+      }
+      const base64 = code.substring(INVITE_PREFIX.length);
+      const payload = JSON.parse(atob(base64));
+
+      if (payload.v !== INVITE_VERSION) {
+        console.warn('Unsupported invite version:', payload.v);
+        return null;
+      }
+
+      return {
+        cellId: payload.cellId,
+        communityName: payload.name,
+        founderPeerId: payload.peerId,
+        founderPublicKey: payload.pk,
+        createdAt: payload.created,
+      };
+    } catch (e) {
+      console.error('Failed to decode invite:', e);
+      return null;
+    }
+  }
+
+  function isInviteCode(code) {
+    return code && code.startsWith(INVITE_PREFIX);
+  }
+
+  // ============================================
+  // PEER MANAGER (P2P Sync via PeerJS)
+  // ============================================
+
+  const PeerManager = {
+    peer: null,
+    connections: new Map(), // peerId -> DataConnection
+    messageHandlers: new Map(),
+    reconnectTimers: new Map(),
+
+    async initialize(peerId) {
+      if (this.peer) {
+        console.log('PeerManager already initialized');
+        return;
+      }
+
+      return new Promise((resolve, reject) => {
+        // Use public PeerJS server (can self-host later)
+        this.peer = new Peer(peerId, {
+          debug: 1,
+        });
+
+        this.peer.on('open', (id) => {
+          console.log('PeerJS connected with ID:', id);
+          updateSyncStatus('offline'); // Connected to server but no peers yet
+          resolve(id);
+        });
+
+        this.peer.on('connection', (conn) => {
+          console.log('Incoming connection from:', conn.peer);
+          this.setupConnection(conn);
+        });
+
+        this.peer.on('error', (err) => {
+          console.error('PeerJS error:', err);
+          if (err.type === 'unavailable-id') {
+            // ID taken, generate new one
+            reject(new Error('Peer ID unavailable'));
+          } else if (err.type === 'peer-unavailable') {
+            // Target peer not online - that's okay
+            console.log('Peer unavailable, will retry later');
+          } else {
+            updateSyncStatus('offline');
+          }
+        });
+
+        this.peer.on('disconnected', () => {
+          console.log('PeerJS disconnected');
+          updateSyncStatus('offline');
+        });
+
+        setTimeout(() => reject(new Error('PeerJS connection timeout')), 10000);
+      });
+    },
+
+    setupConnection(conn) {
+      const peerId = conn.peer;
+
+      conn.on('open', () => {
+        console.log('Connection open with:', peerId);
+        this.connections.set(peerId, conn);
+        updateSyncStatus('connected');
+
+        // Send hello message
+        this.sendTo(peerId, {
+          type: 'HELLO',
+          memberId: state.currentMember?.memberId,
+          cellId: state.currentMember?.cellId,
+          name: state.currentMember?.name,
+        });
+      });
+
+      conn.on('data', (data) => {
+        this.handleMessage(peerId, data);
+      });
+
+      conn.on('close', () => {
+        console.log('Connection closed with:', peerId);
+        this.connections.delete(peerId);
+        if (this.connections.size === 0) {
+          updateSyncStatus('offline');
+        }
+        // Schedule reconnection
+        this.scheduleReconnect(peerId);
+      });
+
+      conn.on('error', (err) => {
+        console.error('Connection error with', peerId, ':', err);
+      });
+    },
+
+    async connectToPeer(peerId) {
+      if (!this.peer || this.connections.has(peerId)) {
+        return;
+      }
+
+      try {
+        console.log('Connecting to peer:', peerId);
+        const conn = this.peer.connect(peerId, { reliable: true });
+        this.setupConnection(conn);
+      } catch (e) {
+        console.error('Failed to connect to peer:', e);
+      }
+    },
+
+    scheduleReconnect(peerId) {
+      // Clear existing timer
+      if (this.reconnectTimers.has(peerId)) {
+        clearTimeout(this.reconnectTimers.get(peerId));
+      }
+
+      // Reconnect after 30 seconds
+      const timer = setTimeout(() => {
+        this.reconnectTimers.delete(peerId);
+        if (state.currentMember?.knownPeers?.includes(peerId)) {
+          this.connectToPeer(peerId);
+        }
+      }, 30000);
+
+      this.reconnectTimers.set(peerId, timer);
+    },
+
+    sendTo(peerId, message) {
+      const conn = this.connections.get(peerId);
+      if (conn && conn.open) {
+        conn.send(message);
+      }
+    },
+
+    broadcast(message) {
+      for (const [peerId, conn] of this.connections) {
+        if (conn.open) {
+          conn.send(message);
+        }
+      }
+    },
+
+    handleMessage(fromPeerId, data) {
+      console.log('Received from', fromPeerId, ':', data.type);
+
+      switch (data.type) {
+        case 'HELLO':
+          this.handleHello(fromPeerId, data);
+          break;
+        case 'LEDGER_STATE':
+          this.handleLedgerState(fromPeerId, data);
+          break;
+        case 'TRANSACTION':
+          this.handleTransaction(fromPeerId, data);
+          break;
+        case 'MEMBER_LIST':
+          this.handleMemberList(fromPeerId, data);
+          break;
+        case 'REQUEST_SYNC':
+          this.handleRequestSync(fromPeerId, data);
+          break;
+        default:
+          console.warn('Unknown message type:', data.type);
+      }
+    },
+
+    handleHello(fromPeerId, data) {
+      // Verify same cell
+      if (data.cellId !== state.currentMember?.cellId) {
+        console.warn('Peer from different cell:', data.cellId);
+        return;
+      }
+
+      // Add to known peers
+      addKnownPeer(fromPeerId);
+
+      // If this is a new member, add them to our ledger
+      if (data.memberId && state.protocol) {
+        const existing = state.protocol.ledger.getMemberState(data.memberId);
+        if (!existing) {
+          // Request full sync from them
+          this.sendTo(fromPeerId, { type: 'REQUEST_SYNC' });
+        }
+      }
+
+      showToast(`${data.name || 'A neighbor'} is online!`, 'success');
+    },
+
+    async handleLedgerState(fromPeerId, data) {
+      if (!state.protocol) return;
+
+      updateSyncStatus('syncing');
+
+      try {
+        // Merge member states
+        for (const [memberId, memberData] of Object.entries(data.members || {})) {
+          const existing = state.protocol.ledger.getMemberState(memberId);
+          if (!existing) {
+            // Add new member
+            const { now } = CellProtocol;
+            await state.protocol.identity.addMember({
+              applicantId: memberId,
+              displayName: memberData.displayName || formatName(memberId),
+              publicKey: memberData.publicKey || 'synced-' + memberId,
+              requestedAt: now(),
+              initialLimit: memberData.limit || 100,
+            });
+          }
+        }
+
+        // Process transactions we don't have
+        for (const tx of data.transactions || []) {
+          await processRemoteTransaction(tx);
+        }
+
+        refreshScreen(state.currentScreen);
+        updateSyncStatus('connected');
+      } catch (e) {
+        console.error('Sync error:', e);
+        updateSyncStatus('conflict');
+      }
+    },
+
+    async handleTransaction(fromPeerId, data) {
+      await processRemoteTransaction(data.transaction);
+      refreshScreen(state.currentScreen);
+    },
+
+    handleMemberList(fromPeerId, data) {
+      // Update known peers
+      for (const peer of data.peers || []) {
+        if (peer !== state.currentMember?.peerId) {
+          addKnownPeer(peer);
+          // Try to connect to peers we don't know
+          if (!this.connections.has(peer)) {
+            this.connectToPeer(peer);
+          }
+        }
+      }
+    },
+
+    async handleRequestSync(fromPeerId, data) {
+      if (!state.protocol) return;
+
+      // Send our full state
+      const members = {};
+      for (const [id, memberState] of state.protocol.ledger.getAllMemberStates()) {
+        members[id] = {
+          balance: memberState.balance,
+          limit: memberState.limit,
+          displayName: formatName(id),
+        };
+      }
+
+      const transactions = await state.protocol.transactions.getMemberTransactions(
+        state.currentMember.memberId,
+        100
+      );
+
+      this.sendTo(fromPeerId, {
+        type: 'LEDGER_STATE',
+        members,
+        transactions,
+      });
+
+      // Also send member list for peer discovery
+      this.sendTo(fromPeerId, {
+        type: 'MEMBER_LIST',
+        peers: state.currentMember?.knownPeers || [],
+      });
+    },
+
+    destroy() {
+      if (this.peer) {
+        this.peer.destroy();
+        this.peer = null;
+      }
+      this.connections.clear();
+      for (const timer of this.reconnectTimers.values()) {
+        clearTimeout(timer);
+      }
+      this.reconnectTimers.clear();
+    },
+  };
+
+  async function processRemoteTransaction(tx) {
+    if (!state.protocol || !tx) return;
+
+    try {
+      // Check if we already have this transaction
+      const existing = await state.protocol.transactions.getTransaction(tx.id);
+      if (existing) {
+        return; // Already have it
+      }
+
+      // Ensure both parties exist in our ledger
+      const { now } = CellProtocol;
+      for (const memberId of [tx.payerId, tx.payeeId]) {
+        if (!state.protocol.ledger.getMemberState(memberId)) {
+          await state.protocol.identity.addMember({
+            applicantId: memberId,
+            displayName: formatName(memberId),
+            publicKey: 'synced-' + memberId,
+            requestedAt: now(),
+            initialLimit: 100,
+          });
+        }
+      }
+
+      // Execute the transaction locally
+      await state.protocol.transactions.executeTransaction({
+        payerId: tx.payerId,
+        payeeId: tx.payeeId,
+        amount: tx.amount,
+        description: tx.description,
+        timestamp: tx.timestamp || now(),
+      });
+    } catch (e) {
+      console.error('Failed to process remote transaction:', e);
+    }
+  }
+
+  function updateSyncStatus(status) {
+    state.syncStatus = status;
+    const indicator = document.getElementById('sync-status');
+    if (indicator) {
+      indicator.className = 'sync-indicator ' + status;
+      indicator.title = {
+        connected: 'Connected to neighbors',
+        syncing: 'Syncing...',
+        offline: 'Offline',
+        conflict: 'Sync conflict',
+      }[status] || 'Unknown';
+    }
+  }
+
+  async function addKnownPeer(peerId) {
+    if (!state.currentMember) return;
+    if (!state.currentMember.knownPeers) {
+      state.currentMember.knownPeers = [];
+    }
+    if (!state.currentMember.knownPeers.includes(peerId)) {
+      state.currentMember.knownPeers.push(peerId);
+      await saveIdentity(state.currentMember);
+    }
+  }
 
   // ============================================
   // INITIALIZATION
@@ -36,8 +430,21 @@
       state.currentMember = identity;
       showApp();
       navigateTo('home');
+
+      // Initialize P2P sync if we have a peerId
+      if (identity.peerId) {
+        try {
+          await PeerManager.initialize(identity.peerId);
+          // Connect to known peers
+          for (const peerId of identity.knownPeers || []) {
+            PeerManager.connectToPeer(peerId);
+          }
+        } catch (e) {
+          console.error('Failed to initialize P2P:', e);
+        }
+      }
     } else {
-      showOnboarding();
+      showCommunityChoice();
     }
 
     setupEventListeners();
@@ -116,13 +523,13 @@
   }
 
   // ============================================
-  // ONBOARDING
+  // ONBOARDING - COMMUNITY CHOICE
   // ============================================
 
-  function showOnboarding() {
+  function showCommunityChoice() {
     const app = document.getElementById('app');
     app.innerHTML = `
-      <div id="onboarding-screen" class="screen active onboarding-screen">
+      <div id="community-choice-screen" class="screen active onboarding-screen">
         <!-- Friendly illustration -->
         <div class="onboarding-illustration">
           <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -157,37 +564,23 @@
           Keep track of favors with your neighbors. Help someone today, get help tomorrow.
         </p>
 
-        <div class="onboarding-features">
-          <div class="feature-item">
-            <div class="feature-icon">🤝</div>
-            <span>Track favors given and received</span>
-          </div>
-          <div class="feature-item">
-            <div class="feature-icon">📱</div>
-            <span>Works offline - no internet needed</span>
-          </div>
-          <div class="feature-item">
-            <div class="feature-icon">🔒</div>
-            <span>Private - stays on your phone</span>
-          </div>
-        </div>
+        <div class="community-choice-buttons">
+          <button id="start-community-btn" class="choice-btn">
+            <span class="choice-icon">🏠</span>
+            <div class="choice-content">
+              <span class="choice-label">Start a Community</span>
+              <span class="choice-hint">Create a new neighborhood group</span>
+            </div>
+          </button>
 
-        <div class="name-section">
-          <label class="input-label">What should neighbors call you?</label>
-          <input
-            type="text"
-            id="name-input"
-            class="name-input"
-            placeholder="Your name"
-            maxlength="30"
-            autocomplete="name"
-          >
-          <p class="input-hint">This is how you'll appear to others</p>
+          <button id="join-community-btn" class="choice-btn">
+            <span class="choice-icon">👥</span>
+            <div class="choice-content">
+              <span class="choice-label">Join a Community</span>
+              <span class="choice-hint">Someone invited you? Tap here</span>
+            </div>
+          </button>
         </div>
-
-        <button id="join-btn" class="btn btn-primary btn-lg btn-block">
-          🌻 Join My Community
-        </button>
 
         <p class="text-muted mt-lg" style="font-size: 0.85rem;">
           No sign-up. No account. Everything stays on your phone.
@@ -195,15 +588,258 @@
       </div>
     `;
 
-    setupOnboardingListeners();
+    setupCommunityChoiceListeners();
   }
 
-  function setupOnboardingListeners() {
-    const joinBtn = document.getElementById('join-btn');
-    const nameInput = document.getElementById('name-input');
+  function setupCommunityChoiceListeners() {
+    const startBtn = document.getElementById('start-community-btn');
+    const joinBtn = document.getElementById('join-community-btn');
 
-    if (joinBtn && nameInput) {
-      joinBtn.addEventListener('click', async () => {
+    if (startBtn) {
+      startBtn.addEventListener('click', () => showCreateCommunity());
+    }
+
+    if (joinBtn) {
+      joinBtn.addEventListener('click', () => showJoinCommunity());
+    }
+  }
+
+  // ============================================
+  // ONBOARDING - CREATE COMMUNITY
+  // ============================================
+
+  function showCreateCommunity() {
+    const app = document.getElementById('app');
+    app.innerHTML = `
+      <div id="create-community-screen" class="screen active onboarding-screen">
+        <button id="back-to-choice" class="back-btn">← Back</button>
+
+        <h1 class="onboarding-title" style="font-size: 1.75rem;">Start Your Community</h1>
+        <p class="onboarding-subtitle">
+          Give your neighborhood a name and invite your neighbors to join.
+        </p>
+
+        <div class="name-section">
+          <label class="input-label">Community Name</label>
+          <input
+            type="text"
+            id="community-name-input"
+            class="name-input"
+            placeholder="Oak Street Neighbors"
+            maxlength="40"
+          >
+          <p class="input-hint">This is what your community will be called</p>
+        </div>
+
+        <div class="name-section">
+          <label class="input-label">Your Name</label>
+          <input
+            type="text"
+            id="founder-name-input"
+            class="name-input"
+            placeholder="Your name"
+            maxlength="30"
+            autocomplete="name"
+          >
+          <p class="input-hint">How neighbors will see you</p>
+        </div>
+
+        <button id="create-community-btn" class="btn btn-primary btn-lg btn-block">
+          🏠 Create My Community
+        </button>
+      </div>
+    `;
+
+    setupCreateCommunityListeners();
+  }
+
+  function setupCreateCommunityListeners() {
+    const backBtn = document.getElementById('back-to-choice');
+    const createBtn = document.getElementById('create-community-btn');
+    const communityInput = document.getElementById('community-name-input');
+    const nameInput = document.getElementById('founder-name-input');
+
+    if (backBtn) {
+      backBtn.addEventListener('click', () => showCommunityChoice());
+    }
+
+    if (createBtn && communityInput && nameInput) {
+      createBtn.addEventListener('click', async () => {
+        const communityName = communityInput.value.trim();
+        const founderName = nameInput.value.trim();
+
+        if (communityName.length < 3) {
+          showToast('Please enter a community name (at least 3 letters)', 'error');
+          communityInput.focus();
+          return;
+        }
+
+        if (founderName.length < 2) {
+          showToast('Please enter your name (at least 2 letters)', 'error');
+          nameInput.focus();
+          return;
+        }
+
+        createBtn.disabled = true;
+        createBtn.innerHTML = '<span class="spinner"></span> Creating...';
+
+        try {
+          await createCommunity(communityName, founderName);
+          showApp();
+          navigateTo('home');
+          showToast(`Welcome to ${communityName}! 🎉`, 'success');
+
+          // Show share prompt after a moment
+          setTimeout(() => {
+            showToast('Invite neighbors from Settings → Share Invite', 'info');
+          }, 2000);
+        } catch (e) {
+          console.error('Create community error:', e);
+          showToast('Something went wrong. Please try again.', 'error');
+          createBtn.disabled = false;
+          createBtn.innerHTML = '🏠 Create My Community';
+        }
+      });
+
+      nameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') createBtn.click();
+      });
+    }
+  }
+
+  // ============================================
+  // ONBOARDING - JOIN COMMUNITY
+  // ============================================
+
+  function showJoinCommunity() {
+    const app = document.getElementById('app');
+    app.innerHTML = `
+      <div id="join-community-screen" class="screen active onboarding-screen">
+        <button id="back-to-choice" class="back-btn">← Back</button>
+
+        <h1 class="onboarding-title" style="font-size: 1.75rem;">Join a Community</h1>
+        <p class="onboarding-subtitle">
+          Scan the invite QR code or enter the invite code shared by a neighbor.
+        </p>
+
+        <button id="scan-invite-btn" class="btn btn-warm btn-lg btn-block mb-md">
+          📷 Scan Invite QR Code
+        </button>
+
+        <div class="divider-or">
+          <span>or enter code manually</span>
+        </div>
+
+        <div class="name-section">
+          <label class="input-label">Invite Code</label>
+          <input
+            type="text"
+            id="invite-code-input"
+            class="name-input"
+            placeholder="HH-INVITE:..."
+            style="font-size: 0.9rem; font-family: monospace;"
+          >
+          <p class="input-hint">Paste the invite code you received</p>
+        </div>
+
+        <button id="next-join-btn" class="btn btn-primary btn-lg btn-block">
+          Next →
+        </button>
+      </div>
+    `;
+
+    setupJoinCommunityListeners();
+  }
+
+  function setupJoinCommunityListeners() {
+    const backBtn = document.getElementById('back-to-choice');
+    const scanBtn = document.getElementById('scan-invite-btn');
+    const nextBtn = document.getElementById('next-join-btn');
+    const codeInput = document.getElementById('invite-code-input');
+
+    if (backBtn) {
+      backBtn.addEventListener('click', () => showCommunityChoice());
+    }
+
+    if (scanBtn) {
+      scanBtn.addEventListener('click', () => openInviteScanner());
+    }
+
+    if (nextBtn && codeInput) {
+      nextBtn.addEventListener('click', () => {
+        const code = codeInput.value.trim();
+
+        if (!code) {
+          showToast('Please enter an invite code', 'error');
+          codeInput.focus();
+          return;
+        }
+
+        const inviteData = decodeInviteCode(code);
+        if (!inviteData) {
+          showToast('Invalid invite code. Please check and try again.', 'error');
+          return;
+        }
+
+        state.pendingJoin = inviteData;
+        showJoinConfirmation(inviteData);
+      });
+
+      codeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') nextBtn.click();
+      });
+    }
+  }
+
+  // ============================================
+  // ONBOARDING - JOIN CONFIRMATION
+  // ============================================
+
+  function showJoinConfirmation(inviteData) {
+    const app = document.getElementById('app');
+    app.innerHTML = `
+      <div id="join-confirm-screen" class="screen active onboarding-screen">
+        <button id="back-to-join" class="back-btn">← Back</button>
+
+        <div class="community-preview">
+          <div class="community-preview-icon">🏘️</div>
+          <h2 class="community-preview-name">${escapeHtml(inviteData.communityName)}</h2>
+          <p class="community-preview-hint">You're about to join this community</p>
+        </div>
+
+        <div class="name-section">
+          <label class="input-label">Your Name</label>
+          <input
+            type="text"
+            id="joiner-name-input"
+            class="name-input"
+            placeholder="Your name"
+            maxlength="30"
+            autocomplete="name"
+          >
+          <p class="input-hint">How neighbors will see you</p>
+        </div>
+
+        <button id="confirm-join-btn" class="btn btn-primary btn-lg btn-block">
+          👥 Join ${escapeHtml(inviteData.communityName)}
+        </button>
+      </div>
+    `;
+
+    setupJoinConfirmationListeners(inviteData);
+  }
+
+  function setupJoinConfirmationListeners(inviteData) {
+    const backBtn = document.getElementById('back-to-join');
+    const confirmBtn = document.getElementById('confirm-join-btn');
+    const nameInput = document.getElementById('joiner-name-input');
+
+    if (backBtn) {
+      backBtn.addEventListener('click', () => showJoinCommunity());
+    }
+
+    if (confirmBtn && nameInput) {
+      confirmBtn.addEventListener('click', async () => {
         const name = nameInput.value.trim();
 
         if (name.length < 2) {
@@ -212,26 +848,145 @@
           return;
         }
 
-        joinBtn.disabled = true;
-        joinBtn.innerHTML = '<span class="spinner"></span> Setting up...';
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span class="spinner"></span> Joining...';
 
         try {
-          await createIdentity(name);
+          await joinCommunity(inviteData, name);
           showApp();
           navigateTo('home');
-          showToast(`Welcome, ${name}! 🎉`, 'success');
+          showToast(`Welcome to ${inviteData.communityName}! 🎉`, 'success');
         } catch (e) {
-          console.error('Setup error:', e);
+          console.error('Join community error:', e);
           showToast('Something went wrong. Please try again.', 'error');
-          joinBtn.disabled = false;
-          joinBtn.innerHTML = '🌻 Join My Community';
+          confirmBtn.disabled = false;
+          confirmBtn.innerHTML = `👥 Join ${escapeHtml(inviteData.communityName)}`;
         }
       });
 
       nameInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') joinBtn.click();
+        if (e.key === 'Enter') confirmBtn.click();
       });
     }
+  }
+
+  // ============================================
+  // COMMUNITY CREATION & JOINING
+  // ============================================
+
+  async function createCommunity(communityName, founderName) {
+    const keyPair = nacl.sign.keyPair();
+    const publicKey = nacl.util.encodeBase64(keyPair.publicKey);
+    const secretKey = nacl.util.encodeBase64(keyPair.secretKey);
+
+    const cellId = 'community-' + generateShortId();
+    const memberId = 'neighbor-' + generateShortId();
+    const peerId = 'hh-' + generateShortId();
+
+    await initProtocol(cellId);
+
+    const { now } = CellProtocol;
+    await state.protocol.identity.addMember({
+      applicantId: memberId,
+      displayName: founderName,
+      publicKey: publicKey,
+      requestedAt: now(),
+      initialLimit: 100,
+    });
+
+    const identity = {
+      memberId,
+      name: founderName,
+      publicKey,
+      secretKey,
+      cellId,
+      createdAt: Date.now(),
+      // Community fields
+      communityName,
+      isFounder: true,
+      joinedAt: Date.now(),
+      peerId,
+      knownPeers: [],
+    };
+
+    await saveIdentity(identity);
+    state.currentMember = identity;
+
+    // Initialize P2P
+    try {
+      await PeerManager.initialize(peerId);
+    } catch (e) {
+      console.warn('P2P initialization failed:', e);
+    }
+
+    return identity;
+  }
+
+  async function joinCommunity(inviteData, memberName) {
+    const keyPair = nacl.sign.keyPair();
+    const publicKey = nacl.util.encodeBase64(keyPair.publicKey);
+    const secretKey = nacl.util.encodeBase64(keyPair.secretKey);
+
+    const memberId = 'neighbor-' + generateShortId();
+    const peerId = 'hh-' + generateShortId();
+
+    // Use the cell ID from the invite
+    await initProtocol(inviteData.cellId);
+
+    const { now } = CellProtocol;
+    await state.protocol.identity.addMember({
+      applicantId: memberId,
+      displayName: memberName,
+      publicKey: publicKey,
+      requestedAt: now(),
+      initialLimit: 100,
+    });
+
+    const identity = {
+      memberId,
+      name: memberName,
+      publicKey,
+      secretKey,
+      cellId: inviteData.cellId,
+      createdAt: Date.now(),
+      // Community fields
+      communityName: inviteData.communityName,
+      isFounder: false,
+      joinedAt: Date.now(),
+      peerId,
+      knownPeers: [inviteData.founderPeerId], // Start with founder as known peer
+    };
+
+    await saveIdentity(identity);
+    state.currentMember = identity;
+
+    // Initialize P2P and connect to founder
+    try {
+      await PeerManager.initialize(peerId);
+      // Connect to founder to sync
+      if (inviteData.founderPeerId) {
+        PeerManager.connectToPeer(inviteData.founderPeerId);
+      }
+    } catch (e) {
+      console.warn('P2P initialization failed:', e);
+    }
+
+    return identity;
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Legacy function for backwards compatibility
+  function showOnboarding() {
+    showCommunityChoice();
+  }
+
+  function setupOnboardingListeners() {
+    // Handled by individual screen listeners
   }
 
   // ============================================
@@ -240,15 +995,20 @@
 
   function showApp() {
     const app = document.getElementById('app');
+    const communityName = state.currentMember?.communityName || 'Community';
+
     app.innerHTML = `
       <header class="app-header">
         <div>
-          <div class="header-greeting">Hello,</div>
+          <div class="header-community" id="header-community">${escapeHtml(communityName)}</div>
           <div class="header-name" id="header-name">Neighbor</div>
         </div>
-        <div id="header-balance" class="header-balance zero">
-          <span>🤝</span>
-          <span id="header-balance-num">0</span>
+        <div class="header-right">
+          <div id="sync-status" class="sync-indicator offline" title="Offline"></div>
+          <div id="header-balance" class="header-balance zero">
+            <span>🤝</span>
+            <span id="header-balance-num">0</span>
+          </div>
         </div>
       </header>
 
@@ -392,6 +1152,23 @@
     return `
       <div id="settings-screen" class="screen">
         <div class="settings-card">
+          <div class="settings-title">Your Community</div>
+          <div class="community-display">
+            <div class="community-icon">🏘️</div>
+            <div>
+              <div class="community-name-display" id="settings-community-name">Loading...</div>
+              <div class="community-role" id="settings-community-role">Member</div>
+            </div>
+          </div>
+          <button id="share-invite-btn" class="btn btn-warm btn-block mt-md">
+            📨 Invite Neighbors
+          </button>
+          <p class="form-hint mt-sm text-center">
+            Share your invite to grow your community
+          </p>
+        </div>
+
+        <div class="settings-card">
           <div class="settings-title">Your Profile</div>
           <div class="profile-display">
             <div class="profile-avatar" id="settings-avatar">👤</div>
@@ -418,6 +1195,21 @@
           </div>
           <p class="form-hint mt-sm">
             💡 Your trust limit is how many helping hands you can give before receiving some back.
+          </p>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-title">Sync Status</div>
+          <div class="settings-row">
+            <span class="settings-label">Connection</span>
+            <span class="settings-value" id="settings-sync-status">Offline</span>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">Known neighbors</span>
+            <span class="settings-value" id="settings-peer-count">0</span>
+          </div>
+          <p class="form-hint mt-sm">
+            💡 When online, your transactions sync automatically with connected neighbors.
           </p>
         </div>
 
@@ -567,6 +1359,54 @@
             <p class="form-hint mt-md text-center" style="color: var(--berry-red);">
               ⚠️ Anyone with this code can access your account. Keep it secret!
             </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Share Invite Modal -->
+      <div id="share-invite-modal" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 class="modal-title">📨 Invite Neighbors</h3>
+            <button class="modal-close" data-close-modal>✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="invite-section">
+              <p class="invite-instructions">Share this with neighbors to invite them to your community</p>
+              <div class="invite-community-name" id="invite-community-name"></div>
+              <div id="invite-qr-code" class="qr-container"></div>
+            </div>
+            <div class="invite-code-display" id="invite-code-display"></div>
+            <div class="invite-buttons">
+              <button id="copy-invite-btn" class="btn btn-secondary">
+                📋 Copy Code
+              </button>
+              <button id="share-invite-native-btn" class="btn btn-primary">
+                📤 Share
+              </button>
+            </div>
+            <p class="form-hint mt-md text-center">
+              Anyone with this code can join your community
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Invite Scanner Modal (for joining) -->
+      <div id="invite-scanner-modal" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 class="modal-title">📷 Scan Invite</h3>
+            <button class="modal-close" data-close-modal>✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="scanner-container">
+              <video id="invite-scanner-video" class="scanner-video" playsinline></video>
+              <div class="scanner-overlay">
+                <div class="scanner-frame"></div>
+              </div>
+              <div class="scanner-hint">Point at the invite QR code</div>
+            </div>
           </div>
         </div>
       </div>
@@ -752,9 +1592,34 @@
     const limitEl = document.getElementById('settings-limit');
     const availableEl = document.getElementById('settings-available');
 
+    // Community fields
+    const communityNameEl = document.getElementById('settings-community-name');
+    const communityRoleEl = document.getElementById('settings-community-role');
+    const syncStatusEl = document.getElementById('settings-sync-status');
+    const peerCountEl = document.getElementById('settings-peer-count');
+
     if (nameEl) nameEl.textContent = state.currentMember.name;
     if (idEl) idEl.textContent = state.currentMember.memberId;
     if (avatarEl) avatarEl.textContent = getInitials(state.currentMember.name);
+
+    // Community info
+    if (communityNameEl) communityNameEl.textContent = state.currentMember.communityName || 'My Community';
+    if (communityRoleEl) communityRoleEl.textContent = state.currentMember.isFounder ? 'Founder' : 'Member';
+
+    // Sync status
+    if (syncStatusEl) {
+      const statusText = {
+        connected: 'Connected',
+        syncing: 'Syncing...',
+        offline: 'Offline',
+        conflict: 'Conflict',
+      }[state.syncStatus] || 'Unknown';
+      syncStatusEl.textContent = statusText;
+      syncStatusEl.className = 'settings-value ' + (state.syncStatus === 'connected' ? 'positive' : '');
+    }
+    if (peerCountEl) {
+      peerCountEl.textContent = (state.currentMember.knownPeers || []).length.toString();
+    }
 
     if (state.protocol) {
       const memberState = state.protocol.ledger.getMemberState(state.currentMember.memberId);
@@ -796,6 +1661,9 @@
       if (e.target.closest('#scan-code-btn')) openScanner();
       if (e.target.closest('#backup-btn')) openBackupModal();
       if (e.target.closest('#reset-btn')) confirmReset();
+      if (e.target.closest('#share-invite-btn')) openShareInviteModal();
+      if (e.target.closest('#copy-invite-btn')) copyInviteCode();
+      if (e.target.closest('#share-invite-native-btn')) shareInviteNative();
 
       // Send flow
       if (e.target.matches('#preview-send-btn')) previewSend();
@@ -827,6 +1695,7 @@
   function closeAllModals() {
     document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
     stopScanner();
+    stopInviteScanner();
   }
 
   function openShareCodeModal() {
@@ -863,9 +1732,165 @@
         pk: state.currentMember.publicKey,
         sk: state.currentMember.secretKey,
         cell: state.currentMember.cellId,
+        community: state.currentMember.communityName,
+        peerId: state.currentMember.peerId,
       };
       codeEl.value = 'HH2:' + btoa(JSON.stringify(backup));
     }
+  }
+
+  function openShareInviteModal() {
+    openModal('share-invite-modal');
+
+    const qrContainer = document.getElementById('invite-qr-code');
+    const codeDisplay = document.getElementById('invite-code-display');
+    const communityNameDisplay = document.getElementById('invite-community-name');
+
+    if (state.currentMember) {
+      const inviteCode = encodeInviteCode({
+        cellId: state.currentMember.cellId,
+        communityName: state.currentMember.communityName,
+        peerId: state.currentMember.peerId,
+        publicKey: state.currentMember.publicKey,
+      });
+
+      if (qrContainer) {
+        qrContainer.innerHTML = '';
+        new QRCode(qrContainer, {
+          text: inviteCode,
+          width: 200,
+          height: 200,
+          colorDark: '#3D3425',
+          colorLight: '#ffffff',
+        });
+      }
+
+      if (codeDisplay) {
+        codeDisplay.textContent = inviteCode;
+      }
+
+      if (communityNameDisplay) {
+        communityNameDisplay.textContent = state.currentMember.communityName || 'My Community';
+      }
+    }
+  }
+
+  function copyInviteCode() {
+    if (!state.currentMember) return;
+
+    const inviteCode = encodeInviteCode({
+      cellId: state.currentMember.cellId,
+      communityName: state.currentMember.communityName,
+      peerId: state.currentMember.peerId,
+      publicKey: state.currentMember.publicKey,
+    });
+
+    copyToClipboard(inviteCode);
+  }
+
+  async function shareInviteNative() {
+    if (!state.currentMember) return;
+
+    const inviteCode = encodeInviteCode({
+      cellId: state.currentMember.cellId,
+      communityName: state.currentMember.communityName,
+      peerId: state.currentMember.peerId,
+      publicKey: state.currentMember.publicKey,
+    });
+
+    const shareData = {
+      title: `Join ${state.currentMember.communityName}`,
+      text: `Join our Helping Hands community! Use this invite code:\n\n${inviteCode}`,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          console.error('Share failed:', e);
+          copyToClipboard(inviteCode);
+        }
+      }
+    } else {
+      copyToClipboard(inviteCode);
+    }
+  }
+
+  // Invite scanner (for onboarding join flow)
+  let inviteScannerStream = null;
+
+  async function openInviteScanner() {
+    openModal('invite-scanner-modal');
+
+    const video = document.getElementById('invite-scanner-video');
+    if (!video) return;
+
+    try {
+      inviteScannerStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      video.srcObject = inviteScannerStream;
+      video.play();
+
+      requestAnimationFrame(scanInviteFrame);
+    } catch (e) {
+      console.error('Camera error:', e);
+      showToast('Could not access camera', 'error');
+      closeAllModals();
+    }
+  }
+
+  function scanInviteFrame() {
+    if (!inviteScannerStream) return;
+
+    const video = document.getElementById('invite-scanner-video');
+    if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      requestAnimationFrame(scanInviteFrame);
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+    if (code) {
+      handleScannedInviteCode(code.data);
+      return;
+    }
+
+    requestAnimationFrame(scanInviteFrame);
+  }
+
+  function stopInviteScanner() {
+    if (inviteScannerStream) {
+      inviteScannerStream.getTracks().forEach(t => t.stop());
+      inviteScannerStream = null;
+    }
+  }
+
+  function handleScannedInviteCode(data) {
+    console.log('Scanned invite:', data);
+
+    if (isInviteCode(data)) {
+      const inviteData = decodeInviteCode(data);
+      if (inviteData) {
+        stopInviteScanner();
+        closeAllModals();
+        state.pendingJoin = inviteData;
+        showJoinConfirmation(inviteData);
+        showToast('Invite scanned!', 'success');
+        return;
+      }
+    }
+
+    showToast('Not a valid invite code', 'error');
+    requestAnimationFrame(scanInviteFrame);
   }
 
   // ============================================
@@ -943,6 +1968,21 @@
         showToast(`Sent ${amount} helping hands! 🙏`, 'success');
         state.pendingSend = null;
         refreshHomeScreen();
+
+        // Broadcast transaction to peers
+        if (PeerManager.connections.size > 0) {
+          PeerManager.broadcast({
+            type: 'TRANSACTION',
+            transaction: {
+              id: result.transactionId,
+              payerId: state.currentMember.memberId,
+              payeeId: recipient,
+              amount,
+              description: note || 'Thanks!',
+              timestamp: Date.now(),
+            },
+          });
+        }
 
         // Clear form
         document.getElementById('recipient-input').value = '';
@@ -1024,6 +2064,12 @@
 
   function handleScannedCode(data) {
     console.log('Scanned:', data);
+
+    // Check if it's an invite code
+    if (isInviteCode(data)) {
+      showToast('This is an invite code. Use it from the join community screen.', 'info');
+      return;
+    }
 
     if (data.startsWith('neighbor-') || data.startsWith('member-')) {
       document.getElementById('recipient-input').value = data;
