@@ -1,22 +1,16 @@
 /**
  * OpenGoban Service Worker
- * Enables offline-first operation for the PWA
+ *
+ * Provides offline capability and caching.
  */
 
-const CACHE_NAME = 'opengoban-v15';
-
-// Files to cache for offline use
-const CACHE_URLS = [
+const CACHE_NAME = 'opengoban-v3';
+const ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
   '/css/app.css',
   '/js/app.js',
-  '/js/crypto.js',
-  '/js/qr.js',
-  '/js/validation.js',
-  '/js/ledger.js',
-  '/js/p2p.js',
+  '/js/cell-protocol.js',
   '/lib/pouchdb.min.js',
   '/lib/tweetnacl.min.js',
   '/lib/tweetnacl-util.min.js',
@@ -24,131 +18,61 @@ const CACHE_URLS = [
   '/lib/jsqr.min.js',
   '/lib/peerjs.min.js',
   '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icons/icon-512.png',
+  '/manifest.json',
 ];
 
-// Install event - cache all static assets
+// Install - cache assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
-
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Caching app shell');
-        return cache.addAll(CACHE_URLS);
-      })
-      .then(() => {
-        console.log('[SW] Install complete');
-        return self.skipWaiting();
-      })
-      .catch((err) => {
-        console.error('[SW] Install failed:', err);
-      })
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('Caching assets...');
+      return cache.addAll(ASSETS);
+    })
   );
+  self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate - clean old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
-
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((name) => name !== CACHE_NAME)
-            .map((name) => {
-              console.log('[SW] Deleting old cache:', name);
-              return caches.delete(name);
-            })
-        );
-      })
-      .then(() => {
-        console.log('[SW] Claiming clients');
-        return self.clients.claim();
-      })
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      );
+    })
   );
+  self.clients.claim();
 });
 
-// Fetch event - serve from cache, fall back to network
+// Fetch - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
+  if (event.request.method !== 'GET') return;
 
-  // Skip cross-origin requests (like CouchDB sync)
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
+  // Skip external requests
+  if (!event.request.url.startsWith(self.location.origin)) return;
 
   event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        if (cachedResponse) {
-          // Return cached version
-          return cachedResponse;
-        }
-
-        // Not in cache - fetch from network
-        return fetch(event.request)
-          .then((networkResponse) => {
-            // Don't cache non-successful responses
-            if (!networkResponse || networkResponse.status !== 200) {
-              return networkResponse;
-            }
-
-            // Clone the response (streams can only be consumed once)
-            const responseToCache = networkResponse.clone();
-
-            // Add to cache for future
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return networkResponse;
-          })
-          .catch((err) => {
-            console.error('[SW] Fetch failed:', err);
-
-            // Return offline fallback for navigation requests
-            if (event.request.mode === 'navigate') {
-              return caches.match('/index.html');
-            }
-
-            throw err;
+    caches.match(event.request).then((cached) => {
+      // Return cached version or fetch from network
+      return cached || fetch(event.request).then((response) => {
+        // Cache successful responses
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, clone);
           });
-      })
+        }
+        return response;
+      });
+    }).catch(() => {
+      // Offline fallback for navigation
+      if (event.request.mode === 'navigate') {
+        return caches.match('/index.html');
+      }
+    })
   );
 });
-
-// Handle messages from the main app
-self.addEventListener('message', (event) => {
-  if (event.data === 'skipWaiting') {
-    self.skipWaiting();
-  }
-
-  if (event.data === 'getVersion') {
-    event.ports[0].postMessage({ version: CACHE_NAME });
-  }
-});
-
-// Background sync for pending transactions (when back online)
-self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync triggered:', event.tag);
-
-  if (event.tag === 'sync-transactions') {
-    event.waitUntil(
-      // Notify the app to sync
-      self.clients.matchAll().then((clients) => {
-        clients.forEach((client) => {
-          client.postMessage({ type: 'sync-requested' });
-        });
-      })
-    );
-  }
-});
-
-console.log('[SW] Service worker loaded');
-

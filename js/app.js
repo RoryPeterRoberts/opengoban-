@@ -1,1537 +1,1149 @@
 /**
- * OpenGoban PWA Main Application
+ * OpenGoban PWA - Main Application
  *
- * Offline-first community mutual credit trading
- * No banks. No app stores. No government ID.
+ * Connects the UI to the Cell Protocol backend.
  */
 
-const OGApp = (function() {
+(function() {
   'use strict';
 
-  // App state
-  let initialized = false;
-  let currentScreen = 'home';
+  // ============================================
+  // STATE
+  // ============================================
 
-  // ========================================
+  const state = {
+    protocol: null,        // CellProtocol instance
+    currentMember: null,   // Current logged-in member
+    currentScreen: null,   // Active screen name
+    db: null,              // PouchDB for local storage
+  };
+
+  // ============================================
   // INITIALIZATION
-  // ========================================
+  // ============================================
 
-  /**
-   * Initialize the application
-   */
   async function init() {
-    if (initialized) return;
+    console.log('OpenGoban initializing...');
 
-    console.log('[App] Initializing OpenGoban...');
+    // Initialize local database
+    state.db = new PouchDB('opengoban');
 
-    // Register service worker
-    await registerServiceWorker();
+    // Check if user has an identity
+    const identity = await loadIdentity();
 
-    // Initialize ledger
-    await OGLedger.init();
-
-    // Check if user has identity
-    const hasIdentity = await OGCrypto.hasIdentity();
-
-    if (hasIdentity) {
-      const member = OGLedger.getCurrentMember();
-      if (member) {
-        showApp();
-        updateBalance();
-        loadTransactions();
-        autoConnectSync();
-      } else {
-        // Has keys but no member record - recovery needed
-        showScreen('setup');
-      }
+    if (identity) {
+      // Load existing protocol
+      await initProtocol(identity.cellId);
+      state.currentMember = identity;
+      showApp();
+      navigateTo('home');
+      // Initialize P2P after a short delay
+      setTimeout(() => {
+        initP2P();
+        addSyncUI();
+      }, 500);
     } else {
-      // New user - show onboarding
+      // Show onboarding
       showScreen('onboarding');
     }
 
     // Set up event listeners
     setupEventListeners();
 
-    // Listen for ledger events
-    window.addEventListener('tc-transaction-confirmed', (e) => {
-      showToast('Transaction confirmed!', 'success');
-      updateBalance();
-      loadTransactions();
-    });
-
-    window.addEventListener('tc-transaction-received', (e) => {
-      showToast(`Received ${e.detail.amount} credits!`, 'success');
-      updateBalance();
-      loadTransactions();
-    });
-
-    // Listen for sync events
-    window.addEventListener('tc-sync-status', (e) => {
-      const syncStatus = document.getElementById('sync-status');
-      if (syncStatus) {
-        syncStatus.textContent = e.detail.online ? 'Synced' : 'Offline';
-      }
-      const syncDot = document.querySelector('.sync-dot');
-      if (syncDot) {
-        syncDot.style.background = e.detail.online ? 'var(--color-success)' : 'var(--color-muted)';
-      }
-    });
-
-    window.addEventListener('tc-sync-change', (e) => {
-      // Refresh data when sync brings new changes
-      updateBalance();
-      loadTransactions();
-    });
-
-    initialized = true;
-    console.log('[App] Ready');
+    console.log('OpenGoban ready');
   }
 
-  /**
-   * Register the service worker
-   */
-  async function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
-        console.log('[App] Service worker registered');
+  async function initProtocol(cellId) {
+    const { createCellProtocol, createInMemoryStorage } = CellProtocol;
 
-        // Check for updates
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              showToast('Update available! Refresh to update.', 'info');
-            }
-          });
-        });
-      } catch (err) {
-        console.error('[App] Service worker registration failed:', err);
-      }
+    // Create protocol instance
+    // Note: Using in-memory storage for now, will integrate with PouchDB later
+    state.protocol = await createCellProtocol({
+      cellId: cellId || 'default-cell',
+    });
+
+    console.log('Cell Protocol initialized');
+  }
+
+  // ============================================
+  // IDENTITY MANAGEMENT
+  // ============================================
+
+  async function loadIdentity() {
+    try {
+      const doc = await state.db.get('identity');
+      return doc;
+    } catch (e) {
+      if (e.status === 404) return null;
+      throw e;
     }
   }
 
-  // ========================================
-  // NAVIGATION
-  // ========================================
-
-  /**
-   * Show the main app UI
-   */
-  function showApp() {
-    document.getElementById('onboarding-screen')?.classList.remove('active');
-    document.getElementById('setup-screen')?.classList.remove('active');
-    document.querySelector('.app-header')?.classList.remove('hidden');
-    document.querySelector('.app-nav')?.classList.remove('hidden');
-    showScreen('home');
+  async function saveIdentity(identity) {
+    try {
+      const existing = await state.db.get('identity');
+      identity._rev = existing._rev;
+    } catch (e) {
+      // New document
+    }
+    identity._id = 'identity';
+    await state.db.put(identity);
   }
 
-  /**
-   * Show a specific screen
-   */
-  function showScreen(screenId) {
+  async function createIdentity(handle) {
+    // Generate Ed25519 keypair
+    const keyPair = nacl.sign.keyPair();
+    const publicKey = nacl.util.encodeBase64(keyPair.publicKey);
+    const secretKey = nacl.util.encodeBase64(keyPair.secretKey);
+
+    const cellId = 'cell-' + generateShortId();
+    const memberId = 'member-' + generateShortId();
+
+    // Initialize protocol
+    await initProtocol(cellId);
+
+    // Add member to protocol
+    const { now } = CellProtocol;
+    await state.protocol.identity.addMember({
+      applicantId: memberId,
+      displayName: handle,
+      publicKey: publicKey,
+      requestedAt: now(),
+      initialLimit: 100, // Starting credit limit
+    });
+
+    // Save identity locally
+    const identity = {
+      memberId,
+      handle,
+      publicKey,
+      secretKey,
+      cellId,
+      createdAt: Date.now(),
+    };
+
+    await saveIdentity(identity);
+    state.currentMember = identity;
+
+    return identity;
+  }
+
+  function generateShortId() {
+    return Math.random().toString(36).substring(2, 10);
+  }
+
+  // ============================================
+  // NAVIGATION
+  // ============================================
+
+  function showApp() {
+    const app = document.getElementById('app');
+    app.innerHTML = `
+      <header class="app-header">
+        <h1 class="app-title">OG</h1>
+        <span id="header-balance" class="header-balance balance-zero">0</span>
+      </header>
+
+      <main class="app-main">
+        ${renderOnboardingScreen()}
+        ${renderHomeScreen()}
+        ${renderHistoryScreen()}
+        ${renderMembersScreen()}
+        ${renderSettingsScreen()}
+      </main>
+
+      <nav class="app-nav">
+        <a href="#" class="nav-item active" data-screen="home">
+          <span class="nav-icon">&#127968;</span>
+          <span>Home</span>
+        </a>
+        <a href="#" class="nav-item" data-screen="history">
+          <span class="nav-icon">&#128203;</span>
+          <span>History</span>
+        </a>
+        <a href="#" class="nav-item" data-screen="members">
+          <span class="nav-icon">&#128101;</span>
+          <span>Members</span>
+        </a>
+        <a href="#" class="nav-item" data-screen="settings">
+          <span class="nav-icon">&#9881;</span>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      ${renderModals()}
+    `;
+  }
+
+  function showScreen(screenName) {
+    const app = document.getElementById('app');
+
+    if (screenName === 'onboarding') {
+      app.innerHTML = renderOnboardingScreen();
+      setupOnboardingListeners();
+      return;
+    }
+  }
+
+  function navigateTo(screenName) {
     // Hide all screens
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 
-    // Show the target screen
-    const screen = document.getElementById(`${screenId}-screen`);
+    // Show target screen
+    const screen = document.getElementById(`${screenName}-screen`);
     if (screen) {
       screen.classList.add('active');
-      currentScreen = screenId;
+    }
 
-      // Update nav
-      document.querySelectorAll('.nav-item').forEach(n => {
-        n.classList.toggle('active', n.dataset.screen === screenId);
-      });
+    // Update nav
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.classList.toggle('active', item.dataset.screen === screenName);
+    });
 
-      // Load screen-specific data
-      if (screenId === 'settings') {
-        loadSettingsScreen();
-      }
+    state.currentScreen = screenName;
+
+    // Refresh screen data
+    refreshScreen(screenName);
+  }
+
+  async function refreshScreen(screenName) {
+    switch (screenName) {
+      case 'home':
+        await refreshHomeScreen();
+        break;
+      case 'history':
+        await refreshHistoryScreen();
+        break;
+      case 'members':
+        await refreshMembersScreen();
+        break;
+      case 'settings':
+        await refreshSettingsScreen();
+        break;
     }
   }
 
-  /**
-   * Load settings screen data
-   */
-  async function loadSettingsScreen() {
-    const member = OGLedger.getCurrentMember();
+  // ============================================
+  // SCREEN RENDERERS
+  // ============================================
 
-    // Update handle display
-    const handleEl = document.getElementById('my-handle');
-    if (handleEl) {
-      handleEl.textContent = member?.handle || 'No identity';
-    }
+  function renderOnboardingScreen() {
+    return `
+      <div id="onboarding-screen" class="screen active">
+        <div class="onboarding">
+          <div class="onboarding-logo">&#9898;</div>
+          <h2 class="onboarding-title">OpenGoban</h2>
+          <p class="onboarding-subtitle">
+            Community credit coordination.<br>
+            Offline first. No banks. No tracking.
+          </p>
 
-    // Update public key display
-    const pkEl = document.getElementById('my-public-key');
-    if (pkEl && member) {
-      pkEl.textContent = member.public_key || '';
-    }
+          <div class="form-group" style="width: 100%; max-width: 280px;">
+            <input
+              type="text"
+              id="handle-input"
+              class="form-input"
+              placeholder="Choose a handle (e.g., @name)"
+              maxlength="32"
+              autocomplete="off"
+              autocapitalize="off"
+            >
+          </div>
 
-    // Update circle info
-    const circleEl = document.getElementById('my-circle');
-    if (circleEl) {
-      if (member?.circle_id) {
-        const circle = await OGLedger.getCircle(member.circle_id);
-        circleEl.textContent = circle?.name || member.circle_id;
-      } else {
-        circleEl.textContent = 'Not in a circle yet';
-      }
-    }
+          <button id="create-account-btn" class="btn btn-primary btn-lg btn-block mt-md" style="max-width: 280px;">
+            Create Identity
+          </button>
+
+          <p class="text-muted mt-lg" style="font-size: 0.875rem;">
+            Your identity is generated on this device.<br>
+            No email, no password, no tracking.
+          </p>
+        </div>
+      </div>
+    `;
   }
 
-  // ========================================
-  // USER SETUP
-  // ========================================
+  function renderHomeScreen() {
+    return `
+      <div id="home-screen" class="screen">
+        <div class="card balance-card">
+          <h3 class="card-title">Your Balance</h3>
+          <p id="balance-amount" class="balance-amount balance-zero">0</p>
+          <p class="balance-label">community credits</p>
+        </div>
 
-  /**
-   * Create new identity and member
-   */
-  async function createAccount(handle) {
-    if (!handle || handle.length < 2) {
-      showToast('Handle must be at least 2 characters', 'error');
-      return;
-    }
+        <div class="action-grid">
+          <button id="send-btn" class="action-btn">
+            <span class="icon">&#8593;</span>
+            <span class="label">Send</span>
+          </button>
+          <button id="receive-btn" class="action-btn">
+            <span class="icon">&#8595;</span>
+            <span class="label">Receive</span>
+          </button>
+          <button id="scan-btn" class="action-btn">
+            <span class="icon">&#128247;</span>
+            <span class="label">Scan</span>
+          </button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Activity</h3>
+          </div>
+          <ul id="transaction-list" class="transaction-list">
+            <div class="empty-state">
+              <div class="empty-state-icon">&#128178;</div>
+              <div class="empty-state-text">No transactions yet</div>
+            </div>
+          </ul>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderHistoryScreen() {
+    return `
+      <div id="history-screen" class="screen">
+        <h2 style="margin-bottom: var(--spacing-md);">Transaction History</h2>
+        <ul id="full-transaction-list" class="transaction-list">
+          <div class="empty-state">
+            <div class="empty-state-icon">&#128203;</div>
+            <div class="empty-state-text">No transactions yet</div>
+          </div>
+        </ul>
+      </div>
+    `;
+  }
+
+  function renderMembersScreen() {
+    return `
+      <div id="members-screen" class="screen">
+        <div class="form-group">
+          <input
+            type="text"
+            id="member-search"
+            class="form-input"
+            placeholder="Search members..."
+          >
+        </div>
+        <ul id="member-list" class="member-list">
+          <div class="empty-state">
+            <div class="empty-state-icon">&#128101;</div>
+            <div class="empty-state-text">No other members yet</div>
+          </div>
+        </ul>
+      </div>
+    `;
+  }
+
+  function renderSettingsScreen() {
+    return `
+      <div id="settings-screen" class="screen">
+        <div class="card">
+          <h3 class="card-title">Your Identity</h3>
+          <p id="my-handle" class="text-mono" style="font-size: 1.25rem; margin-bottom: var(--spacing-sm);">Loading...</p>
+          <p id="my-public-key" class="text-muted text-mono" style="font-size: 0.7rem; word-break: break-all;"></p>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Credit Status</h3>
+          <p>Balance: <span id="settings-balance" class="text-mono">0</span></p>
+          <p>Credit Limit: <span id="settings-limit" class="text-mono">100</span></p>
+          <p>Available: <span id="settings-available" class="text-mono">100</span></p>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Backup</h3>
+          <p class="text-muted" style="font-size: 0.875rem; margin-bottom: var(--spacing-md);">
+            Save your identity to restore on another device.
+          </p>
+          <button id="backup-btn" class="btn btn-secondary btn-block">Backup Identity</button>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">About</h3>
+          <p class="text-muted">OpenGoban v2.0.0</p>
+          <p class="text-muted" style="font-size: 0.875rem;">
+            Powered by Cell Protocol.<br>
+            Mutual credit for communities.
+          </p>
+        </div>
+
+        <button id="logout-btn" class="btn btn-danger btn-block mt-lg">Reset Identity</button>
+      </div>
+    `;
+  }
+
+  function renderModals() {
+    return `
+      <!-- Send Modal -->
+      <div id="send-modal" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 class="modal-title">Send Credits</h3>
+            <button class="modal-close" data-close-modal>&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label">Recipient ID</label>
+              <input type="text" id="send-recipient" class="form-input" placeholder="member-xxxxxxxx">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Amount</label>
+              <input type="number" id="send-amount" class="form-input form-input-lg" placeholder="0" min="1" max="100">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description (optional)</label>
+              <input type="text" id="send-description" class="form-input" placeholder="What's this for?">
+            </div>
+            <button id="send-submit-btn" class="btn btn-primary btn-block btn-lg">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Receive Modal -->
+      <div id="receive-modal" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 class="modal-title">Your ID</h3>
+            <button class="modal-close" data-close-modal>&times;</button>
+          </div>
+          <div class="modal-body text-center">
+            <p class="text-muted">Share this to receive credits</p>
+            <div id="my-qr" class="qr-container"></div>
+            <p id="my-id-display" class="text-mono mt-md" style="font-size: 0.875rem; word-break: break-all;"></p>
+            <button id="copy-id-btn" class="btn btn-secondary btn-block mt-md">Copy ID</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scanner Modal -->
+      <div id="scanner-modal" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 class="modal-title">Scan QR Code</h3>
+            <button class="modal-close" data-close-modal>&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="scanner-container">
+              <video id="scanner-video" class="scanner-video" playsinline></video>
+              <div class="scanner-overlay">
+                <div class="scanner-frame"></div>
+              </div>
+            </div>
+            <p class="text-center text-muted mt-md">Point camera at a QR code</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backup Modal -->
+      <div id="backup-modal" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h3 class="modal-title">Backup Identity</h3>
+            <button class="modal-close" data-close-modal>&times;</button>
+          </div>
+          <div class="modal-body">
+            <p class="text-muted mb-md">Copy this backup code and store it safely:</p>
+            <textarea id="backup-code" class="form-input" rows="4" readonly style="font-family: var(--font-mono); font-size: 0.75rem;"></textarea>
+            <button id="copy-backup-btn" class="btn btn-primary btn-block mt-md">Copy Backup Code</button>
+            <p class="text-muted mt-md" style="font-size: 0.75rem;">
+              Warning: Anyone with this code can access your identity.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============================================
+  // SCREEN REFRESHERS
+  // ============================================
+
+  async function refreshHomeScreen() {
+    if (!state.protocol || !state.currentMember) return;
 
     try {
-      showLoading(true);
+      const memberState = state.protocol.ledger.getMemberState(state.currentMember.memberId);
 
-      // Create member (generates crypto identity)
-      await OGLedger.createMember(handle);
+      if (memberState) {
+        const balance = memberState.balance;
+        const balanceEl = document.getElementById('balance-amount');
+        const headerBalanceEl = document.getElementById('header-balance');
 
-      showToast('Account created!', 'success');
-      showApp();
-      updateBalance();
+        if (balanceEl) {
+          balanceEl.textContent = balance;
+          balanceEl.className = 'balance-amount ' + getBalanceClass(balance);
+        }
 
-    } catch (err) {
-      console.error('[App] Account creation failed:', err);
-      showToast('Failed to create account: ' + err.message, 'error');
-    } finally {
-      showLoading(false);
+        if (headerBalanceEl) {
+          headerBalanceEl.textContent = balance >= 0 ? '+' + balance : balance;
+          headerBalanceEl.className = 'header-balance ' + getBalanceClass(balance);
+        }
+      }
+
+      // Load recent transactions
+      await refreshTransactionList('transaction-list', 5);
+    } catch (e) {
+      console.error('Error refreshing home:', e);
     }
   }
 
-  /**
-   * Join an existing circle
-   */
-  async function joinCircle(inviteCode) {
-    // TODO: Implement circle joining via invite code
-    showToast('Circle joining coming soon!', 'info');
+  async function refreshHistoryScreen() {
+    await refreshTransactionList('full-transaction-list', 50);
   }
 
-  // ========================================
-  // BALANCE & TRANSACTIONS
-  // ========================================
-
-  /**
-   * Update the balance display
-   */
-  async function updateBalance() {
-    const member = OGLedger.getCurrentMember();
-    if (!member) return;
+  async function refreshTransactionList(elementId, limit) {
+    const listEl = document.getElementById(elementId);
+    if (!listEl || !state.protocol) return;
 
     try {
-      const balance = await OGLedger.getBalance(member._id);
-
-      // Update header balance
-      const headerBalance = document.getElementById('header-balance');
-      if (headerBalance) {
-        headerBalance.textContent = balance >= 0 ? `+${balance}` : balance;
-        headerBalance.className = 'header-balance ' +
-          (balance > 0 ? 'balance-positive' :
-           balance < 0 ? 'balance-negative' : 'balance-zero');
-      }
-
-      // Update balance card
-      const balanceAmount = document.getElementById('balance-amount');
-      if (balanceAmount) {
-        balanceAmount.textContent = balance;
-        balanceAmount.className = 'balance-amount ' +
-          (balance > 0 ? 'balance-positive' :
-           balance < 0 ? 'balance-negative' : 'balance-zero');
-      }
-
-    } catch (err) {
-      console.error('[App] Failed to update balance:', err);
-    }
-  }
-
-  /**
-   * Load transaction history
-   */
-  async function loadTransactions() {
-    const member = OGLedger.getCurrentMember();
-    if (!member) return;
-
-    try {
-      const transactions = await OGLedger.getTransactions(member._id, { limit: 50 });
-      const list = document.getElementById('transaction-list');
-
-      if (!list) return;
+      const transactions = await state.protocol.transactions.getMemberTransactions(
+        state.currentMember.memberId,
+        limit
+      );
 
       if (transactions.length === 0) {
-        list.innerHTML = `
+        listEl.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon">📊</div>
+            <div class="empty-state-icon">&#128178;</div>
             <div class="empty-state-text">No transactions yet</div>
           </div>
         `;
         return;
       }
 
-      list.innerHTML = transactions.map(tx => {
-        const isIncoming = tx.recipient_id === member._id;
-        const otherParty = isIncoming ? tx.sender_id : tx.recipient_id;
+      listEl.innerHTML = transactions.map(tx => {
+        const isIncoming = tx.payeeId === state.currentMember.memberId;
+        const otherParty = isIncoming ? tx.payerId : tx.payeeId;
+        const amount = tx.amount;
 
         return `
           <li class="transaction-item">
-            <div class="tx-icon ${isIncoming ? 'incoming' : 'outgoing'}">
-              ${isIncoming ? '↓' : '↑'}
+            <div class="transaction-avatar">${otherParty.charAt(0).toUpperCase()}</div>
+            <div class="transaction-details">
+              <div class="transaction-name">${otherParty}</div>
+              <div class="transaction-desc">${tx.description || 'Transfer'}</div>
             </div>
-            <div class="tx-details">
-              <div class="tx-handle">${otherParty.substring(7, 15)}...</div>
-              <div class="tx-description">${tx.description || 'Transfer'}</div>
-            </div>
-            <div class="tx-amount ${isIncoming ? 'incoming' : 'outgoing'}">
-              ${isIncoming ? '+' : '-'}${tx.amount}
+            <div class="transaction-amount ${isIncoming ? 'incoming' : 'outgoing'}">
+              ${isIncoming ? '+' : '-'}${amount}
             </div>
           </li>
         `;
       }).join('');
-
-    } catch (err) {
-      console.error('[App] Failed to load transactions:', err);
+    } catch (e) {
+      console.error('Error loading transactions:', e);
     }
   }
 
-  // ========================================
-  // TRANSFER FLOW
-  // ========================================
+  async function refreshMembersScreen() {
+    const listEl = document.getElementById('member-list');
+    if (!listEl || !state.protocol) return;
 
-  /**
-   * Open send credits modal
-   */
-  function openSendModal() {
-    showModal('send-modal');
-  }
-
-  /**
-   * Create and show transfer QR
-   */
-  async function createTransfer(recipientId, amount, description) {
     try {
-      showLoading(true);
+      const members = state.protocol.ledger.getAllMemberStates();
+      const memberArray = Array.from(members.entries())
+        .filter(([id]) => id !== state.currentMember.memberId);
 
-      const result = await OGLedger.createTransferQR(
-        recipientId,
-        parseFloat(amount),
-        description,
-        'transfer-qr'
-      );
+      if (memberArray.length === 0) {
+        listEl.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">&#128101;</div>
+            <div class="empty-state-text">No other members yet</div>
+          </div>
+        `;
+        return;
+      }
 
-      showModal('qr-modal');
-      showToast('QR code ready! Show to recipient.', 'success');
-
-    } catch (err) {
-      console.error('[App] Transfer creation failed:', err);
-      showToast('Failed: ' + err.message, 'error');
-    } finally {
-      showLoading(false);
+      listEl.innerHTML = memberArray.map(([id, member]) => `
+        <li class="member-item" data-member-id="${id}">
+          <div class="member-avatar">${id.charAt(0).toUpperCase()}</div>
+          <div class="member-info">
+            <div class="member-name">${id}</div>
+            <div class="member-status">
+              <span class="status-badge status-${member.status.toLowerCase()}">${member.status}</span>
+            </div>
+          </div>
+        </li>
+      `).join('');
+    } catch (e) {
+      console.error('Error loading members:', e);
     }
   }
 
-  /**
-   * Open QR scanner
-   */
-  function openScanner() {
-    showModal('scanner-modal');
+  async function refreshSettingsScreen() {
+    if (!state.currentMember) return;
 
-    // Start scanning immediately (no async before getUserMedia for iOS)
-    OGQR.startScanner('scanner-video', async (data) => {
-      OGQR.stopScanner();
-      closeModal('scanner-modal');
+    const handleEl = document.getElementById('my-handle');
+    const keyEl = document.getElementById('my-public-key');
+    const balanceEl = document.getElementById('settings-balance');
+    const limitEl = document.getElementById('settings-limit');
+    const availableEl = document.getElementById('settings-available');
 
-      try {
-        const parsed = OGQR.parseQR(data);
+    if (handleEl) handleEl.textContent = '@' + state.currentMember.handle;
+    if (keyEl) keyEl.textContent = state.currentMember.publicKey;
 
-        if (parsed.type === 'transaction') {
-          await receiveTransfer(data);
-        } else if (parsed.type === 'member') {
-          // Show member info, offer to send to them
-          showToast('Member scanned: ' + parsed.member.handle, 'info');
-        } else if (parsed.type === 'invite') {
-          // Circle invite
-          showToast('Circle invite: ' + parsed.invite.circleName, 'info');
-        } else {
-          showToast('Unknown QR code type', 'error');
-        }
-      } catch (err) {
-        console.error('[App] QR processing failed:', err);
-        showToast('Failed to process QR: ' + err.message, 'error');
+    if (state.protocol) {
+      const memberState = state.protocol.ledger.getMemberState(state.currentMember.memberId);
+      if (memberState) {
+        if (balanceEl) balanceEl.textContent = memberState.balance;
+        if (limitEl) limitEl.textContent = memberState.limit;
+        if (availableEl) availableEl.textContent = memberState.limit + memberState.balance - memberState.reserve;
       }
-    }, (err) => {
-      console.error('[App] Scanner error:', err);
-      showToast('Camera error: ' + err.message, 'error');
-      closeModal('scanner-modal');
+    }
+
+    // Ensure sync UI is added
+    addSyncUI();
+
+    // Update sync status
+    const statusEl = document.getElementById('sync-status');
+    if (statusEl) {
+      const connCount = syncConnections.size;
+      statusEl.textContent = connCount > 0
+        ? `Connected to ${connCount} peer${connCount > 1 ? 's' : ''}`
+        : 'Not connected';
+    }
+  }
+
+  function getBalanceClass(balance) {
+    if (balance > 0) return 'balance-positive';
+    if (balance < 0) return 'balance-negative';
+    return 'balance-zero';
+  }
+
+  // ============================================
+  // EVENT LISTENERS
+  // ============================================
+
+  function setupEventListeners() {
+    // Navigation
+    document.addEventListener('click', (e) => {
+      const navItem = e.target.closest('.nav-item');
+      if (navItem) {
+        e.preventDefault();
+        navigateTo(navItem.dataset.screen);
+      }
+
+      // Modal close buttons
+      if (e.target.matches('[data-close-modal]') || e.target.matches('.modal-overlay')) {
+        closeAllModals();
+      }
+
+      // Action buttons
+      if (e.target.closest('#send-btn')) openModal('send-modal');
+      if (e.target.closest('#receive-btn')) openReceiveModal();
+      if (e.target.closest('#scan-btn')) openScanner();
+      if (e.target.closest('#backup-btn')) openBackupModal();
+      if (e.target.closest('#logout-btn')) confirmLogout();
+
+      // Submit buttons
+      if (e.target.matches('#send-submit-btn')) handleSend();
+      if (e.target.matches('#copy-id-btn')) copyToClipboard(state.currentMember.memberId);
+      if (e.target.matches('#copy-backup-btn')) copyBackupCode();
     });
   }
 
-  /**
-   * Receive a transfer from QR
-   */
-  async function receiveTransfer(qrData) {
-    try {
-      showLoading(true);
+  function setupOnboardingListeners() {
+    const createBtn = document.getElementById('create-account-btn');
+    const handleInput = document.getElementById('handle-input');
 
-      const tx = await OGLedger.receiveTransferQR(qrData);
-      showToast(`Received ${tx.amount} credits!`, 'success');
-      updateBalance();
-      loadTransactions();
+    if (createBtn) {
+      createBtn.addEventListener('click', async () => {
+        const handle = handleInput?.value.trim().replace('@', '') || 'user';
 
-    } catch (err) {
-      console.error('[App] Receive failed:', err);
-      showToast('Failed: ' + err.message, 'error');
-    } finally {
-      showLoading(false);
-    }
-  }
-
-  // ========================================
-  // MY ID / SHARE
-  // ========================================
-
-  /**
-   * Show my member QR code
-   */
-  async function showMyQR() {
-    const member = OGLedger.getCurrentMember();
-    if (!member) {
-      showToast('No member data', 'error');
-      return;
-    }
-
-    const payload = OGQR.createMemberPayload(
-      member._id,
-      member.handle,
-      member.public_key,
-      member.circle_id
-    );
-
-    OGQR.generateQR('my-qr', payload, { width: 256, height: 256 });
-    showModal('my-qr-modal');
-  }
-
-  // ========================================
-  // SEND FLOW
-  // ========================================
-
-  // Store selected recipient
-  let selectedRecipient = null;
-
-  /**
-   * Open send modal (reset state)
-   */
-  function openSendModal() {
-    clearRecipient();
-    document.getElementById('send-amount').value = '';
-    document.getElementById('send-description').value = '';
-    showModal('send-modal');
-  }
-
-  /**
-   * Scan recipient's QR code
-   */
-  function scanRecipient() {
-    // Close send modal temporarily
-    closeModal('send-modal');
-    showModal('scanner-modal');
-
-    // Start scanning immediately (no async before getUserMedia for iOS)
-    OGQR.startScanner('scanner-video', async (data) => {
-      OGQR.stopScanner();
-      closeModal('scanner-modal');
-
-      try {
-        const parsed = OGQR.parseQR(data);
-
-        if (parsed.type === 'member') {
-          // Got a member QR - save to local DB and set as recipient
-          await OGLedger.saveScannedMember(
-            parsed.member.id,
-            parsed.member.handle,
-            parsed.member.publicKey,
-            parsed.member.circleId
-          );
-          setRecipient(parsed.member.id, parsed.member.handle);
-          showModal('send-modal');
-        } else {
-          showToast('Please scan a member ID QR code', 'error');
-          showModal('send-modal');
+        if (handle.length < 2) {
+          showToast('Handle must be at least 2 characters', 'error');
+          return;
         }
-      } catch (err) {
-        console.error('[App] Scan recipient error:', err);
-        showToast('Failed to read QR: ' + err.message, 'error');
-        showModal('send-modal');
-      }
-    }, (err) => {
-      console.error('[App] Scanner error:', err);
-      showToast('Camera error: ' + err.message, 'error');
-      closeModal('scanner-modal');
-      showModal('send-modal');
-    });
-  }
 
-  /**
-   * Set the selected recipient
-   */
-  function setRecipient(id, handle) {
-    selectedRecipient = { id, handle };
+        createBtn.disabled = true;
+        createBtn.textContent = 'Creating...';
 
-    // Update hidden input
-    document.getElementById('send-recipient').value = id;
-
-    // Show recipient display
-    document.getElementById('recipient-display').classList.remove('hidden');
-    document.getElementById('scan-recipient-btn').classList.add('hidden');
-    document.getElementById('paste-recipient-btn').classList.add('hidden');
-    document.getElementById('recipient-handle').textContent = handle || 'Unknown';
-    document.getElementById('recipient-id-display').textContent = id.substring(0, 20) + '...';
-    document.getElementById('recipient-avatar').textContent = (handle || '?').charAt(0).toUpperCase();
-
-    // Enable submit button
-    const submitBtn = document.getElementById('send-submit-btn');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Generate QR Code';
-
-    showToast('Recipient: ' + handle, 'success');
-  }
-
-  /**
-   * Clear the selected recipient
-   */
-  function clearRecipient() {
-    selectedRecipient = null;
-
-    // Clear hidden input
-    document.getElementById('send-recipient').value = '';
-
-    // Hide recipient display, show scan button
-    document.getElementById('recipient-display').classList.add('hidden');
-    document.getElementById('scan-recipient-btn').classList.remove('hidden');
-    document.getElementById('paste-recipient-btn').classList.remove('hidden');
-
-    // Disable submit button
-    const submitBtn = document.getElementById('send-submit-btn');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Scan recipient first';
-  }
-
-  /**
-   * Copy my member ID to clipboard (for sharing when camera unavailable)
-   */
-  async function copyMyId() {
-    const member = OGLedger.getCurrentMember();
-    if (!member) {
-      showToast('No member data', 'error');
-      return;
-    }
-
-    // Create a shareable payload (same as QR but as text)
-    const payload = OGQR.createMemberPayload(
-      member._id,
-      member.handle,
-      member.public_key,
-      member.circle_id
-    );
-
-    try {
-      await navigator.clipboard.writeText(payload);
-      showToast('ID copied! Share via message.', 'success');
-    } catch (err) {
-      // Fallback
-      const textarea = document.createElement('textarea');
-      textarea.value = payload;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      showToast('ID copied! Share via message.', 'success');
-    }
-  }
-
-  /**
-   * Paste recipient ID from clipboard
-   */
-  async function pasteRecipientId() {
-    try {
-      const text = await navigator.clipboard.readText();
-
-      // Try to parse as member payload
-      const parsed = OGQR.parseQR(text);
-
-      if (parsed && parsed.type === 'member') {
-        // Save to local DB
-        await OGLedger.saveScannedMember(
-          parsed.member.id,
-          parsed.member.handle,
-          parsed.member.publicKey,
-          parsed.member.circleId
-        );
-        setRecipient(parsed.member.id, parsed.member.handle);
-        showToast('Recipient set: ' + parsed.member.handle, 'success');
-      } else {
-        showToast('Invalid ID format. Copy from "My ID" screen.', 'error');
-      }
-    } catch (err) {
-      // Clipboard read failed - show manual input prompt
-      const text = prompt('Paste the member ID here:');
-      if (text) {
         try {
-          const parsed = OGQR.parseQR(text);
-          if (parsed && parsed.type === 'member') {
-            await OGLedger.saveScannedMember(
-              parsed.member.id,
-              parsed.member.handle,
-              parsed.member.publicKey,
-              parsed.member.circleId
-            );
-            setRecipient(parsed.member.id, parsed.member.handle);
-            showToast('Recipient set: ' + parsed.member.handle, 'success');
-          } else {
-            showToast('Invalid ID format', 'error');
-          }
+          await createIdentity(handle);
+          showApp();
+          navigateTo('home');
+          showToast('Identity created!', 'success');
+          // Initialize P2P
+          setTimeout(() => {
+            initP2P();
+            addSyncUI();
+          }, 500);
         } catch (e) {
-          showToast('Invalid ID format', 'error');
+          console.error('Error creating identity:', e);
+          showToast('Failed to create identity', 'error');
+          createBtn.disabled = false;
+          createBtn.textContent = 'Create Identity';
         }
-      }
+      });
     }
   }
 
-  // ========================================
-  // BACKUP & RESTORE
-  // ========================================
+  // ============================================
+  // MODAL HANDLERS
+  // ============================================
 
-  /**
-   * Open backup modal
-   */
+  function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.add('active');
+  }
+
+  function closeAllModals() {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+    stopScanner();
+  }
+
+  function openReceiveModal() {
+    openModal('receive-modal');
+
+    const qrContainer = document.getElementById('my-qr');
+    const idDisplay = document.getElementById('my-id-display');
+
+    if (qrContainer && state.currentMember) {
+      qrContainer.innerHTML = '';
+      new QRCode(qrContainer, {
+        text: state.currentMember.memberId,
+        width: 200,
+        height: 200,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+      });
+    }
+
+    if (idDisplay && state.currentMember) {
+      idDisplay.textContent = state.currentMember.memberId;
+    }
+  }
+
   function openBackupModal() {
-    // Reset form
-    document.getElementById('backup-password').value = '';
-    document.getElementById('backup-password-confirm').value = '';
-    document.getElementById('backup-code').value = '';
-    document.getElementById('backup-result').classList.add('hidden');
-    showModal('backup-modal');
+    openModal('backup-modal');
+
+    const codeEl = document.getElementById('backup-code');
+    if (codeEl && state.currentMember) {
+      const backup = {
+        v: 1,
+        id: state.currentMember.memberId,
+        handle: state.currentMember.handle,
+        pk: state.currentMember.publicKey,
+        sk: state.currentMember.secretKey,
+        cell: state.currentMember.cellId,
+      };
+      codeEl.value = 'OG2:' + btoa(JSON.stringify(backup));
+    }
   }
 
-  /**
-   * Generate encrypted backup
-   */
-  async function generateBackup() {
-    const password = document.getElementById('backup-password').value;
-    const confirmPassword = document.getElementById('backup-password-confirm').value;
-
-    if (password.length < 4) {
-      showToast('Password must be at least 4 characters', 'error');
-      return;
+  function copyBackupCode() {
+    const codeEl = document.getElementById('backup-code');
+    if (codeEl) {
+      copyToClipboard(codeEl.value);
     }
+  }
 
-    if (password !== confirmPassword) {
-      showToast('Passwords do not match', 'error');
-      return;
-    }
+  // ============================================
+  // SCANNER
+  // ============================================
+
+  let scannerStream = null;
+
+  async function openScanner() {
+    openModal('scanner-modal');
+
+    const video = document.getElementById('scanner-video');
+    if (!video) return;
 
     try {
-      showLoading(true);
-      const backupCode = await OGCrypto.exportIdentity(password);
+      scannerStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      video.srcObject = scannerStream;
+      video.play();
 
-      document.getElementById('backup-code').value = backupCode;
-      document.getElementById('backup-result').classList.remove('hidden');
-
-      showToast('Backup generated!', 'success');
-    } catch (err) {
-      console.error('[App] Backup failed:', err);
-      showToast('Backup failed: ' + err.message, 'error');
-    } finally {
-      showLoading(false);
+      requestAnimationFrame(scanFrame);
+    } catch (e) {
+      console.error('Camera error:', e);
+      showToast('Could not access camera', 'error');
+      closeAllModals();
     }
   }
 
-  /**
-   * Copy backup code to clipboard
-   */
-  async function copyBackupToClipboard() {
-    const backupCode = document.getElementById('backup-code').value;
+  function scanFrame() {
+    if (!scannerStream) return;
 
-    try {
-      await navigator.clipboard.writeText(backupCode);
-      showToast('Copied to clipboard!', 'success');
-    } catch (err) {
-      // Fallback for Safari
-      const textarea = document.getElementById('backup-code');
-      textarea.select();
-      document.execCommand('copy');
-      showToast('Copied to clipboard!', 'success');
-    }
-  }
-
-  /**
-   * Open restore modal
-   */
-  function openRestoreModal() {
-    // Reset form
-    document.getElementById('restore-code').value = '';
-    document.getElementById('restore-password').value = '';
-    showModal('restore-modal');
-  }
-
-  /**
-   * Restore identity from backup
-   */
-  async function restoreFromBackup() {
-    const backupCode = document.getElementById('restore-code').value.trim();
-    const password = document.getElementById('restore-password').value;
-
-    if (!backupCode) {
-      showToast('Please enter your backup code', 'error');
+    const video = document.getElementById('scanner-video');
+    if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      requestAnimationFrame(scanFrame);
       return;
     }
 
-    if (!backupCode.startsWith('OG1:')) {
-      showToast('Invalid backup code format', 'error');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+    if (code) {
+      handleScannedCode(code.data);
+      closeAllModals();
       return;
     }
 
-    if (!password) {
-      showToast('Please enter your password', 'error');
-      return;
-    }
+    requestAnimationFrame(scanFrame);
+  }
 
-    try {
-      showLoading(true);
-
-      // Import the identity
-      const publicKey = await OGCrypto.importIdentity(backupCode, password);
-
-      showToast('Identity restored!', 'success');
-      closeModal('restore-modal');
-
-      // Reload the app to use the restored identity
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-
-    } catch (err) {
-      console.error('[App] Restore failed:', err);
-      showToast('Restore failed: ' + err.message, 'error');
-    } finally {
-      showLoading(false);
+  function stopScanner() {
+    if (scannerStream) {
+      scannerStream.getTracks().forEach(t => t.stop());
+      scannerStream = null;
     }
   }
 
-  // ========================================
-  // CLOUD SYNC
-  // ========================================
+  function handleScannedCode(data) {
+    console.log('Scanned:', data);
 
-  let syncActive = false;
-
-  /**
-   * Connect to remote sync
-   */
-  function connectSync() {
-    const urlInput = document.getElementById('sync-url-input');
-    const url = urlInput?.value?.trim();
-
-    if (!url) {
-      showToast('Please enter a sync URL', 'error');
-      return;
-    }
-
-    try {
-      OGLedger.startSync(url);
-      syncActive = true;
-
-      // Save URL for auto-reconnect
-      localStorage.setItem('og_sync_url', url);
-
-      // Update UI
-      updateSyncUI(true);
-      showToast('Sync connected!', 'success');
-
-    } catch (err) {
-      console.error('[App] Sync connect failed:', err);
-      showToast('Sync failed: ' + err.message, 'error');
-    }
-  }
-
-  /**
-   * Disconnect from remote sync
-   */
-  function disconnectSync() {
-    OGLedger.stopSync();
-    syncActive = false;
-
-    // Clear saved URL
-    localStorage.removeItem('og_sync_url');
-
-    // Update UI
-    updateSyncUI(false);
-    showToast('Sync disconnected', 'info');
-  }
-
-  /**
-   * Update sync UI state
-   */
-  function updateSyncUI(connected) {
-    const statusText = document.getElementById('sync-status-text');
-    const connectBtn = document.getElementById('sync-connect-btn');
-    const disconnectBtn = document.getElementById('sync-disconnect-btn');
-    const urlInput = document.getElementById('sync-url-input');
-
-    if (connected) {
-      if (statusText) statusText.textContent = 'Connected';
-      if (statusText) statusText.style.color = 'var(--color-success)';
-      if (connectBtn) connectBtn.classList.add('hidden');
-      if (disconnectBtn) disconnectBtn.classList.remove('hidden');
-      if (urlInput) urlInput.disabled = true;
+    if (data.startsWith('member-')) {
+      // It's a member ID - open send modal with recipient filled in
+      openModal('send-modal');
+      const recipientInput = document.getElementById('send-recipient');
+      if (recipientInput) recipientInput.value = data;
+      showToast('Member scanned!', 'success');
     } else {
-      if (statusText) statusText.textContent = 'Not connected';
-      if (statusText) statusText.style.color = '';
-      if (connectBtn) connectBtn.classList.remove('hidden');
-      if (disconnectBtn) disconnectBtn.classList.add('hidden');
-      if (urlInput) urlInput.disabled = false;
+      showToast('Unknown QR code format', 'error');
     }
   }
 
-  /**
-   * Auto-connect to saved sync URL
-   */
-  function autoConnectSync() {
-    const savedUrl = localStorage.getItem('og_sync_url');
-    if (savedUrl) {
-      const urlInput = document.getElementById('sync-url-input');
-      if (urlInput) urlInput.value = savedUrl;
+  // ============================================
+  // TRANSACTIONS
+  // ============================================
 
-      try {
-        OGLedger.startSync(savedUrl);
-        syncActive = true;
-        updateSyncUI(true);
-        console.log('[App] Auto-connected to sync');
-      } catch (err) {
-        console.error('[App] Auto-connect failed:', err);
-      }
-    }
-  }
+  async function handleSend() {
+    const recipientInput = document.getElementById('send-recipient');
+    const amountInput = document.getElementById('send-amount');
+    const descInput = document.getElementById('send-description');
 
-  // ========================================
-  // P2P SYNC (Device-to-Device)
-  // ========================================
+    const recipient = recipientInput?.value.trim();
+    const amount = parseInt(amountInput?.value || '0', 10);
+    const description = descInput?.value.trim() || 'Transfer';
 
-  // Store pending transaction for accept/reject
-  let pendingP2PTransaction = null;
-
-  /**
-   * Open P2P sync modal and start hosting
-   */
-  async function openP2PSync() {
-    showModal('p2p-modal');
-    showP2PHostMode();
-
-    // Set up P2P callbacks
-    OGP2P.setOnStatusChange(handleP2PStatus);
-    OGP2P.setOnSyncComplete(handleP2PSyncComplete);
-    OGP2P.setOnTransactionRequest(handleP2PTransactionRequest);
-    OGP2P.setOnTransactionConfirmed(handleP2PTransactionConfirmed);
-    OGP2P.setOnTransactionRejected(handleP2PTransactionRejected);
-
-    // Start hosting
-    try {
-      const code = await OGP2P.startHosting();
-      document.getElementById('p2p-code-display').textContent = code;
-    } catch (err) {
-      console.error('[App] P2P hosting failed:', err);
-      showToast('Failed to start P2P: ' + err.message, 'error');
-    }
-  }
-
-  /**
-   * Switch to host mode (show code)
-   */
-  async function showP2PHostMode() {
-    document.getElementById('p2p-host-mode').classList.remove('hidden');
-    document.getElementById('p2p-join-mode').classList.add('hidden');
-    document.getElementById('p2p-connected-mode').classList.add('hidden');
-
-    // Start hosting if not already
-    if (!OGP2P.isConnected()) {
-      try {
-        const code = await OGP2P.startHosting();
-        document.getElementById('p2p-code-display').textContent = code;
-        document.getElementById('p2p-host-status').textContent = 'Waiting for connection...';
-      } catch (err) {
-        console.error('[App] P2P hosting failed:', err);
-      }
-    }
-  }
-
-  /**
-   * Switch to join mode (enter code)
-   */
-  function showP2PJoinMode() {
-    OGP2P.disconnect();
-    document.getElementById('p2p-host-mode').classList.add('hidden');
-    document.getElementById('p2p-join-mode').classList.remove('hidden');
-    document.getElementById('p2p-connected-mode').classList.add('hidden');
-    document.getElementById('p2p-code-input').value = '';
-    document.getElementById('p2p-join-status').textContent = '';
-  }
-
-  /**
-   * Show connected mode
-   */
-  function showP2PConnectedMode() {
-    document.getElementById('p2p-host-mode').classList.add('hidden');
-    document.getElementById('p2p-join-mode').classList.add('hidden');
-    document.getElementById('p2p-connected-mode').classList.remove('hidden');
-  }
-
-  /**
-   * Connect to peer using entered code
-   */
-  async function connectP2P() {
-    const code = document.getElementById('p2p-code-input').value.trim();
-
-    if (!code || code.length !== 6) {
-      showToast('Please enter a 6-digit code', 'error');
+    if (!recipient) {
+      showToast('Enter recipient ID', 'error');
       return;
     }
 
-    document.getElementById('p2p-join-status').textContent = 'Connecting...';
-
-    try {
-      await OGP2P.connectToHost(code);
-    } catch (err) {
-      document.getElementById('p2p-join-status').textContent = 'Failed: ' + err.message;
-      showToast('Connection failed', 'error');
-    }
-  }
-
-  /**
-   * Disconnect from P2P peer
-   */
-  function disconnectP2P() {
-    OGP2P.disconnect();
-    closeModal('p2p-modal');
-    showToast('Disconnected', 'info');
-  }
-
-  /**
-   * Handle P2P status changes
-   */
-  function handleP2PStatus(status, message) {
-    console.log('[App] P2P status:', status, message);
-
-    switch (status) {
-      case 'waiting':
-        document.getElementById('p2p-host-status').textContent = 'Waiting for connection...';
-        break;
-
-      case 'connecting':
-        document.getElementById('p2p-join-status').textContent = 'Connecting...';
-        break;
-
-      case 'connected':
-        showP2PConnectedMode();
-        document.getElementById('p2p-sync-status').textContent = 'Connected! Exchanging keys...';
-        break;
-
-      case 'encrypted':
-        document.getElementById('p2p-sync-status').innerHTML = '&#128274; Encrypted connection established';
-        break;
-
-      case 'syncing':
-        document.getElementById('p2p-sync-status').innerHTML = '&#128274; Syncing data (encrypted)...';
-        break;
-
-      case 'complete':
-        document.getElementById('p2p-sync-status').textContent = message || 'Sync complete!';
-        document.getElementById('p2p-sync-progress').innerHTML = '<div style="font-size: 2rem;">&#9989;</div>';
-        // Show peer info and send section
-        const peerInfo = OGP2P.getPeerInfo();
-        if (peerInfo) {
-          const handle = peerInfo.handle || 'peer';
-          document.getElementById('p2p-peer-handle').textContent = handle;
-          document.getElementById('p2p-send-to-handle').textContent = '@' + handle;
-          // Set avatar to first letter of handle
-          const avatarEl = document.getElementById('p2p-recipient-avatar');
-          if (avatarEl) {
-            avatarEl.textContent = handle.charAt(0).toUpperCase();
-          }
-          document.getElementById('p2p-send-section').classList.remove('hidden');
-        }
-        break;
-
-      case 'error':
-        showToast('P2P Error: ' + message, 'error');
-        break;
-
-      case 'disconnected':
-        break;
-    }
-  }
-
-  /**
-   * Handle P2P sync complete
-   */
-  function handleP2PSyncComplete(result) {
-    console.log('[App] P2P sync complete:', result);
-    showToast(`Synced ${result.imported} items`, 'success');
-    updateBalance();
-    loadTransactions();
-  }
-
-  /**
-   * Send credits via P2P connection
-   */
-  async function sendViaP2P() {
-    const amount = parseInt(document.getElementById('p2p-send-amount').value, 10);
-    const description = document.getElementById('p2p-send-description').value.trim();
-
-    if (!amount || amount < 1) {
-      showToast('Please enter a valid amount', 'error');
+    if (amount <= 0) {
+      showToast('Enter a valid amount', 'error');
       return;
     }
 
-    const statusEl = document.getElementById('p2p-send-status');
-    const sendBtn = document.getElementById('p2p-send-btn');
-
-    // Show loading state
-    if (sendBtn) {
-      sendBtn.disabled = true;
-      sendBtn.innerHTML = '<span class="spinner-small"></span> Sending...';
-    }
-    statusEl.textContent = '';
-    statusEl.className = 'p2p-status text-center mt-md';
-
     try {
-      await OGP2P.sendToPeer(amount, description || 'P2P transfer');
-      statusEl.textContent = 'Waiting for confirmation...';
-      statusEl.className = 'p2p-status p2p-status-waiting text-center mt-md';
-    } catch (err) {
-      console.error('[App] P2P send failed:', err);
-      statusEl.textContent = 'Failed: ' + err.message;
-      statusEl.className = 'p2p-status p2p-status-error text-center mt-md';
-      showToast('Send failed: ' + err.message, 'error');
+      const { now } = CellProtocol;
 
-      // Re-enable button
-      if (sendBtn) {
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Send';
-      }
-    }
-  }
-
-  /**
-   * Handle incoming P2P transaction request
-   */
-  function handleP2PTransactionRequest(tx) {
-    console.log('[App] Incoming transaction request:', tx);
-    pendingP2PTransaction = tx;
-
-    // Hide other modes, show transaction request
-    document.getElementById('p2p-host-mode').classList.add('hidden');
-    document.getElementById('p2p-join-mode').classList.add('hidden');
-    document.getElementById('p2p-connected-mode').classList.add('hidden');
-    document.getElementById('p2p-tx-request-mode').classList.remove('hidden');
-
-    // Fill in details
-    document.getElementById('p2p-tx-from').textContent = tx.sender_handle || '@sender';
-    document.getElementById('p2p-tx-amount').textContent = tx.amount;
-    document.getElementById('p2p-tx-description').textContent = tx.description || 'No description';
-
-    // Play sound or vibrate if available
-    if (navigator.vibrate) {
-      navigator.vibrate([200, 100, 200]);
-    }
-  }
-
-  /**
-   * Accept pending P2P transaction
-   */
-  async function acceptP2PTransaction() {
-    if (!pendingP2PTransaction) return;
-
-    const tx = pendingP2PTransaction;
-
-    try {
-      // Show loading state on button
-      const acceptBtn = document.getElementById('p2p-tx-accept-btn');
-      if (acceptBtn) {
-        acceptBtn.disabled = true;
-        acceptBtn.textContent = 'Processing...';
+      // Check if recipient exists, if not add them
+      let recipientState = state.protocol.ledger.getMemberState(recipient);
+      if (!recipientState) {
+        // Add as new member (simplified for demo)
+        await state.protocol.identity.addMember({
+          applicantId: recipient,
+          displayName: recipient,
+          publicKey: 'demo-key-' + recipient,
+          requestedAt: now(),
+          initialLimit: 100,
+        });
       }
 
-      await OGP2P.confirmTransaction(tx);
-      pendingP2PTransaction = null;
+      // Execute transaction
+      const result = await state.protocol.transactions.executeTransaction({
+        payerId: state.currentMember.memberId,
+        payeeId: recipient,
+        amount,
+        description,
+        timestamp: now(),
+      });
 
-      // Close the P2P modal immediately
-      closeModal('p2p-modal');
+      if (result.success) {
+        showToast(`Sent ${amount} credits!`, 'success');
+        closeAllModals();
+        refreshHomeScreen();
 
-      // Reset modal state for next time
-      document.getElementById('p2p-tx-request-mode').classList.add('hidden');
-      document.getElementById('p2p-host-mode').classList.remove('hidden');
-      if (acceptBtn) {
-        acceptBtn.disabled = false;
-        acceptBtn.textContent = 'Accept';
+        // Broadcast to peers
+        broadcastTransaction({
+          payerId: state.currentMember.memberId,
+          payeeId: recipient,
+          amount,
+          description,
+          timestamp: now(),
+        });
+
+        // Clear form
+        if (recipientInput) recipientInput.value = '';
+        if (amountInput) amountInput.value = '';
+        if (descInput) descInput.value = '';
+      } else {
+        showToast(result.error || 'Transaction failed', 'error');
       }
-
-      // Show success overlay
-      showSuccessOverlay(tx.amount, 'incoming', tx.sender_handle || 'peer', tx.description);
-
-      // Update balance and transactions
-      updateBalance();
-      loadTransactions();
-
-    } catch (err) {
-      console.error('[App] Accept transaction failed:', err);
-      showToast('Failed to accept: ' + err.message, 'error');
-      const acceptBtn = document.getElementById('p2p-tx-accept-btn');
-      if (acceptBtn) {
-        acceptBtn.disabled = false;
-        acceptBtn.textContent = 'Accept';
-      }
+    } catch (e) {
+      console.error('Transaction error:', e);
+      showToast(e.message || 'Transaction failed', 'error');
     }
   }
 
-  /**
-   * Reject pending P2P transaction
-   */
-  async function rejectP2PTransaction() {
-    if (!pendingP2PTransaction) return;
+  // ============================================
+  // UTILITIES
+  // ============================================
 
-    try {
-      await OGP2P.rejectTransaction(pendingP2PTransaction, 'User declined');
-      pendingP2PTransaction = null;
-
-      // Close modal and reset state
-      closeModal('p2p-modal');
-      document.getElementById('p2p-tx-request-mode').classList.add('hidden');
-      document.getElementById('p2p-host-mode').classList.remove('hidden');
-
-      showToast('Payment declined', 'info');
-    } catch (err) {
-      console.error('[App] Reject transaction failed:', err);
-    }
-  }
-
-  /**
-   * Handle transaction confirmed by peer (sender side)
-   */
-  function handleP2PTransactionConfirmed(tx) {
-    console.log('[App] Transaction confirmed:', tx);
-
-    // Clear form
-    document.getElementById('p2p-send-amount').value = '';
-    document.getElementById('p2p-send-description').value = '';
-    document.getElementById('p2p-send-status').textContent = '';
-
-    // Re-enable send button
-    const sendBtn = document.getElementById('p2p-send-btn');
-    if (sendBtn) {
-      sendBtn.disabled = false;
-      sendBtn.textContent = 'Send';
-    }
-
-    // Close modal and reset state
-    closeModal('p2p-modal');
-    document.getElementById('p2p-connected-mode').classList.add('hidden');
-    document.getElementById('p2p-host-mode').classList.remove('hidden');
-
-    // Show success overlay
-    showSuccessOverlay(tx.amount, 'outgoing', tx.recipient_handle || 'peer', tx.description);
-
-    // Update balance and transactions
-    updateBalance();
-    loadTransactions();
-  }
-
-  /**
-   * Handle transaction rejected by peer (sender side)
-   */
-  function handleP2PTransactionRejected(txId, reason) {
-    console.log('[App] Transaction rejected:', txId, reason);
-
-    // Re-enable send button
-    const sendBtn = document.getElementById('p2p-send-btn');
-    if (sendBtn) {
-      sendBtn.disabled = false;
-      sendBtn.textContent = 'Send';
-    }
-
-    // Show status with error styling
-    const statusEl = document.getElementById('p2p-send-status');
-    statusEl.textContent = 'Payment declined by recipient';
-    statusEl.className = 'p2p-status p2p-status-error text-center mt-md';
-
-    showToast('Payment was declined', 'error');
-  }
-
-  // ========================================
-  // MODALS
-  // ========================================
-
-  /**
-   * Show a modal
-   */
-  function showModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.classList.add('active');
-    }
-  }
-
-  /**
-   * Close a modal
-   */
-  function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.classList.remove('active');
-
-      // Stop scanner if it was the scanner modal
-      if (modalId === 'scanner-modal') {
-        OGQR.stopScanner();
-      }
-    }
-  }
-
-  // ========================================
-  // UI HELPERS
-  // ========================================
-
-  /**
-   * Show/hide loading overlay
-   */
-  function showLoading(show) {
-    const loader = document.getElementById('loading-overlay');
-    if (loader) {
-      loader.classList.toggle('active', show);
-    }
-  }
-
-  /**
-   * Show a toast notification
-   */
   function showToast(message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
 
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+    toast.className = `toast ${type}`;
     toast.textContent = message;
-
     container.appendChild(toast);
 
-    // Auto-remove after 3 seconds
     setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 300);
+      toast.remove();
     }, 3000);
   }
 
-  /**
-   * Show success overlay with animation
-   * @param {number} amount - Transaction amount
-   * @param {string} direction - 'incoming' or 'outgoing'
-   * @param {string} peerHandle - Who the transaction was with
-   * @param {string} description - Transaction description
-   */
-  function showSuccessOverlay(amount, direction, peerHandle, description) {
-    const overlay = document.getElementById('success-overlay');
-    const amountEl = document.getElementById('success-amount');
-    const labelEl = document.getElementById('success-label');
-    const detailsEl = document.getElementById('success-details');
-    const particlesEl = document.getElementById('success-particles');
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('Copied!', 'success');
+    }).catch(() => {
+      showToast('Copy failed', 'error');
+    });
+  }
 
-    if (!overlay) return;
+  async function confirmLogout() {
+    if (confirm('This will delete your identity from this device. Make sure you have a backup!')) {
+      await state.db.destroy();
+      location.reload();
+    }
+  }
 
-    // Set content
-    amountEl.textContent = amount;
-    amountEl.className = 'success-amount ' + direction;
+  // ============================================
+  // P2P SYNC
+  // ============================================
 
-    if (direction === 'incoming') {
-      labelEl.textContent = 'credits received';
-      detailsEl.textContent = `from @${peerHandle}`;
+  let peer = null;
+  let syncConnections = new Map();
+
+  function initP2P() {
+    if (!state.currentMember) return;
+
+    // Create peer with member ID as peer ID (sanitized)
+    const peerId = state.currentMember.memberId.replace(/[^a-zA-Z0-9]/g, '');
+
+    peer = new Peer(peerId, {
+      debug: 1,
+    });
+
+    peer.on('open', (id) => {
+      console.log('P2P ready, peer ID:', id);
+    });
+
+    peer.on('connection', (conn) => {
+      handleIncomingConnection(conn);
+    });
+
+    peer.on('error', (err) => {
+      console.error('P2P error:', err);
+    });
+  }
+
+  function handleIncomingConnection(conn) {
+    console.log('Incoming connection from:', conn.peer);
+    syncConnections.set(conn.peer, conn);
+
+    conn.on('data', (data) => {
+      handleSyncMessage(conn.peer, data);
+    });
+
+    conn.on('close', () => {
+      syncConnections.delete(conn.peer);
+    });
+
+    // Send our current state
+    conn.on('open', () => {
+      sendSyncState(conn);
+    });
+  }
+
+  function connectToPeer(peerId) {
+    if (!peer || syncConnections.has(peerId)) return;
+
+    const conn = peer.connect(peerId.replace(/[^a-zA-Z0-9]/g, ''));
+
+    conn.on('open', () => {
+      console.log('Connected to peer:', peerId);
+      syncConnections.set(peerId, conn);
+      sendSyncState(conn);
+    });
+
+    conn.on('data', (data) => {
+      handleSyncMessage(peerId, data);
+    });
+
+    conn.on('close', () => {
+      syncConnections.delete(peerId);
+    });
+
+    conn.on('error', (err) => {
+      console.error('Connection error:', err);
+    });
+  }
+
+  function sendSyncState(conn) {
+    if (!state.protocol) return;
+
+    // Get current ledger state to sync
+    const members = Array.from(state.protocol.ledger.getAllMemberStates().entries());
+
+    conn.send({
+      type: 'SYNC_STATE',
+      cellId: state.currentMember.cellId,
+      members: members,
+      timestamp: Date.now(),
+    });
+  }
+
+  function handleSyncMessage(peerId, data) {
+    console.log('Sync message from', peerId, ':', data.type);
+
+    switch (data.type) {
+      case 'SYNC_STATE':
+        // Merge incoming state with local state
+        mergeSyncState(data);
+        break;
+
+      case 'TRANSACTION':
+        // Apply incoming transaction
+        applyRemoteTransaction(data);
+        break;
+
+      default:
+        console.log('Unknown sync message type:', data.type);
+    }
+  }
+
+  function mergeSyncState(remoteState) {
+    if (remoteState.cellId !== state.currentMember.cellId) {
+      console.log('Ignoring state from different cell');
+      return;
+    }
+
+    // For now, just log. Full CRDT merge would go here.
+    console.log('Received sync state with', remoteState.members.length, 'members');
+
+    // Refresh UI to show any changes
+    refreshScreen(state.currentScreen);
+  }
+
+  async function applyRemoteTransaction(txData) {
+    // Validate and apply transaction from peer
+    try {
+      const { now } = CellProtocol;
+
+      // Ensure both parties exist
+      let payerState = state.protocol.ledger.getMemberState(txData.payerId);
+      let payeeState = state.protocol.ledger.getMemberState(txData.payeeId);
+
+      if (!payerState || !payeeState) {
+        console.log('Cannot apply remote tx: unknown party');
+        return;
+      }
+
+      // Re-execute locally (idempotent if same tx ID)
+      await state.protocol.transactions.executeTransaction({
+        payerId: txData.payerId,
+        payeeId: txData.payeeId,
+        amount: txData.amount,
+        description: txData.description,
+        timestamp: txData.timestamp || now(),
+      });
+
+      refreshScreen(state.currentScreen);
+    } catch (e) {
+      console.error('Failed to apply remote transaction:', e);
+    }
+  }
+
+  function broadcastTransaction(tx) {
+    const message = {
+      type: 'TRANSACTION',
+      ...tx,
+    };
+
+    syncConnections.forEach((conn) => {
+      try {
+        conn.send(message);
+      } catch (e) {
+        console.error('Failed to broadcast to peer:', e);
+      }
+    });
+  }
+
+  // Add sync button to settings
+  function addSyncUI() {
+    const settingsScreen = document.getElementById('settings-screen');
+    if (!settingsScreen) return;
+
+    // Check if already added
+    if (document.getElementById('sync-card')) return;
+
+    const syncCard = document.createElement('div');
+    syncCard.id = 'sync-card';
+    syncCard.className = 'card';
+    syncCard.innerHTML = `
+      <h3 class="card-title">P2P Sync</h3>
+      <p class="text-muted" style="font-size: 0.875rem; margin-bottom: var(--spacing-md);">
+        Connect to another device to sync data.
+      </p>
+      <div class="form-group">
+        <input type="text" id="peer-id-input" class="form-input" placeholder="Enter peer's member ID">
+      </div>
+      <button id="connect-peer-btn" class="btn btn-secondary btn-block">Connect</button>
+      <div id="sync-status" class="text-muted mt-sm" style="font-size: 0.75rem;"></div>
+    `;
+
+    // Insert before About card
+    const aboutCard = settingsScreen.querySelector('.card:last-of-type');
+    if (aboutCard) {
+      settingsScreen.insertBefore(syncCard, aboutCard);
     } else {
-      labelEl.textContent = 'credits sent';
-      detailsEl.textContent = `to @${peerHandle}`;
+      settingsScreen.appendChild(syncCard);
     }
 
-    if (description) {
-      detailsEl.textContent += ' • ' + description;
-    }
+    // Add event listener
+    const connectBtn = document.getElementById('connect-peer-btn');
+    const peerInput = document.getElementById('peer-id-input');
+    const statusEl = document.getElementById('sync-status');
 
-    // Create particles
-    particlesEl.innerHTML = '';
-    const colors = ['#00ff88', '#00cc6f', '#33ffaa', '#66ffbb'];
-    for (let i = 0; i < 12; i++) {
-      const particle = document.createElement('div');
-      particle.className = 'particle';
-      particle.style.background = colors[i % colors.length];
-      const angle = (i / 12) * 360;
-      const distance = 80 + Math.random() * 40;
-      const x = Math.cos(angle * Math.PI / 180) * distance;
-      const y = Math.sin(angle * Math.PI / 180) * distance;
-      particle.style.setProperty('--x', x + 'px');
-      particle.style.setProperty('--y', y + 'px');
-      particle.style.left = '50%';
-      particle.style.top = '50%';
-      particle.style.animationDelay = (i * 0.05) + 's';
-      particlesEl.appendChild(particle);
-    }
-
-    // Show overlay
-    overlay.classList.add('active');
-
-    // Vibrate for haptic feedback
-    if (navigator.vibrate) {
-      navigator.vibrate([100, 50, 100]);
-    }
-
-    // Auto-close after delay
-    setTimeout(() => {
-      overlay.classList.remove('active');
-    }, 2500);
-  }
-
-  // ========================================
-  // EVENT LISTENERS
-  // ========================================
-
-  function setupEventListeners() {
-    // Navigation
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        const screen = item.dataset.screen;
-        if (screen) showScreen(screen);
-      });
-    });
-
-    // Onboarding - Create account
-    const createBtn = document.getElementById('create-account-btn');
-    if (createBtn) {
-      createBtn.addEventListener('click', () => {
-        const handle = document.getElementById('handle-input')?.value?.trim();
-        createAccount(handle);
-      });
-    }
-
-    // Offline button (opens offline transfer options)
-    const offlineBtn = document.getElementById('offline-btn');
-    if (offlineBtn) {
-      offlineBtn.addEventListener('click', () => showModal('offline-modal'));
-    }
-
-    // Offline Send button (inside offline modal)
-    const offlineSendBtn = document.getElementById('offline-send-btn');
-    if (offlineSendBtn) {
-      offlineSendBtn.addEventListener('click', () => {
-        closeModal('offline-modal');
-        openSendModal();
-      });
-    }
-
-    // Offline Scan button (inside offline modal)
-    const offlineScanBtn = document.getElementById('offline-scan-btn');
-    if (offlineScanBtn) {
-      offlineScanBtn.addEventListener('click', () => {
-        closeModal('offline-modal');
-        openScanner();
-      });
-    }
-
-    // My QR button
-    const myQRBtn = document.getElementById('my-qr-btn');
-    if (myQRBtn) {
-      myQRBtn.addEventListener('click', showMyQR);
-    }
-
-    // Scan Recipient button (in Send modal)
-    const scanRecipientBtn = document.getElementById('scan-recipient-btn');
-    if (scanRecipientBtn) {
-      scanRecipientBtn.addEventListener('click', scanRecipient);
-    }
-
-    // Clear Recipient button
-    const clearRecipientBtn = document.getElementById('clear-recipient-btn');
-    if (clearRecipientBtn) {
-      clearRecipientBtn.addEventListener('click', clearRecipient);
-    }
-
-    // Paste Recipient button
-    const pasteRecipientBtn = document.getElementById('paste-recipient-btn');
-    if (pasteRecipientBtn) {
-      pasteRecipientBtn.addEventListener('click', pasteRecipientId);
-    }
-
-    // Copy My ID button
-    const copyMyIdBtn = document.getElementById('copy-my-id-btn');
-    if (copyMyIdBtn) {
-      copyMyIdBtn.addEventListener('click', copyMyId);
-    }
-
-    // Backup button
-    const backupBtn = document.getElementById('backup-btn');
-    if (backupBtn) {
-      backupBtn.addEventListener('click', openBackupModal);
-    }
-
-    // Backup generate button
-    const backupGenerateBtn = document.getElementById('backup-generate-btn');
-    if (backupGenerateBtn) {
-      backupGenerateBtn.addEventListener('click', generateBackup);
-    }
-
-    // Backup copy button
-    const backupCopyBtn = document.getElementById('backup-copy-btn');
-    if (backupCopyBtn) {
-      backupCopyBtn.addEventListener('click', copyBackupToClipboard);
-    }
-
-    // Restore button
-    const restoreBtn = document.getElementById('restore-btn');
-    if (restoreBtn) {
-      restoreBtn.addEventListener('click', openRestoreModal);
-    }
-
-    // Restore submit button
-    const restoreSubmitBtn = document.getElementById('restore-submit-btn');
-    if (restoreSubmitBtn) {
-      restoreSubmitBtn.addEventListener('click', restoreFromBackup);
-    }
-
-    // Sync buttons
-    const syncConnectBtn = document.getElementById('sync-connect-btn');
-    if (syncConnectBtn) {
-      syncConnectBtn.addEventListener('click', connectSync);
-    }
-
-    const syncDisconnectBtn = document.getElementById('sync-disconnect-btn');
-    if (syncDisconnectBtn) {
-      syncDisconnectBtn.addEventListener('click', disconnectSync);
-    }
-
-    // P2P Sync button
-    const p2pSyncBtn = document.getElementById('p2p-sync-btn');
-    if (p2pSyncBtn) {
-      p2pSyncBtn.addEventListener('click', openP2PSync);
-    }
-
-    // P2P mode switches
-    const p2pSwitchToJoin = document.getElementById('p2p-switch-to-join');
-    if (p2pSwitchToJoin) {
-      p2pSwitchToJoin.addEventListener('click', showP2PJoinMode);
-    }
-
-    const p2pSwitchToHost = document.getElementById('p2p-switch-to-host');
-    if (p2pSwitchToHost) {
-      p2pSwitchToHost.addEventListener('click', showP2PHostMode);
-    }
-
-    // P2P connect button
-    const p2pConnectBtn = document.getElementById('p2p-connect-btn');
-    if (p2pConnectBtn) {
-      p2pConnectBtn.addEventListener('click', connectP2P);
-    }
-
-    // P2P disconnect button
-    const p2pDisconnectBtn = document.getElementById('p2p-disconnect-btn');
-    if (p2pDisconnectBtn) {
-      p2pDisconnectBtn.addEventListener('click', disconnectP2P);
-    }
-
-    // P2P send button
-    const p2pSendBtn = document.getElementById('p2p-send-btn');
-    if (p2pSendBtn) {
-      p2pSendBtn.addEventListener('click', sendViaP2P);
-    }
-
-    // P2P transaction accept button
-    const p2pTxAcceptBtn = document.getElementById('p2p-tx-accept-btn');
-    if (p2pTxAcceptBtn) {
-      p2pTxAcceptBtn.addEventListener('click', acceptP2PTransaction);
-    }
-
-    // P2P transaction reject button
-    const p2pTxRejectBtn = document.getElementById('p2p-tx-reject-btn');
-    if (p2pTxRejectBtn) {
-      p2pTxRejectBtn.addEventListener('click', rejectP2PTransaction);
-    }
-
-    // Modal close buttons
-    document.querySelectorAll('.modal-close').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const modal = btn.closest('.modal-overlay');
-        if (modal) {
-          modal.classList.remove('active');
-          OGQR.stopScanner();
+    if (connectBtn && peerInput) {
+      connectBtn.addEventListener('click', () => {
+        const peerId = peerInput.value.trim();
+        if (peerId) {
+          connectToPeer(peerId);
+          if (statusEl) {
+            statusEl.textContent = 'Connecting to ' + peerId + '...';
+          }
+          peerInput.value = '';
         }
-      });
-    });
-
-    // Close modals on backdrop click
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-          overlay.classList.remove('active');
-          OGQR.stopScanner();
-        }
-      });
-    });
-
-    // Send form submission
-    const sendForm = document.getElementById('send-form');
-    if (sendForm) {
-      sendForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const recipientId = document.getElementById('send-recipient')?.value?.trim();
-        const amount = document.getElementById('send-amount')?.value;
-        const description = document.getElementById('send-description')?.value?.trim();
-
-        if (!recipientId) {
-          showToast('Please scan a recipient first', 'error');
-          return;
-        }
-        if (!amount || amount <= 0) {
-          showToast('Please enter an amount', 'error');
-          return;
-        }
-
-        await createTransfer(recipientId, amount, description || 'Transfer');
-        closeModal('send-modal');
       });
     }
   }
 
-  // ========================================
-  // PUBLIC API
-  // ========================================
+  // ============================================
+  // STARTUP
+  // ============================================
 
-  return {
-    init,
-    showScreen,
-    showToast,
-    showModal,
-    closeModal,
-    updateBalance,
-    loadTransactions,
-    openScanner,
-    showMyQR
-  };
+  // Wait for DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
 })();
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  OGApp.init();
-});
