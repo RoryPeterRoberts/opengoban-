@@ -24,4 +24,6 @@ npm-debug.log*
 # Environment
 .env
 .env.local
-pwa/
+
+# Old PWA backup (not the active one)
+pwa-old/

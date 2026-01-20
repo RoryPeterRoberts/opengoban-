@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Community mutual credit coordination - offline first, no banks">
+
+  <title>OpenGoban</title>
+
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Screens are rendered by app.js -->
+    <div class="loading-screen">
+      <div class="loading-logo">&#9898;</div>
+      <p>Loading...</p>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container"></div>
+
+  <!-- Libraries -->
+  <script src="/lib/pouchdb.min.js"></script>
+  <script src="/lib/tweetnacl.min.js"></script>
+  <script src="/lib/tweetnacl-util.min.js"></script>
+  <script src="/lib/qrcode.min.js"></script>
+  <script src="/lib/jsqr.min.js"></script>
+  <script src="/lib/peerjs.min.js"></script>
+
+  <!-- Cell Protocol -->
+  <script src="/js/cell-protocol.js"></script>
+
+  <!-- Application -->
+  <script src="/js/app.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW registration failed:', err));
+    }
+  </script>
+</body>
+</html>
