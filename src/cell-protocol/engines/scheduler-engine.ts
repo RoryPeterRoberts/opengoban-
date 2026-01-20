@@ -34,9 +34,11 @@ import {
   SchedulerError,
   SchedulerErrorCode,
   ISchedulerEngine,
+  TaskCategoryDefinition,
 } from '../types/scheduler';
 import { LedgerEngine } from './ledger-engine';
 import { CommitmentEngine } from './commitment-engine';
+import { EnergyEngine } from './energy-engine';
 import { IStorage } from '../storage/pouchdb-adapter';
 
 // ============================================
@@ -46,6 +48,7 @@ import { IStorage } from '../storage/pouchdb-adapter';
 export class SchedulerEngine implements ISchedulerEngine {
   private ledger: LedgerEngine;
   private commitments: CommitmentEngine;
+  private energy?: EnergyEngine;
   private storage: IStorage;
   private debtorPriorityEnabled = false;
 
@@ -57,6 +60,11 @@ export class SchedulerEngine implements ISchedulerEngine {
     this.ledger = ledger;
     this.commitments = commitments;
     this.storage = storage;
+  }
+
+  /** Set the energy engine (Phase 4 integration) */
+  setEnergyEngine(energy: EnergyEngine): void {
+    this.energy = energy;
   }
 
   // ============================================
@@ -330,7 +338,14 @@ export class SchedulerEngine implements ISchedulerEngine {
       }
     }
 
-    return effectiveness * 0.4 + preference * 0.2 + debtorScore * 0.4;
+    // Energy availability factor (Phase 4)
+    // If we have energy engine, check if task can be completed
+    const energyFactor = this.energy
+      ? (this.energy.canCompleteTask(slot.category, slot.hoursRequired / slot.maxAssignees) ? 1 : 0.5)
+      : 1;
+
+    // Adjusted weights with energy factor
+    return effectiveness * 0.35 + preference * 0.15 + debtorScore * 0.35 + energyFactor * 0.15;
   }
 
   async assignMember(slotId: TaskSlotId, memberId: IdentityId, hours: number): Promise<TaskAssignment> {
@@ -767,6 +782,50 @@ export class SchedulerEngine implements ISchedulerEngine {
 
   isDebtorPriorityEnabled(): boolean {
     return this.debtorPriorityEnabled;
+  }
+
+  // ============================================
+  // PHASE 4: BUNDLE COST & ESSENTIAL TASKS
+  // ============================================
+
+  /**
+   * Get the essential task categories with their minimum weekly hours
+   */
+  getEssentialTaskCategories(): TaskCategoryDefinition[] {
+    return [
+      { category: TaskCategory.MEDICAL, minimumWeeklyHours: 4, isEssential: true },
+      { category: TaskCategory.FOOD, minimumWeeklyHours: 14, isEssential: true },
+      { category: TaskCategory.WATER_SANITATION, minimumWeeklyHours: 7, isEssential: true },
+      { category: TaskCategory.ENERGY_HEAT, minimumWeeklyHours: 7, isEssential: true },
+      { category: TaskCategory.CHILDCARE_DEPENDENT, minimumWeeklyHours: 14, isEssential: true },
+      { category: TaskCategory.SECURITY_COORDINATION, minimumWeeklyHours: 7, isEssential: true },
+      { category: TaskCategory.SHELTER_REPAIR, minimumWeeklyHours: 4, isEssential: false },
+      { category: TaskCategory.PROCUREMENT_TRANSPORT, minimumWeeklyHours: 7, isEssential: false },
+      { category: TaskCategory.GENERAL, minimumWeeklyHours: 7, isEssential: false },
+    ];
+  }
+
+  /**
+   * Calculate the weekly bundle cost per member
+   * c_E = sum(H_t^min for essential t) / N
+   */
+  calculateWeeklyBundleCost(): number {
+    const essentialCategories = this.getEssentialTaskCategories()
+      .filter(c => c.isEssential);
+
+    const totalEssentialHours = essentialCategories
+      .reduce((sum, cat) => sum + cat.minimumWeeklyHours, 0);
+
+    const memberCount = this.ledger.getStatistics().memberCount;
+
+    return memberCount > 0 ? totalEssentialHours / memberCount : 0;
+  }
+
+  /**
+   * Get the energy engine if set (for external access)
+   */
+  getEnergyEngine(): EnergyEngine | undefined {
+    return this.energy;
   }
 }
 

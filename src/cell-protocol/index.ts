@@ -10,6 +10,14 @@
  * - Commitment System (PRD-03)
  * - Governance System (PRD-05)
  * - Survival Scheduler Basic (PRD-08)
+ *
+ * Phase 3: Resilience Layer
+ * - Emergency Mode System (PRD-07)
+ * - Federation Network (PRD-06)
+ *
+ * Phase 4: Resource Management
+ * - Energy Resource Layer (PRD-09)
+ * - Survival Scheduler Full (PRD-08)
  */
 
 // ============================================
@@ -144,7 +152,41 @@ export {
   SchedulerError,
   SchedulerErrorCode,
   ISchedulerEngine,
+  TaskCategoryDefinition,
 } from './types/scheduler';
+
+// ============================================
+// PHASE 4 TYPE EXPORTS
+// ============================================
+
+// Energy types
+export {
+  EnergyCarrierId,
+  EnergyCategory,
+  EnergyCarrier,
+  EnergyStock,
+  EnergySource,
+  EnergyConsumer,
+  EnergyFlow,
+  EnergyMode,
+  TaskEnergyProfile,
+  RationingPlan,
+  MemberBundle,
+  StockChangeRecord,
+  StockChangeReason,
+  ConsumptionRecord,
+  WeeklyEnergyPlan,
+  StressProjection,
+  ProcurementAlert,
+  EnergyState,
+  EnergyError,
+  EnergyErrorCode,
+  IEnergyEngine,
+  DEFAULT_CARRIERS,
+  DEFAULT_TASK_PROFILES,
+  HUMANITARIAN_FLOOR,
+  VULNERABILITY_BONUS,
+} from './types/energy';
 
 // ============================================
 // PHASE 3 TYPE EXPORTS
@@ -281,6 +323,17 @@ export {
 } from './engines/federation-engine';
 
 // ============================================
+// PHASE 4 ENGINE EXPORTS
+// ============================================
+
+export {
+  EnergyEngine,
+  EnergyValidationError,
+  createEnergyEngine,
+  createEnergyEngineWithScheduler,
+} from './engines/energy-engine';
+
+// ============================================
 // STORAGE EXPORTS
 // ============================================
 
@@ -321,6 +374,7 @@ import { CellId, IdentityId } from './types/common';
 import { LedgerParameters } from './types/ledger';
 import { TransitionThresholds } from './types/emergency';
 import { FederationParameters } from './types/federation';
+import { EnergyCarrier, TaskEnergyProfile } from './types/energy';
 import { LedgerEngine, createLedgerEngine } from './engines/ledger-engine';
 import { TransactionEngine, createTransactionEngine } from './engines/transaction-engine';
 import { IdentityEngine, createIdentityEngine } from './engines/identity-engine';
@@ -329,6 +383,7 @@ import { GovernanceEngine, createGovernanceEngine } from './engines/governance-e
 import { SchedulerEngine, createSchedulerEngine } from './engines/scheduler-engine';
 import { EmergencyEngine, createEmergencyEngine } from './engines/emergency-engine';
 import { FederationEngine, createFederationEngine } from './engines/federation-engine';
+import { EnergyEngine, createEnergyEngine } from './engines/energy-engine';
 import { IStorage, createInMemoryStorage } from './storage/pouchdb-adapter';
 import { CryptoAdapter, cryptoAdapter } from './crypto/crypto-adapter';
 
@@ -345,6 +400,7 @@ export interface CellProtocol {
   scheduler: SchedulerEngine;          // Phase 2
   emergency: EmergencyEngine;          // Phase 3
   federation?: FederationEngine;       // Phase 3 (optional)
+  energy?: EnergyEngine;               // Phase 4 (optional)
   storage: IStorage;
   crypto: CryptoAdapter;
 }
@@ -361,6 +417,10 @@ export interface CellProtocolOptions {
   enableFederation?: boolean;
   federationParameters?: Partial<FederationParameters>;
   emergencyThresholds?: Partial<TransitionThresholds>;
+  // Phase 4 options
+  enableEnergy?: boolean;
+  energyCarriers?: EnergyCarrier[];
+  energyTaskProfiles?: TaskEnergyProfile[];
 }
 
 /**
@@ -416,6 +476,22 @@ export async function createCellProtocol(options: CellProtocolOptions): Promise<
     federation.setEmergencyEngine(emergency);
   }
 
+  // Phase 4: Create energy engine if enabled
+  let energy: EnergyEngine | undefined;
+  if (options.enableEnergy) {
+    energy = createEnergyEngine(
+      cellId,
+      ledger,
+      storage,
+      options.energyCarriers,
+      options.energyTaskProfiles
+    );
+    energy.setSchedulerEngine(scheduler);
+    scheduler.setEnergyEngine(energy);
+    emergency.setEnergyEngine(energy);
+    await energy.loadState();
+  }
+
   return {
     cellId,
     ledger,
@@ -426,6 +502,7 @@ export async function createCellProtocol(options: CellProtocolOptions): Promise<
     scheduler,
     emergency,
     federation,
+    energy,
     storage,
     crypto,
   };

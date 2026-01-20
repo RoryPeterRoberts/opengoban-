@@ -34,6 +34,7 @@ import {
 import { LedgerEngine } from './ledger-engine';
 import { GovernanceEngine } from './governance-engine';
 import { IdentityEngine } from './identity-engine';
+import { EnergyEngine } from './energy-engine';
 import { IStorage } from '../storage/pouchdb-adapter';
 
 // ============================================
@@ -45,6 +46,7 @@ export class EmergencyEngine implements IEmergencyEngine {
   private ledger: LedgerEngine;
   private governance?: GovernanceEngine;
   private identity?: IdentityEngine;
+  private energy?: EnergyEngine;
   private storage: IStorage;
 
   private state: EmergencyState;
@@ -83,6 +85,11 @@ export class EmergencyEngine implements IEmergencyEngine {
   /** Set the identity engine (circular dependency resolution) */
   setIdentityEngine(identity: IdentityEngine): void {
     this.identity = identity;
+  }
+
+  /** Set the energy engine (Phase 4 integration) */
+  setEnergyEngine(energy: EnergyEngine): void {
+    this.energy = energy;
   }
 
   // ============================================
@@ -151,8 +158,8 @@ export class EmergencyEngine implements IEmergencyEngine {
     // For now, use a simple placeholder - would need historical data
     const memberChurn = 0; // TODO: Calculate from membership changes
 
-    // Energy stress (future) - placeholder
-    const energyStress = 0;
+    // Energy stress - use real value from EnergyEngine if available
+    const energyStress = this.energy ? this.energy.calculateEnergyStress() : 0;
 
     // Economic stress combines floor mass, variance, and dispute rate
     const economicStress = (floorMass * 0.5) + (disputeRate * 0.3) + (balanceVariance * 0.2);

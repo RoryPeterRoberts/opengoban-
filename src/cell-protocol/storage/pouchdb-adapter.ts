@@ -14,6 +14,7 @@ import { Proposal, ProposalId, ProposalStatus, Dispute, DisputeId, DisputeStatus
 import { TaskSlot, TaskSlotId, TaskSlotStatus, TaskTemplate, TaskTemplateId, MemberSupply } from '../types/scheduler';
 import { EmergencyState, StateHistoryEntry } from '../types/emergency';
 import { FederationState, FederationTransaction, FederationTxId, FederationTxStatus, LinkProposal, LinkProposalId } from '../types/federation';
+import { EnergyState, StockChangeRecord, ConsumptionRecord, WeeklyEnergyPlan, EnergyCarrierId } from '../types/energy';
 import { Result, ok, err } from '../utils/result';
 
 // ============================================
@@ -152,6 +153,19 @@ export interface IStorage {
   }): Promise<Result<FederationTransaction[], StorageError>>;
   saveLinkProposal(proposal: LinkProposal): Promise<Result<void, StorageError>>;
   getLinkProposal(id: LinkProposalId): Promise<Result<LinkProposal | null, StorageError>>;
+
+  // ============================================
+  // PHASE 4: ENERGY OPERATIONS
+  // ============================================
+
+  saveEnergyState(state: EnergyState): Promise<Result<void, StorageError>>;
+  getEnergyState(cellId: CellId): Promise<Result<EnergyState | null, StorageError>>;
+  saveStockChange(change: StockChangeRecord): Promise<Result<void, StorageError>>;
+  getStockChanges(cellId: CellId, since: Timestamp): Promise<Result<StockChangeRecord[], StorageError>>;
+  saveConsumptionRecord(record: ConsumptionRecord): Promise<Result<void, StorageError>>;
+  getConsumptionHistory(cellId: CellId, since: Timestamp): Promise<Result<ConsumptionRecord[], StorageError>>;
+  saveEnergyPlan(plan: WeeklyEnergyPlan): Promise<Result<void, StorageError>>;
+  getEnergyPlan(cellId: CellId, weekStart: Timestamp): Promise<Result<WeeklyEnergyPlan | null, StorageError>>;
 }
 
 // ============================================
@@ -184,6 +198,12 @@ export class InMemoryStorage implements IStorage {
   private federationStates = new Map<CellId, FederationState>();
   private federationTransactions = new Map<FederationTxId, FederationTransaction>();
   private linkProposals = new Map<LinkProposalId, LinkProposal>();
+
+  // Phase 4 storage
+  private energyStates = new Map<CellId, EnergyState>();
+  private stockChanges = new Map<CellId, StockChangeRecord[]>();
+  private consumptionRecords = new Map<CellId, ConsumptionRecord[]>();
+  private energyPlans = new Map<string, WeeklyEnergyPlan>(); // key: cellId:weekStart
 
   // Ledger operations
   async saveLedgerState(state: CellLedgerState): Promise<Result<void, StorageError>> {
@@ -625,6 +645,118 @@ export class InMemoryStorage implements IStorage {
     return ok(proposal ? { ...proposal, proposedTerms: { ...proposal.proposedTerms } } : null);
   }
 
+  // ============================================
+  // PHASE 4: ENERGY OPERATIONS
+  // ============================================
+
+  async saveEnergyState(state: EnergyState): Promise<Result<void, StorageError>> {
+    // Deep clone with Map handling
+    const cloned: EnergyState = {
+      ...state,
+      carriers: [...state.carriers],
+      stocks: new Map(state.stocks),
+      selectedModes: new Map(state.selectedModes),
+      taskProfiles: state.taskProfiles.map(p => ({
+        ...p,
+        energyModes: p.energyModes.map(m => ({
+          ...m,
+          energyPerHour: new Map(m.energyPerHour),
+        })),
+      })),
+    };
+    this.energyStates.set(state.cellId, cloned);
+    return ok(undefined);
+  }
+
+  async getEnergyState(cellId: CellId): Promise<Result<EnergyState | null, StorageError>> {
+    const state = this.energyStates.get(cellId);
+    if (!state) return ok(null);
+    // Deep clone with Map handling
+    return ok({
+      ...state,
+      carriers: [...state.carriers],
+      stocks: new Map(state.stocks),
+      selectedModes: new Map(state.selectedModes),
+      taskProfiles: state.taskProfiles.map(p => ({
+        ...p,
+        energyModes: p.energyModes.map(m => ({
+          ...m,
+          energyPerHour: new Map(m.energyPerHour),
+        })),
+      })),
+    });
+  }
+
+  async saveStockChange(change: StockChangeRecord): Promise<Result<void, StorageError>> {
+    if (!this.stockChanges.has(change.cellId)) {
+      this.stockChanges.set(change.cellId, []);
+    }
+    this.stockChanges.get(change.cellId)!.push({ ...change });
+    return ok(undefined);
+  }
+
+  async getStockChanges(cellId: CellId, since: Timestamp): Promise<Result<StockChangeRecord[], StorageError>> {
+    const changes = this.stockChanges.get(cellId) || [];
+    const filtered = changes
+      .filter(c => c.timestamp >= since)
+      .map(c => ({ ...c }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+    return ok(filtered);
+  }
+
+  async saveConsumptionRecord(record: ConsumptionRecord): Promise<Result<void, StorageError>> {
+    if (!this.consumptionRecords.has(record.cellId)) {
+      this.consumptionRecords.set(record.cellId, []);
+    }
+    this.consumptionRecords.get(record.cellId)!.push({ ...record });
+    return ok(undefined);
+  }
+
+  async getConsumptionHistory(cellId: CellId, since: Timestamp): Promise<Result<ConsumptionRecord[], StorageError>> {
+    const records = this.consumptionRecords.get(cellId) || [];
+    const filtered = records
+      .filter(r => r.timestamp >= since)
+      .map(r => ({ ...r }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+    return ok(filtered);
+  }
+
+  async saveEnergyPlan(plan: WeeklyEnergyPlan): Promise<Result<void, StorageError>> {
+    const key = `${plan.cellId}:${plan.weekStart}`;
+    // Deep clone with Map handling
+    const cloned: WeeklyEnergyPlan = {
+      ...plan,
+      projectedConsumption: new Map(plan.projectedConsumption),
+      requiredByCarrier: new Map(plan.requiredByCarrier),
+      availableByCarrier: new Map(plan.availableByCarrier),
+      selectedModes: new Map(plan.selectedModes),
+      bundles: plan.bundles.map(b => ({
+        ...b,
+        energyAllocation: new Map(b.energyAllocation),
+      })),
+    };
+    this.energyPlans.set(key, cloned);
+    return ok(undefined);
+  }
+
+  async getEnergyPlan(cellId: CellId, weekStart: Timestamp): Promise<Result<WeeklyEnergyPlan | null, StorageError>> {
+    const key = `${cellId}:${weekStart}`;
+    const plan = this.energyPlans.get(key);
+    if (!plan) return ok(null);
+    // Deep clone with Map handling
+    return ok({
+      ...plan,
+      projectedConsumption: new Map(plan.projectedConsumption),
+      requiredByCarrier: new Map(plan.requiredByCarrier),
+      availableByCarrier: new Map(plan.availableByCarrier),
+      selectedModes: new Map(plan.selectedModes),
+      bundles: plan.bundles.map(b => ({
+        ...b,
+        energyAllocation: new Map(b.energyAllocation),
+      })),
+    });
+  }
+
   // Utility methods for testing
   clear(): void {
     this.ledgerStates.clear();
@@ -650,6 +782,11 @@ export class InMemoryStorage implements IStorage {
     this.federationStates.clear();
     this.federationTransactions.clear();
     this.linkProposals.clear();
+    // Phase 4
+    this.energyStates.clear();
+    this.stockChanges.clear();
+    this.consumptionRecords.clear();
+    this.energyPlans.clear();
   }
 }
 
@@ -1692,6 +1829,238 @@ export class PouchDBStorage implements IStorage {
     } catch (e: any) {
       if (e.status === 404) return ok(null);
       return err({ code: 'READ_FAILED', message: `Failed to get link proposal: ${e}` });
+    }
+  }
+
+  // ============================================
+  // PHASE 4: ENERGY OPERATIONS
+  // ============================================
+
+  async saveEnergyState(state: EnergyState): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `energy:${state.cellId}`;
+
+      // Convert Maps to objects for storage
+      const stocksObj: Record<string, any> = {};
+      state.stocks.forEach((v, k) => {
+        stocksObj[k] = v;
+      });
+
+      const selectedModesObj: Record<string, string> = {};
+      state.selectedModes.forEach((v, k) => {
+        selectedModesObj[k] = v;
+      });
+
+      const taskProfilesData = state.taskProfiles.map(p => ({
+        ...p,
+        energyModes: p.energyModes.map(m => ({
+          ...m,
+          energyPerHour: Object.fromEntries(m.energyPerHour),
+        })),
+      }));
+
+      let doc: any = {
+        _id: docId,
+        type: 'energy',
+        data: {
+          ...state,
+          stocks: stocksObj,
+          selectedModes: selectedModesObj,
+          taskProfiles: taskProfilesData,
+        },
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save energy state: ${e}` });
+    }
+  }
+
+  async getEnergyState(cellId: CellId): Promise<Result<EnergyState | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`energy:${cellId}`);
+
+      // Convert objects back to Maps
+      const stocks = new Map();
+      const stocksObj = doc.data.stocks as Record<string, any>;
+      for (const [k, v] of Object.entries(stocksObj)) {
+        stocks.set(k, v);
+      }
+
+      const selectedModes = new Map();
+      const selectedModesObj = doc.data.selectedModes as Record<string, string>;
+      for (const [k, v] of Object.entries(selectedModesObj)) {
+        selectedModes.set(k, v);
+      }
+
+      const taskProfiles = doc.data.taskProfiles.map((p: any) => ({
+        ...p,
+        energyModes: p.energyModes.map((m: any) => ({
+          ...m,
+          energyPerHour: new Map(Object.entries(m.energyPerHour)),
+        })),
+      }));
+
+      return ok({
+        ...doc.data,
+        stocks,
+        selectedModes,
+        taskProfiles,
+      });
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get energy state: ${e}` });
+    }
+  }
+
+  async saveStockChange(change: StockChangeRecord): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `stockchange:${change.id}`;
+      await this.db.put({
+        _id: docId,
+        type: 'stockchange',
+        data: change,
+        createdAt: now(),
+        updatedAt: now(),
+      });
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save stock change: ${e}` });
+    }
+  }
+
+  async getStockChanges(cellId: CellId, since: Timestamp): Promise<Result<StockChangeRecord[], StorageError>> {
+    try {
+      const result = await this.db.find({
+        selector: {
+          type: 'stockchange',
+          'data.cellId': cellId,
+          'data.timestamp': { $gte: since },
+        },
+      });
+      const changes = result.docs
+        .map((d: any) => d.data as StockChangeRecord)
+        .sort((a, b) => a.timestamp - b.timestamp);
+      return ok(changes);
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get stock changes: ${e}` });
+    }
+  }
+
+  async saveConsumptionRecord(record: ConsumptionRecord): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `consumption:${record.id}`;
+      await this.db.put({
+        _id: docId,
+        type: 'consumption',
+        data: record,
+        createdAt: now(),
+        updatedAt: now(),
+      });
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save consumption record: ${e}` });
+    }
+  }
+
+  async getConsumptionHistory(cellId: CellId, since: Timestamp): Promise<Result<ConsumptionRecord[], StorageError>> {
+    try {
+      const result = await this.db.find({
+        selector: {
+          type: 'consumption',
+          'data.cellId': cellId,
+          'data.timestamp': { $gte: since },
+        },
+      });
+      const records = result.docs
+        .map((d: any) => d.data as ConsumptionRecord)
+        .sort((a, b) => a.timestamp - b.timestamp);
+      return ok(records);
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get consumption history: ${e}` });
+    }
+  }
+
+  async saveEnergyPlan(plan: WeeklyEnergyPlan): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `energyplan:${plan.cellId}:${plan.weekStart}`;
+
+      // Convert Maps to objects
+      const projectedConsumptionObj = Object.fromEntries(plan.projectedConsumption);
+      const requiredByCarrierObj = Object.fromEntries(plan.requiredByCarrier);
+      const availableByCarrierObj = Object.fromEntries(plan.availableByCarrier);
+      const selectedModesObj = Object.fromEntries(plan.selectedModes);
+      const bundlesData = plan.bundles.map(b => ({
+        ...b,
+        energyAllocation: Object.fromEntries(b.energyAllocation),
+      }));
+
+      let doc: any = {
+        _id: docId,
+        type: 'energyplan',
+        data: {
+          ...plan,
+          projectedConsumption: projectedConsumptionObj,
+          requiredByCarrier: requiredByCarrierObj,
+          availableByCarrier: availableByCarrierObj,
+          selectedModes: selectedModesObj,
+          bundles: bundlesData,
+        },
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save energy plan: ${e}` });
+    }
+  }
+
+  async getEnergyPlan(cellId: CellId, weekStart: Timestamp): Promise<Result<WeeklyEnergyPlan | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`energyplan:${cellId}:${weekStart}`);
+
+      // Convert objects back to Maps
+      const projectedConsumption = new Map(Object.entries(doc.data.projectedConsumption));
+      const requiredByCarrier = new Map(Object.entries(doc.data.requiredByCarrier));
+      const availableByCarrier = new Map(Object.entries(doc.data.availableByCarrier));
+      const selectedModes = new Map(Object.entries(doc.data.selectedModes));
+      const bundles = doc.data.bundles.map((b: any) => ({
+        ...b,
+        energyAllocation: new Map(Object.entries(b.energyAllocation)),
+      }));
+
+      return ok({
+        ...doc.data,
+        projectedConsumption,
+        requiredByCarrier,
+        availableByCarrier,
+        selectedModes,
+        bundles,
+      });
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get energy plan: ${e}` });
     }
   }
 }

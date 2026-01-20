@@ -373,6 +373,13 @@ export interface SchedulerError {
 // INTERFACE
 // ============================================
 
+/** Definition of a task category with minimum hours */
+export interface TaskCategoryDefinition {
+  category: TaskCategory;
+  minimumWeeklyHours: number;
+  isEssential: boolean;
+}
+
 /** Interface for the Scheduler Engine */
 export interface ISchedulerEngine {
   // Templates
@@ -451,4 +458,11 @@ export interface ISchedulerEngine {
 
   /** Check if debtor priority is enabled */
   isDebtorPriorityEnabled(): boolean;
+
+  // Phase 4: Bundle cost
+  /** Get essential task categories with minimum hours */
+  getEssentialTaskCategories(): TaskCategoryDefinition[];
+
+  /** Calculate weekly bundle cost per member */
+  calculateWeeklyBundleCost(): number;
 }
