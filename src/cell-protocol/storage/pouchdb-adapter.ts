@@ -9,6 +9,9 @@ import { CellId, IdentityId, TransactionId, Timestamp, now, generateId } from '.
 import { CellLedgerState, MemberState, LedgerParameters } from '../types/ledger';
 import { SpotTransaction, QueuedTransaction, TransactionStatus } from '../types/transaction';
 import { CellIdentity, MembershipChange } from '../types/identity';
+import { Commitment, CommitmentId, CommitmentStatus, TaskCategory } from '../types/commitment';
+import { Proposal, ProposalId, ProposalStatus, Dispute, DisputeId, DisputeStatus, GovernanceCouncil } from '../types/governance';
+import { TaskSlot, TaskSlotId, TaskSlotStatus, TaskTemplate, TaskTemplateId, MemberSupply } from '../types/scheduler';
 import { Result, ok, err } from '../utils/result';
 
 // ============================================
@@ -75,6 +78,52 @@ export interface IStorage {
   // Membership change log
   saveMembershipChange(change: MembershipChange): Promise<Result<void, StorageError>>;
   getMembershipChanges(memberId: IdentityId): Promise<Result<MembershipChange[], StorageError>>;
+
+  // ============================================
+  // PHASE 2: COMMITMENT OPERATIONS
+  // ============================================
+
+  saveCommitment(commitment: Commitment): Promise<Result<void, StorageError>>;
+  getCommitment(id: CommitmentId): Promise<Result<Commitment | null, StorageError>>;
+  getCommitmentsByMember(memberId: IdentityId): Promise<Result<Commitment[], StorageError>>;
+  getCommitmentsByStatus(status: CommitmentStatus): Promise<Result<Commitment[], StorageError>>;
+  getCommitmentsByCategory(category: TaskCategory): Promise<Result<Commitment[], StorageError>>;
+  getAllCommitments(): Promise<Result<Commitment[], StorageError>>;
+
+  // ============================================
+  // PHASE 2: GOVERNANCE OPERATIONS
+  // ============================================
+
+  saveProposal(proposal: Proposal): Promise<Result<void, StorageError>>;
+  getProposal(id: ProposalId): Promise<Result<Proposal | null, StorageError>>;
+  getProposalsByStatus(status: ProposalStatus): Promise<Result<Proposal[], StorageError>>;
+  getAllProposals(): Promise<Result<Proposal[], StorageError>>;
+
+  saveDispute(dispute: Dispute): Promise<Result<void, StorageError>>;
+  getDispute(id: DisputeId): Promise<Result<Dispute | null, StorageError>>;
+  getDisputesByStatus(status: DisputeStatus): Promise<Result<Dispute[], StorageError>>;
+  getAllDisputes(): Promise<Result<Dispute[], StorageError>>;
+
+  saveCouncil(council: GovernanceCouncil): Promise<Result<void, StorageError>>;
+  getCouncil(cellId: CellId): Promise<Result<GovernanceCouncil | null, StorageError>>;
+
+  // ============================================
+  // PHASE 2: SCHEDULER OPERATIONS
+  // ============================================
+
+  saveTaskSlot(slot: TaskSlot): Promise<Result<void, StorageError>>;
+  getTaskSlot(id: TaskSlotId): Promise<Result<TaskSlot | null, StorageError>>;
+  getTaskSlotsByPeriod(start: Timestamp, end: Timestamp): Promise<Result<TaskSlot[], StorageError>>;
+  getTaskSlotsByStatus(status: TaskSlotStatus): Promise<Result<TaskSlot[], StorageError>>;
+  getAllTaskSlots(): Promise<Result<TaskSlot[], StorageError>>;
+
+  saveTaskTemplate(template: TaskTemplate): Promise<Result<void, StorageError>>;
+  getTaskTemplate(id: TaskTemplateId): Promise<Result<TaskTemplate | null, StorageError>>;
+  getAllTaskTemplates(): Promise<Result<TaskTemplate[], StorageError>>;
+
+  saveMemberSupply(supply: MemberSupply): Promise<Result<void, StorageError>>;
+  getMemberSupply(memberId: IdentityId): Promise<Result<MemberSupply | null, StorageError>>;
+  getAllMemberSupplies(): Promise<Result<MemberSupply[], StorageError>>;
 }
 
 // ============================================
@@ -91,6 +140,15 @@ export class InMemoryStorage implements IStorage {
   private events: EventLogEntry[] = [];
   private eventSequence = 0;
   private membershipChanges = new Map<IdentityId, MembershipChange[]>();
+
+  // Phase 2 storage
+  private commitments = new Map<CommitmentId, Commitment>();
+  private proposals = new Map<ProposalId, Proposal>();
+  private disputes = new Map<DisputeId, Dispute>();
+  private councils = new Map<CellId, GovernanceCouncil>();
+  private taskSlots = new Map<TaskSlotId, TaskSlot>();
+  private taskTemplates = new Map<TaskTemplateId, TaskTemplate>();
+  private memberSupplies = new Map<IdentityId, MemberSupply>();
 
   // Ledger operations
   async saveLedgerState(state: CellLedgerState): Promise<Result<void, StorageError>> {
@@ -249,6 +307,186 @@ export class InMemoryStorage implements IStorage {
     return ok(changes.map(c => ({ ...c })));
   }
 
+  // ============================================
+  // PHASE 2: COMMITMENT OPERATIONS
+  // ============================================
+
+  async saveCommitment(commitment: Commitment): Promise<Result<void, StorageError>> {
+    this.commitments.set(commitment.id, { ...commitment });
+    return ok(undefined);
+  }
+
+  async getCommitment(id: CommitmentId): Promise<Result<Commitment | null, StorageError>> {
+    const commitment = this.commitments.get(id);
+    return ok(commitment ? { ...commitment } : null);
+  }
+
+  async getCommitmentsByMember(memberId: IdentityId): Promise<Result<Commitment[], StorageError>> {
+    const commitments = Array.from(this.commitments.values())
+      .filter(c => c.promisor === memberId || c.promisee === memberId)
+      .map(c => ({ ...c }));
+    return ok(commitments);
+  }
+
+  async getCommitmentsByStatus(status: CommitmentStatus): Promise<Result<Commitment[], StorageError>> {
+    const commitments = Array.from(this.commitments.values())
+      .filter(c => c.status === status)
+      .map(c => ({ ...c }));
+    return ok(commitments);
+  }
+
+  async getCommitmentsByCategory(category: TaskCategory): Promise<Result<Commitment[], StorageError>> {
+    const commitments = Array.from(this.commitments.values())
+      .filter(c => c.category === category)
+      .map(c => ({ ...c }));
+    return ok(commitments);
+  }
+
+  async getAllCommitments(): Promise<Result<Commitment[], StorageError>> {
+    const commitments = Array.from(this.commitments.values()).map(c => ({ ...c }));
+    return ok(commitments);
+  }
+
+  // ============================================
+  // PHASE 2: GOVERNANCE OPERATIONS
+  // ============================================
+
+  async saveProposal(proposal: Proposal): Promise<Result<void, StorageError>> {
+    this.proposals.set(proposal.id, { ...proposal, votes: [...proposal.votes] });
+    return ok(undefined);
+  }
+
+  async getProposal(id: ProposalId): Promise<Result<Proposal | null, StorageError>> {
+    const proposal = this.proposals.get(id);
+    return ok(proposal ? { ...proposal, votes: [...proposal.votes] } : null);
+  }
+
+  async getProposalsByStatus(status: ProposalStatus): Promise<Result<Proposal[], StorageError>> {
+    const proposals = Array.from(this.proposals.values())
+      .filter(p => p.status === status)
+      .map(p => ({ ...p, votes: [...p.votes] }));
+    return ok(proposals);
+  }
+
+  async getAllProposals(): Promise<Result<Proposal[], StorageError>> {
+    const proposals = Array.from(this.proposals.values()).map(p => ({ ...p, votes: [...p.votes] }));
+    return ok(proposals);
+  }
+
+  async saveDispute(dispute: Dispute): Promise<Result<void, StorageError>> {
+    this.disputes.set(dispute.id, { ...dispute, evidence: [...dispute.evidence] });
+    return ok(undefined);
+  }
+
+  async getDispute(id: DisputeId): Promise<Result<Dispute | null, StorageError>> {
+    const dispute = this.disputes.get(id);
+    return ok(dispute ? { ...dispute, evidence: [...dispute.evidence] } : null);
+  }
+
+  async getDisputesByStatus(status: DisputeStatus): Promise<Result<Dispute[], StorageError>> {
+    const disputes = Array.from(this.disputes.values())
+      .filter(d => d.status === status)
+      .map(d => ({ ...d, evidence: [...d.evidence] }));
+    return ok(disputes);
+  }
+
+  async getAllDisputes(): Promise<Result<Dispute[], StorageError>> {
+    const disputes = Array.from(this.disputes.values()).map(d => ({ ...d, evidence: [...d.evidence] }));
+    return ok(disputes);
+  }
+
+  async saveCouncil(council: GovernanceCouncil): Promise<Result<void, StorageError>> {
+    this.councils.set(council.cellId, { ...council, members: [...council.members] });
+    return ok(undefined);
+  }
+
+  async getCouncil(cellId: CellId): Promise<Result<GovernanceCouncil | null, StorageError>> {
+    const council = this.councils.get(cellId);
+    return ok(council ? { ...council, members: [...council.members] } : null);
+  }
+
+  // ============================================
+  // PHASE 2: SCHEDULER OPERATIONS
+  // ============================================
+
+  async saveTaskSlot(slot: TaskSlot): Promise<Result<void, StorageError>> {
+    this.taskSlots.set(slot.id, { ...slot, assignments: [...slot.assignments] });
+    return ok(undefined);
+  }
+
+  async getTaskSlot(id: TaskSlotId): Promise<Result<TaskSlot | null, StorageError>> {
+    const slot = this.taskSlots.get(id);
+    return ok(slot ? { ...slot, assignments: [...slot.assignments] } : null);
+  }
+
+  async getTaskSlotsByPeriod(start: Timestamp, end: Timestamp): Promise<Result<TaskSlot[], StorageError>> {
+    const slots = Array.from(this.taskSlots.values())
+      .filter(s => s.startTime >= start && s.startTime < end)
+      .map(s => ({ ...s, assignments: [...s.assignments] }))
+      .sort((a, b) => a.startTime - b.startTime);
+    return ok(slots);
+  }
+
+  async getTaskSlotsByStatus(status: TaskSlotStatus): Promise<Result<TaskSlot[], StorageError>> {
+    const slots = Array.from(this.taskSlots.values())
+      .filter(s => s.status === status)
+      .map(s => ({ ...s, assignments: [...s.assignments] }));
+    return ok(slots);
+  }
+
+  async getAllTaskSlots(): Promise<Result<TaskSlot[], StorageError>> {
+    const slots = Array.from(this.taskSlots.values()).map(s => ({ ...s, assignments: [...s.assignments] }));
+    return ok(slots);
+  }
+
+  async saveTaskTemplate(template: TaskTemplate): Promise<Result<void, StorageError>> {
+    this.taskTemplates.set(template.id, { ...template });
+    return ok(undefined);
+  }
+
+  async getTaskTemplate(id: TaskTemplateId): Promise<Result<TaskTemplate | null, StorageError>> {
+    const template = this.taskTemplates.get(id);
+    return ok(template ? { ...template } : null);
+  }
+
+  async getAllTaskTemplates(): Promise<Result<TaskTemplate[], StorageError>> {
+    const templates = Array.from(this.taskTemplates.values()).map(t => ({ ...t }));
+    return ok(templates);
+  }
+
+  async saveMemberSupply(supply: MemberSupply): Promise<Result<void, StorageError>> {
+    // Clone the supply, converting Map to a new Map
+    const cloned: MemberSupply = {
+      ...supply,
+      skills: new Map(supply.skills),
+      preferences: [...supply.preferences],
+      constraints: [...supply.constraints],
+    };
+    this.memberSupplies.set(supply.memberId, cloned);
+    return ok(undefined);
+  }
+
+  async getMemberSupply(memberId: IdentityId): Promise<Result<MemberSupply | null, StorageError>> {
+    const supply = this.memberSupplies.get(memberId);
+    if (!supply) return ok(null);
+    return ok({
+      ...supply,
+      skills: new Map(supply.skills),
+      preferences: [...supply.preferences],
+      constraints: [...supply.constraints],
+    });
+  }
+
+  async getAllMemberSupplies(): Promise<Result<MemberSupply[], StorageError>> {
+    const supplies = Array.from(this.memberSupplies.values()).map(s => ({
+      ...s,
+      skills: new Map(s.skills),
+      preferences: [...s.preferences],
+      constraints: [...s.constraints],
+    }));
+    return ok(supplies);
+  }
+
   // Utility methods for testing
   clear(): void {
     this.ledgerStates.clear();
@@ -260,6 +498,14 @@ export class InMemoryStorage implements IStorage {
     this.events = [];
     this.eventSequence = 0;
     this.membershipChanges.clear();
+    // Phase 2
+    this.commitments.clear();
+    this.proposals.clear();
+    this.disputes.clear();
+    this.councils.clear();
+    this.taskSlots.clear();
+    this.taskTemplates.clear();
+    this.memberSupplies.clear();
   }
 }
 
@@ -650,6 +896,432 @@ export class PouchDBStorage implements IStorage {
       return ok(changes);
     } catch (e) {
       return err({ code: 'READ_FAILED', message: `Failed to get membership changes: ${e}` });
+    }
+  }
+
+  // ============================================
+  // PHASE 2: COMMITMENT OPERATIONS
+  // ============================================
+
+  async saveCommitment(commitment: Commitment): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `commitment:${commitment.id}`;
+      let doc: any = {
+        _id: docId,
+        type: 'commitment',
+        data: commitment,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save commitment: ${e}` });
+    }
+  }
+
+  async getCommitment(id: CommitmentId): Promise<Result<Commitment | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`commitment:${id}`);
+      return ok(doc.data);
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get commitment: ${e}` });
+    }
+  }
+
+  async getCommitmentsByMember(memberId: IdentityId): Promise<Result<Commitment[], StorageError>> {
+    try {
+      const [promisorResult, promiseeResult] = await Promise.all([
+        this.db.find({ selector: { type: 'commitment', 'data.promisor': memberId } }),
+        this.db.find({ selector: { type: 'commitment', 'data.promisee': memberId } }),
+      ]);
+      const commitmentMap = new Map<string, Commitment>();
+      for (const doc of [...promisorResult.docs, ...promiseeResult.docs]) {
+        commitmentMap.set(doc.data.id, doc.data);
+      }
+      return ok(Array.from(commitmentMap.values()));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get commitments: ${e}` });
+    }
+  }
+
+  async getCommitmentsByStatus(status: CommitmentStatus): Promise<Result<Commitment[], StorageError>> {
+    try {
+      const result = await this.db.find({ selector: { type: 'commitment', 'data.status': status } });
+      return ok(result.docs.map(d => d.data));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get commitments by status: ${e}` });
+    }
+  }
+
+  async getCommitmentsByCategory(category: TaskCategory): Promise<Result<Commitment[], StorageError>> {
+    try {
+      const result = await this.db.find({ selector: { type: 'commitment', 'data.category': category } });
+      return ok(result.docs.map(d => d.data));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get commitments by category: ${e}` });
+    }
+  }
+
+  async getAllCommitments(): Promise<Result<Commitment[], StorageError>> {
+    try {
+      const result = await this.db.find({ selector: { type: 'commitment' } });
+      return ok(result.docs.map(d => d.data));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get all commitments: ${e}` });
+    }
+  }
+
+  // ============================================
+  // PHASE 2: GOVERNANCE OPERATIONS
+  // ============================================
+
+  async saveProposal(proposal: Proposal): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `proposal:${proposal.id}`;
+      let doc: any = {
+        _id: docId,
+        type: 'proposal',
+        data: proposal,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save proposal: ${e}` });
+    }
+  }
+
+  async getProposal(id: ProposalId): Promise<Result<Proposal | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`proposal:${id}`);
+      return ok(doc.data);
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get proposal: ${e}` });
+    }
+  }
+
+  async getProposalsByStatus(status: ProposalStatus): Promise<Result<Proposal[], StorageError>> {
+    try {
+      const result = await this.db.find({ selector: { type: 'proposal', 'data.status': status } });
+      return ok(result.docs.map(d => d.data));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get proposals by status: ${e}` });
+    }
+  }
+
+  async getAllProposals(): Promise<Result<Proposal[], StorageError>> {
+    try {
+      const result = await this.db.find({ selector: { type: 'proposal' } });
+      return ok(result.docs.map(d => d.data));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get all proposals: ${e}` });
+    }
+  }
+
+  async saveDispute(dispute: Dispute): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `dispute:${dispute.id}`;
+      let doc: any = {
+        _id: docId,
+        type: 'dispute',
+        data: dispute,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save dispute: ${e}` });
+    }
+  }
+
+  async getDispute(id: DisputeId): Promise<Result<Dispute | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`dispute:${id}`);
+      return ok(doc.data);
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get dispute: ${e}` });
+    }
+  }
+
+  async getDisputesByStatus(status: DisputeStatus): Promise<Result<Dispute[], StorageError>> {
+    try {
+      const result = await this.db.find({ selector: { type: 'dispute', 'data.status': status } });
+      return ok(result.docs.map(d => d.data));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get disputes by status: ${e}` });
+    }
+  }
+
+  async getAllDisputes(): Promise<Result<Dispute[], StorageError>> {
+    try {
+      const result = await this.db.find({ selector: { type: 'dispute' } });
+      return ok(result.docs.map(d => d.data));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get all disputes: ${e}` });
+    }
+  }
+
+  async saveCouncil(council: GovernanceCouncil): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `council:${council.cellId}`;
+      let doc: any = {
+        _id: docId,
+        type: 'council',
+        data: council,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save council: ${e}` });
+    }
+  }
+
+  async getCouncil(cellId: CellId): Promise<Result<GovernanceCouncil | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`council:${cellId}`);
+      return ok(doc.data);
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get council: ${e}` });
+    }
+  }
+
+  // ============================================
+  // PHASE 2: SCHEDULER OPERATIONS
+  // ============================================
+
+  async saveTaskSlot(slot: TaskSlot): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `taskslot:${slot.id}`;
+      let doc: any = {
+        _id: docId,
+        type: 'taskslot',
+        data: slot,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save task slot: ${e}` });
+    }
+  }
+
+  async getTaskSlot(id: TaskSlotId): Promise<Result<TaskSlot | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`taskslot:${id}`);
+      return ok(doc.data);
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get task slot: ${e}` });
+    }
+  }
+
+  async getTaskSlotsByPeriod(start: Timestamp, end: Timestamp): Promise<Result<TaskSlot[], StorageError>> {
+    try {
+      const result = await this.db.find({
+        selector: {
+          type: 'taskslot',
+          'data.startTime': { $gte: start, $lt: end },
+        },
+      });
+      const slots = result.docs
+        .map(d => d.data)
+        .sort((a: TaskSlot, b: TaskSlot) => a.startTime - b.startTime);
+      return ok(slots);
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get task slots by period: ${e}` });
+    }
+  }
+
+  async getTaskSlotsByStatus(status: TaskSlotStatus): Promise<Result<TaskSlot[], StorageError>> {
+    try {
+      const result = await this.db.find({ selector: { type: 'taskslot', 'data.status': status } });
+      return ok(result.docs.map(d => d.data));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get task slots by status: ${e}` });
+    }
+  }
+
+  async getAllTaskSlots(): Promise<Result<TaskSlot[], StorageError>> {
+    try {
+      const result = await this.db.find({ selector: { type: 'taskslot' } });
+      return ok(result.docs.map(d => d.data));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get all task slots: ${e}` });
+    }
+  }
+
+  async saveTaskTemplate(template: TaskTemplate): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `tasktemplate:${template.id}`;
+      let doc: any = {
+        _id: docId,
+        type: 'tasktemplate',
+        data: template,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save task template: ${e}` });
+    }
+  }
+
+  async getTaskTemplate(id: TaskTemplateId): Promise<Result<TaskTemplate | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`tasktemplate:${id}`);
+      return ok(doc.data);
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get task template: ${e}` });
+    }
+  }
+
+  async getAllTaskTemplates(): Promise<Result<TaskTemplate[], StorageError>> {
+    try {
+      const result = await this.db.find({ selector: { type: 'tasktemplate' } });
+      return ok(result.docs.map(d => d.data));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get all task templates: ${e}` });
+    }
+  }
+
+  async saveMemberSupply(supply: MemberSupply): Promise<Result<void, StorageError>> {
+    try {
+      const docId = `membersupply:${supply.memberId}`;
+
+      // Convert Map to object for storage
+      const skillsObj: Record<string, number> = {};
+      supply.skills.forEach((v, k) => {
+        skillsObj[k] = v;
+      });
+
+      let doc: any = {
+        _id: docId,
+        type: 'membersupply',
+        data: {
+          ...supply,
+          skills: skillsObj,
+        },
+        createdAt: now(),
+        updatedAt: now(),
+      };
+
+      try {
+        const existing = await this.db.get(docId);
+        doc._rev = existing._rev;
+        doc.createdAt = existing.createdAt;
+      } catch (e: any) {
+        if (e.status !== 404) throw e;
+      }
+
+      await this.db.put(doc);
+      return ok(undefined);
+    } catch (e) {
+      return err({ code: 'WRITE_FAILED', message: `Failed to save member supply: ${e}` });
+    }
+  }
+
+  async getMemberSupply(memberId: IdentityId): Promise<Result<MemberSupply | null, StorageError>> {
+    try {
+      const doc = await this.db.get(`membersupply:${memberId}`);
+      // Convert skills object back to Map
+      const skills = new Map<TaskCategory, number>();
+      const skillsObj = doc.data.skills as Record<string, number>;
+      for (const [k, v] of Object.entries(skillsObj)) {
+        skills.set(k as TaskCategory, v);
+      }
+      return ok({
+        ...doc.data,
+        skills,
+      });
+    } catch (e: any) {
+      if (e.status === 404) return ok(null);
+      return err({ code: 'READ_FAILED', message: `Failed to get member supply: ${e}` });
+    }
+  }
+
+  async getAllMemberSupplies(): Promise<Result<MemberSupply[], StorageError>> {
+    try {
+      const result = await this.db.find({ selector: { type: 'membersupply' } });
+      return ok(result.docs.map(d => {
+        // Convert skills object back to Map
+        const skills = new Map<TaskCategory, number>();
+        const skillsObj = d.data.skills as Record<string, number>;
+        for (const [k, v] of Object.entries(skillsObj)) {
+          skills.set(k as TaskCategory, v);
+        }
+        return {
+          ...d.data,
+          skills,
+        };
+      }));
+    } catch (e) {
+      return err({ code: 'READ_FAILED', message: `Failed to get all member supplies: ${e}` });
     }
   }
 }

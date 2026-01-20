@@ -5,6 +5,11 @@
  * - Core Ledger Engine (PRD-01)
  * - Transaction System (PRD-02)
  * - Identity & Membership Basic (PRD-04)
+ *
+ * Phase 2: Coordination Layer
+ * - Commitment System (PRD-03)
+ * - Governance System (PRD-05)
+ * - Survival Scheduler Basic (PRD-08)
  */
 
 // ============================================
@@ -73,6 +78,75 @@ export {
 } from './types/identity';
 
 // ============================================
+// PHASE 2 TYPE EXPORTS
+// ============================================
+
+// Commitment types
+export {
+  CommitmentId,
+  CommitmentType,
+  CommitmentStatus,
+  TaskCategory,
+  Commitment,
+  FulfillmentConfirmation,
+  CreateCommitmentInput,
+  CommitmentError,
+  CommitmentErrorCode,
+  MemberCommitmentStats,
+  CategoryFulfillmentStats,
+  ICommitmentEngine,
+} from './types/commitment';
+
+// Governance types
+export {
+  ProposalId,
+  DisputeId,
+  ProposalType,
+  ProposalStatus,
+  ActionCategory,
+  DisputeType,
+  DisputeStatus,
+  VoteDecision,
+  GovernanceCouncil,
+  CouncilMember,
+  QuorumRules,
+  TermPolicy,
+  Proposal,
+  ProposalPayload,
+  Vote,
+  Evidence,
+  DisputeResolution,
+  DisputeAction,
+  Dispute,
+  CreateProposalInput,
+  FileDisputeInput,
+  GovernanceError,
+  GovernanceErrorCode,
+  IGovernanceEngine,
+} from './types/governance';
+
+// Scheduler types
+export {
+  TaskSlotId,
+  TaskTemplateId,
+  TaskSlotStatus,
+  AssignmentStatus,
+  TaskSlot,
+  TaskTemplate,
+  TaskAssignment,
+  MemberSupply,
+  FeasibilityResult,
+  MatchingResult,
+  CoverageReport,
+  CategoryCoverage,
+  CreateSlotInput,
+  CreateTemplateInput,
+  SchedulerError,
+  SchedulerErrorCode,
+  ISchedulerEngine,
+} from './types/scheduler';
+
+// ============================================
 // RESULT TYPE EXPORTS
 // ============================================
 
@@ -117,6 +191,28 @@ export {
 } from './engines/identity-engine';
 
 // ============================================
+// PHASE 2 ENGINE EXPORTS
+// ============================================
+
+export {
+  CommitmentEngine,
+  CommitmentValidationError,
+  createCommitmentEngine,
+} from './engines/commitment-engine';
+
+export {
+  GovernanceEngine,
+  GovernanceValidationError,
+  createGovernanceEngine,
+} from './engines/governance-engine';
+
+export {
+  SchedulerEngine,
+  SchedulerValidationError,
+  createSchedulerEngine,
+} from './engines/scheduler-engine';
+
+// ============================================
 // STORAGE EXPORTS
 // ============================================
 
@@ -158,6 +254,9 @@ import { LedgerParameters } from './types/ledger';
 import { LedgerEngine, createLedgerEngine } from './engines/ledger-engine';
 import { TransactionEngine, createTransactionEngine } from './engines/transaction-engine';
 import { IdentityEngine, createIdentityEngine } from './engines/identity-engine';
+import { CommitmentEngine, createCommitmentEngine } from './engines/commitment-engine';
+import { GovernanceEngine, createGovernanceEngine } from './engines/governance-engine';
+import { SchedulerEngine, createSchedulerEngine } from './engines/scheduler-engine';
 import { IStorage, createInMemoryStorage } from './storage/pouchdb-adapter';
 import { CryptoAdapter, cryptoAdapter } from './crypto/crypto-adapter';
 
@@ -169,6 +268,9 @@ export interface CellProtocol {
   ledger: LedgerEngine;
   transactions: TransactionEngine;
   identity: IdentityEngine;
+  commitments: CommitmentEngine;      // Phase 2
+  governance: GovernanceEngine;        // Phase 2
+  scheduler: SchedulerEngine;          // Phase 2
   storage: IStorage;
   crypto: CryptoAdapter;
 }
@@ -217,11 +319,19 @@ export async function createCellProtocol(options: CellProtocolOptions): Promise<
 
   const transactions = createTransactionEngine(ledger, storage, crypto, publicKeyResolver);
 
+  // Phase 2: Create coordination layer engines
+  const commitments = createCommitmentEngine(ledger, transactions, storage);
+  const governance = createGovernanceEngine(cellId, ledger, identity, commitments, storage);
+  const scheduler = createSchedulerEngine(ledger, commitments, storage);
+
   return {
     cellId,
     ledger,
     transactions,
     identity,
+    commitments,
+    governance,
+    scheduler,
     storage,
     crypto,
   };
