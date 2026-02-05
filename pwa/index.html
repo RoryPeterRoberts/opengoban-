@@ -1427,32 +1427,67 @@
        ============================================================ -->
   <div class="modal-overlay" id="invite-modal">
     <div class="modal">
-      <div class="modal-header">
-        <h2 class="modal-title">Invite a neighbour</h2>
-        <p class="modal-subtitle">Help grow the village exchange by inviting people you trust.</p>
-      </div>
-
-      <div class="modal-body">
-        <div class="form-group">
-          <label class="form-label">Email address <span class="required">*</span></label>
-          <input type="email" class="input" id="invite-email" placeholder="neighbour@example.com">
+      <!-- Form View -->
+      <div id="invite-form-view">
+        <div class="modal-header">
+          <h2 class="modal-title">Invite a neighbour</h2>
+          <p class="modal-subtitle">Help grow the village exchange by inviting people you trust.</p>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Personal note (optional)</label>
-          <textarea class="textarea" id="invite-note" placeholder="Hey! Thought you might like this..."></textarea>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Their name <span class="required">*</span></label>
+            <input type="text" class="input" id="invite-name" placeholder="e.g., Sarah">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Note to yourself (optional)</label>
+            <input type="text" class="input" id="invite-note" placeholder="e.g., Lives on Oak Street">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeInviteModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="sendInvite()">
+            Create invite link
+          </button>
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button class="btn btn-ghost" onclick="closeInviteModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="sendInvite()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="22" y1="2" x2="11" y2="13"/>
-            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-          </svg>
-          Send invite
-        </button>
+      <!-- Success View with Link -->
+      <div id="invite-success-view" style="display: none;">
+        <div class="modal-header">
+          <h2 class="modal-title">✓ Invite created!</h2>
+          <p class="modal-subtitle">Share this link with <strong id="invite-success-name"></strong></p>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Invite link</label>
+            <div style="display: flex; gap: var(--space-2);">
+              <input type="text" class="input" id="invite-link" readonly style="font-size: var(--font-size-sm); background: var(--color-bg-warm);">
+              <button class="btn btn-primary" onclick="copyInviteLink()" id="copy-btn">Copy</button>
+            </div>
+          </div>
+
+          <div style="margin-top: var(--space-4); padding: var(--space-4); background: var(--color-bg-warm); border-radius: var(--radius-md);">
+            <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin: 0;">
+              <strong>Send via:</strong> WhatsApp, text message, or email.<br>
+              They'll use this link to join and set up their profile.
+            </p>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeInviteModal()">Done</button>
+          <button class="btn btn-secondary" onclick="shareInviteLink()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            Share
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1892,30 +1927,69 @@
     // =====================================================
     // INVITE MODAL
     // =====================================================
+    let currentInviteLink = '';
+
     function openInviteModal() {
       document.getElementById('invite-modal').classList.add('active');
-      document.getElementById('invite-email').focus();
+      document.getElementById('invite-form-view').style.display = 'block';
+      document.getElementById('invite-success-view').style.display = 'none';
+      document.getElementById('invite-name').focus();
     }
 
     function closeInviteModal() {
       document.getElementById('invite-modal').classList.remove('active');
-      document.getElementById('invite-email').value = '';
+      document.getElementById('invite-name').value = '';
       document.getElementById('invite-note').value = '';
+      currentInviteLink = '';
     }
 
     function sendInvite() {
-      const email = document.getElementById('invite-email').value.trim();
+      const name = document.getElementById('invite-name').value.trim();
       const note = document.getElementById('invite-note').value.trim();
 
-      if (!email || !email.includes('@')) {
-        showToast('Please enter a valid email');
+      if (!name) {
+        showToast('Please enter their name');
         return;
       }
 
-      createInvite(email, note);
-      closeInviteModal();
-      showToast('Invite created!');
+      // Create invite with name as identifier
+      const invite = createInvite(name + '@invite', note || name);
+
+      // Generate shareable link
+      const baseUrl = window.location.origin;
+      currentInviteLink = `${baseUrl}/access.html#token=${invite.token}`;
+
+      // Show success view with link
+      document.getElementById('invite-form-view').style.display = 'none';
+      document.getElementById('invite-success-view').style.display = 'block';
+      document.getElementById('invite-success-name').textContent = name;
+      document.getElementById('invite-link').value = currentInviteLink;
+      document.getElementById('copy-btn').textContent = 'Copy';
+
       renderPendingInvites();
+    }
+
+    function copyInviteLink() {
+      navigator.clipboard.writeText(currentInviteLink).then(() => {
+        document.getElementById('copy-btn').textContent = 'Copied!';
+        setTimeout(() => {
+          document.getElementById('copy-btn').textContent = 'Copy';
+        }, 2000);
+      });
+    }
+
+    function shareInviteLink() {
+      const name = document.getElementById('invite-success-name').textContent;
+      if (navigator.share) {
+        navigator.share({
+          title: 'Join Community Connect',
+          text: `Hi ${name}! Join our community exchange:`,
+          url: currentInviteLink
+        });
+      } else {
+        copyInviteLink();
+        showToast('Link copied - paste it in your message');
+      }
     }
 
     // =====================================================
