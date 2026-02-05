@@ -444,7 +444,8 @@
   </style>
 </head>
 <body>
-  <script src="shared.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
   <script src="js/auth.js"></script>
 
   <div class="admin-container" id="main-container">
@@ -480,16 +481,40 @@
   <script>
     let currentFilter = 'all';
     let promotingFeedbackId = null;
+    let allFeedback = [];
 
-    function init() {
-      // Require admin authentication
-      requireAdmin(renderTriagePage);
+    async function init() {
+      try {
+        const session = await getAuthSession();
+        if (!session) {
+          window.location.href = 'access.html';
+          return;
+        }
+        requireAdmin(loadAndRender);
+      } catch (e) {
+        console.error('Init error:', e);
+        document.getElementById('main-container').innerHTML = '<p style="padding:40px;text-align:center;color:var(--color-text-muted);">Something went wrong.</p>';
+      }
+    }
+
+    async function loadAndRender() {
+      try {
+        allFeedback = await getAllFeedbackRecords();
+        renderTriagePage();
+      } catch (e) {
+        console.error('Load error:', e);
+        document.getElementById('main-container').innerHTML = '<p style="padding:40px;text-align:center;color:var(--color-text-muted);">Could not load feedback.</p>';
+      }
     }
 
     function renderTriagePage() {
       const container = document.getElementById('main-container');
-      const counts = getFeedbackCounts();
-      const feedback = getAllFeedback();
+      const counts = {
+        total: allFeedback.length,
+        new: allFeedback.filter(f => f.status === 'new').length,
+        triaged: allFeedback.filter(f => f.status === 'triaged').length,
+        actioned: allFeedback.filter(f => f.status === 'actioned').length
+      };
 
       container.innerHTML = `
         <header class="admin-header">
@@ -512,19 +537,19 @@
             </svg>
             Triage
           </a>
-          <a href="review-proposals.html" class="admin-nav-link">
+          <a href="review.html" class="admin-nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+            Members
+          </a>
+          <a href="audit.html" class="admin-nav-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
             </svg>
-            Proposals
-          </a>
-          <a href="implementation-pack.html" class="admin-nav-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="16 18 22 12 16 6"/>
-              <polyline points="8 6 2 12 8 18"/>
-            </svg>
-            Packs
+            Audit Log
           </a>
         </nav>
 
@@ -556,7 +581,7 @@
         </div>
 
         <div class="feedback-list" id="feedback-list">
-          ${renderFeedbackList(feedback)}
+          ${renderFeedbackList()}
         </div>
       `;
     }
@@ -566,11 +591,10 @@
       renderTriagePage();
     }
 
-    function renderFeedbackList(feedback) {
-      // Filter
-      let filtered = feedback;
+    function renderFeedbackList() {
+      let filtered = allFeedback;
       if (currentFilter !== 'all') {
-        filtered = feedback.filter(f => f.status === currentFilter);
+        filtered = allFeedback.filter(f => f.status === currentFilter);
       }
 
       if (filtered.length === 0) {
@@ -587,72 +611,24 @@
     }
 
     function renderFeedbackCard(item) {
-      const typeEmoji = {
-        bug: '🐛',
-        idea: '💡',
-        question: '❓',
-        other: '💬'
-      };
+      const typeEmoji = { bug: '🐛', idea: '💡', question: '❓', other: '💬' };
+      const statusLabels = { new: 'New', triaged: 'Triaged', actioned: 'Actioned', declined: 'Declined' };
 
-      const statusLabel = {
-        new: 'New',
-        triaged: 'Triaged',
-        actioned: 'Actioned',
-        declined: 'Declined'
-      };
-
-      // Format date
-      const date = new Date(item.submittedAt);
+      const date = new Date(item.created_at);
       const formattedDate = date.toLocaleDateString('en-IE', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
       });
 
-      const priority = item.aiTriage?.priority || 'medium';
+      const priority = item.priority || 'medium';
+      const authorName = item.author?.display_name || 'Unknown';
+      const authorId = item.author?.member_id || '';
 
-      // Triage box
-      let triageBox = '';
-      if (item.aiTriage) {
-        triageBox = `
-          <div class="triage-box">
-            <div class="triage-box-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
-              </svg>
-              AI Triage Assessment
-            </div>
-            <div class="triage-info">
-              <span class="triage-item">
-                <strong>Priority:</strong>
-                <span class="priority-badge ${item.aiTriage.priority}">${item.aiTriage.priority}</span>
-              </span>
-              <span class="triage-item">
-                <strong>Category:</strong> ${item.aiTriage.category}
-              </span>
-              <span class="triage-item">
-                <strong>Suggested:</strong> ${item.aiTriage.suggestedAction}
-              </span>
-            </div>
-          </div>
-        `;
-      }
-
-      // Action buttons based on status
       let actionButtons = '';
       if (item.status === 'new') {
         actionButtons = `
           <button class="action-btn" onclick="markTriaged('${item.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
             Mark Reviewed
-          </button>
-          <button class="action-btn primary" onclick="openPromoteModal('${item.id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
-            Promote to Proposal
           </button>
           <button class="action-btn danger" onclick="declineFeedback('${item.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -661,21 +637,14 @@
         `;
       } else if (item.status === 'triaged') {
         actionButtons = `
-          <button class="action-btn primary" onclick="openPromoteModal('${item.id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
-            Promote to Proposal
+          <button class="action-btn" onclick="markActioned('${item.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Mark Actioned
           </button>
           <button class="action-btn danger" onclick="declineFeedback('${item.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             Decline
           </button>
-        `;
-      } else if (item.status === 'actioned' && item.proposalId) {
-        actionButtons = `
-          <a href="review-proposals.html" class="action-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
-            View Proposal
-          </a>
         `;
       }
 
@@ -687,16 +656,21 @@
                 ${typeEmoji[item.type] || '💬'} ${item.type}
               </span>
               <span class="priority-badge ${priority}">${priority}</span>
-              <span class="status-badge ${item.status}">${statusLabel[item.status]}</span>
+              <span class="status-badge ${item.status}">${statusLabels[item.status] || item.status}</span>
             </div>
           </div>
 
           <p class="feedback-message">${escapeHtml(item.message)}</p>
           <div class="feedback-info">
-            ID: ${item.id} &bull; Submitted ${formattedDate}
+            From: ${escapeHtml(authorName)} (${authorId}) &bull; ${formattedDate}
           </div>
 
-          ${triageBox}
+          ${item.admin_notes ? `
+            <div class="triage-box">
+              <div class="triage-box-title">Admin Notes</div>
+              <p style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin:0;">${escapeHtml(item.admin_notes)}</p>
+            </div>
+          ` : ''}
 
           <div class="action-buttons">
             ${actionButtons}
@@ -705,26 +679,43 @@
       `;
     }
 
-    function markTriaged(id) {
-      updateFeedback(id, { status: FEEDBACK_STATUS.TRIAGED });
-      showToast('Marked as reviewed');
-      renderTriagePage();
-    }
-
-    function declineFeedback(id) {
-      if (confirm('Decline this feedback?')) {
-        updateFeedback(id, { status: FEEDBACK_STATUS.DECLINED });
-        showToast('Feedback declined');
+    async function markTriaged(id) {
+      try {
+        await updateFeedbackRecord(id, { status: 'triaged' });
+        const idx = allFeedback.findIndex(f => f.id === id);
+        if (idx !== -1) allFeedback[idx].status = 'triaged';
+        showToast('Marked as reviewed');
         renderTriagePage();
+      } catch (e) {
+        console.error('Update error:', e);
+        showToast('Failed to update');
       }
     }
 
-    function openPromoteModal(feedbackId) {
-      promotingFeedbackId = feedbackId;
-      const feedback = getFeedbackById(feedbackId);
-      document.getElementById('proposal-title').value = '';
-      document.getElementById('proposal-description').value = feedback?.message || '';
-      document.getElementById('promote-modal').classList.add('active');
+    async function markActioned(id) {
+      try {
+        await updateFeedbackRecord(id, { status: 'actioned' });
+        const idx = allFeedback.findIndex(f => f.id === id);
+        if (idx !== -1) allFeedback[idx].status = 'actioned';
+        showToast('Marked as actioned');
+        renderTriagePage();
+      } catch (e) {
+        console.error('Update error:', e);
+        showToast('Failed to update');
+      }
+    }
+
+    async function declineFeedback(id) {
+      try {
+        await updateFeedbackRecord(id, { status: 'declined' });
+        const idx = allFeedback.findIndex(f => f.id === id);
+        if (idx !== -1) allFeedback[idx].status = 'declined';
+        showToast('Feedback declined');
+        renderTriagePage();
+      } catch (e) {
+        console.error('Update error:', e);
+        showToast('Failed to update');
+      }
     }
 
     function closePromoteModal() {
@@ -732,25 +723,8 @@
       promotingFeedbackId = null;
     }
 
-    function submitProposal() {
-      if (!promotingFeedbackId) return;
-
-      const title = document.getElementById('proposal-title').value.trim();
-      const description = document.getElementById('proposal-description').value.trim();
-
-      if (!title) {
-        showToast('Please enter a title');
-        return;
-      }
-
-      const proposal = createProposalFromFeedback(promotingFeedbackId, title, description);
-
-      closePromoteModal();
-      showToast('Proposal created!');
-      renderTriagePage();
-    }
-
     function escapeHtml(text) {
+      if (!text) return '';
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;

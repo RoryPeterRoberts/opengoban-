@@ -136,6 +136,26 @@
       accent-color: var(--color-primary);
     }
 
+    /* Loading state */
+    .loading-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-5);
+    }
+
+    .loading-spinner-lg {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto var(--space-4);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     /* Error state */
     .error-state {
       text-align: center;
@@ -245,7 +265,7 @@
     }
 
     .key-points-list li::before {
-      content: "•";
+      content: "\2022";
       position: absolute;
       left: var(--space-2);
       color: var(--color-accent);
@@ -387,28 +407,36 @@
   </style>
 </head>
 <body>
-  <script src="shared.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
   <script src="js/auth.js"></script>
 
   <div class="join-container" id="main-container">
-    <!-- Content will be rendered by JS -->
+    <div class="loading-state">
+      <div class="loading-spinner-lg"></div>
+      <p style="color: var(--color-text-muted);">Loading your profile...</p>
+    </div>
   </div>
 
   <script>
     // =====================================================
+    // CONSTANTS
+    // =====================================================
+
+    const CURRENT_TERMS_VERSION = 'v1';
+    const TERMS_LAST_UPDATED = 'January 2025';
+
+    // =====================================================
     // STATE
     // =====================================================
 
-    let invite = null;
+    let currentMember = null;
     let profile = {
       primaryCategory: '',
       secondaryCategories: [],
       skillTags: [],
       availability: '',
-      notWillingToDo: '',
-      needHelpWith: [],
-      toolsToShare: [],
-      openToLearning: false
+      bio: ''
     };
 
     // Terms acceptance state
@@ -419,50 +447,62 @@
     // INITIALIZATION
     // =====================================================
 
-    function init() {
-      // Support both hash and query params for token (hash preferred due to clean URLs)
-      let token = null;
-      if (window.location.hash && window.location.hash.includes('token=')) {
-        token = new URLSearchParams(window.location.hash.slice(1)).get('token');
-      } else if (window.location.search) {
-        token = new URLSearchParams(window.location.search).get('token');
+    async function init() {
+      try {
+        // Must be authenticated
+        const session = await getAuthSession();
+        if (!session) {
+          window.location.href = 'access.html';
+          return;
+        }
+
+        // Get current member record
+        currentMember = await getCurrentMember();
+        if (!currentMember) {
+          window.location.href = 'access.html';
+          return;
+        }
+
+        // If already accepted, go to main app
+        if (currentMember.status === 'ACCEPTED') {
+          window.location.href = 'index.html';
+          return;
+        }
+
+        // If not PENDING_PROFILE or REVIEW or HOLD, something is wrong
+        if (!['PENDING_PROFILE', 'REVIEW', 'HOLD'].includes(currentMember.status)) {
+          renderError('Your account status is unexpected. Please contact a community member.');
+          return;
+        }
+
+        // Load existing profile data into form state
+        if (currentMember.primary_category) {
+          profile.primaryCategory = currentMember.primary_category;
+        }
+        if (currentMember.secondary_categories && currentMember.secondary_categories.length) {
+          profile.secondaryCategories = [...currentMember.secondary_categories];
+        }
+        if (currentMember.skill_tags && currentMember.skill_tags.length) {
+          profile.skillTags = [...currentMember.skill_tags];
+        }
+        if (currentMember.availability) {
+          profile.availability = currentMember.availability;
+        }
+        if (currentMember.bio) {
+          profile.bio = currentMember.bio;
+        }
+
+        // Check existing terms acceptance
+        if (currentMember.terms_accepted_at && currentMember.terms_version === CURRENT_TERMS_VERSION) {
+          termsChecked = true;
+          privacyChecked = true;
+        }
+
+        renderForm();
+      } catch (e) {
+        console.error('Init error:', e);
+        renderError('Something went wrong loading your profile.');
       }
-
-      if (!token) {
-        renderError('No invite link provided');
-        return;
-      }
-
-      invite = getInviteByToken(token);
-
-      if (!invite) {
-        renderError('Invite link not found');
-        return;
-      }
-
-      // If already has profile, load it
-      if (invite.profile) {
-        profile = { ...profile, ...invite.profile };
-      }
-
-      // Check existing terms acceptance
-      if (!requiresTermsAcceptance(invite.token)) {
-        termsChecked = true;
-        privacyChecked = true;
-      }
-
-      // Check status
-      if (invite.status === 'ACCEPTED' || invite.status === 'AUTO_ACCEPT') {
-        window.location.href = `join-status.html#token=${token}`;
-        return;
-      }
-
-      if (invite.status !== 'PENDING_PROFILE' && invite.status !== 'HOLD' && invite.status !== 'REVIEW') {
-        renderError('This invite is no longer valid');
-        return;
-      }
-
-      renderForm();
     }
 
     // =====================================================
@@ -473,9 +513,9 @@
       document.getElementById('main-container').innerHTML = `
         <div class="error-state">
           <div class="error-icon">🔗</div>
-          <h2 class="error-title">Invite link not found</h2>
+          <h2 class="error-title">Something went wrong</h2>
           <p class="error-message">${message}</p>
-          <a href="index.html" class="error-link">← Back to Community Connect</a>
+          <a href="access.html" class="error-link">&larr; Back to sign in</a>
         </div>
       `;
     }
@@ -486,6 +526,7 @@
 
     function renderForm() {
       const container = document.getElementById('main-container');
+      const alreadyAcceptedTerms = currentMember.terms_accepted_at && currentMember.terms_version === CURRENT_TERMS_VERSION;
 
       container.innerHTML = `
         <div class="join-header">
@@ -550,6 +591,19 @@
           </div>
         </div>
 
+        <!-- Display Name -->
+        <div class="form-section">
+          <h3 class="section-title">Your name</h3>
+          <p class="section-subtitle">How you'll appear to other community members.</p>
+
+          <div class="form-group">
+            <label class="form-label">Display name <span class="required">*</span></label>
+            <input type="text" class="input" id="display-name"
+              value="${escapeHtml(currentMember.display_name || '')}"
+              placeholder="e.g., Sarah, John D., etc.">
+          </div>
+        </div>
+
         <!-- Primary Category -->
         <div class="form-section">
           <h3 class="section-title">What's your main offering?</h3>
@@ -600,7 +654,7 @@
             <label class="form-label">Skill tags <span class="required">*</span></label>
             <div class="chips-container" id="skill-chips" onclick="document.getElementById('skill-input').focus()">
               ${profile.skillTags.map(tag => `
-                <span class="chip">${tag}<button class="chip-remove" onclick="removeSkillTag('${tag}')">&times;</button></span>
+                <span class="chip">${escapeHtml(tag)}<button class="chip-remove" onclick="removeSkillTag('${escapeHtml(tag)}')">&times;</button></span>
               `).join('')}
               <input type="text"
                 class="chips-input"
@@ -630,66 +684,40 @@
           </div>
         </div>
 
-        <!-- Not Willing To Do -->
+        <!-- Bio -->
         <div class="form-section">
-          <h3 class="section-title">Boundaries</h3>
-          <p class="section-subtitle">It's okay to have limits. What would you prefer not to do?</p>
+          <h3 class="section-title">About you (optional)</h3>
+          <p class="section-subtitle">A short bio helps neighbours know who you are.</p>
 
           <div class="form-group">
-            <label class="form-label">I'm not willing to do...</label>
+            <label class="form-label">Bio</label>
             <textarea class="textarea"
-              id="not-willing"
-              placeholder="e.g., Heavy lifting, overnight stays, driving long distances..."
-              onchange="profile.notWillingToDo = this.value">${profile.notWillingToDo}</textarea>
+              id="bio-input"
+              placeholder="e.g., Retired carpenter, love gardening. Happy to help with small DIY jobs..."
+              maxlength="500">${escapeHtml(profile.bio)}</textarea>
+            <p class="form-hint" id="bio-count">${(profile.bio || '').length}/500</p>
           </div>
         </div>
 
-        <!-- Optional: Needs -->
+        <!-- Area -->
         <div class="form-section">
-          <h3 class="section-title">What about your needs? (optional)</h3>
-          <p class="section-subtitle">Knowing what you need helps us match you better.</p>
+          <h3 class="section-title">Your area</h3>
+          <p class="section-subtitle">How far are you willing to travel for exchanges?</p>
 
           <div class="form-group">
-            <label class="form-label">I often need help with...</label>
-            <div class="chips-container" id="needs-chips" onclick="document.getElementById('needs-input').focus()">
-              ${profile.needHelpWith.map(tag => `
-                <span class="chip">${tag}<button class="chip-remove" onclick="removeNeedTag('${tag}')">&times;</button></span>
+            <label class="form-label">Area</label>
+            <select class="select" id="area-select">
+              ${AREA_OPTIONS.map(opt => `
+                <option value="${opt.id}" ${(currentMember.area || 'village') === opt.id ? 'selected' : ''}>
+                  ${opt.label} — ${opt.description}
+                </option>
               `).join('')}
-              <input type="text"
-                class="chips-input"
-                id="needs-input"
-                placeholder="Type and press Enter..."
-                onkeydown="handleNeedInput(event)">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Tools/resources I can share</label>
-            <div class="chips-container" id="tools-chips" onclick="document.getElementById('tools-input').focus()">
-              ${profile.toolsToShare.map(tag => `
-                <span class="chip">${tag}<button class="chip-remove" onclick="removeToolTag('${tag}')">&times;</button></span>
-              `).join('')}
-              <input type="text"
-                class="chips-input"
-                id="tools-input"
-                placeholder="e.g., car, ladder, sewing machine..."
-                onkeydown="handleToolInput(event)">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="single-checkbox">
-              <input type="checkbox"
-                id="open-to-learning"
-                ${profile.openToLearning ? 'checked' : ''}
-                onchange="profile.openToLearning = this.checked">
-              <span>I'm open to learning new skills from others</span>
-            </label>
+            </select>
           </div>
         </div>
 
         <!-- Terms & Conditions Agreement -->
-        ${renderTermsSection()}
+        ${renderTermsSection(alreadyAcceptedTerms)}
 
         <!-- Submit -->
         <button class="btn btn-primary btn-lg btn-block" id="submit-btn" onclick="submitProfile()" ${!canSubmit() ? 'disabled' : ''}>
@@ -707,7 +735,7 @@
             </svg>
             Governance & Data
           </a>
-          <span style="color: var(--color-text-muted); margin: 0 var(--space-2);">·</span>
+          <span style="color: var(--color-text-muted); margin: 0 var(--space-2);">&middot;</span>
           <a href="terms.html" class="join-footer-link" target="_blank">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -715,7 +743,7 @@
             </svg>
             Terms
           </a>
-          <span style="color: var(--color-text-muted); margin: 0 var(--space-2);">·</span>
+          <span style="color: var(--color-text-muted); margin: 0 var(--space-2);">&middot;</span>
           <a href="safety.html" class="join-footer-link" target="_blank">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -724,6 +752,14 @@
           </a>
         </footer>
       `;
+
+      // Set up bio character counter
+      const bioInput = document.getElementById('bio-input');
+      if (bioInput) {
+        bioInput.addEventListener('input', () => {
+          document.getElementById('bio-count').textContent = bioInput.value.length + '/500';
+        });
+      }
     }
 
     // =====================================================
@@ -741,12 +777,10 @@
       const value = checkbox.value;
 
       if (checkbox.checked) {
-        // Don't allow primary to be selected
         if (value === profile.primaryCategory) {
           checkbox.checked = false;
           return;
         }
-        // Max 2
         if (profile.secondaryCategories.length >= 2) {
           checkbox.checked = false;
           document.getElementById('secondary-error').textContent = 'Maximum 2 additional categories';
@@ -778,52 +812,14 @@
       renderForm();
     }
 
-    // Need tags
-    function handleNeedInput(event) {
-      if (event.key === 'Enter' && event.target.value.trim()) {
-        event.preventDefault();
-        const tag = event.target.value.trim();
-        if (!profile.needHelpWith.includes(tag)) {
-          profile.needHelpWith.push(tag);
-          renderForm();
-        }
-      }
-    }
-
-    function removeNeedTag(tag) {
-      profile.needHelpWith = profile.needHelpWith.filter(t => t !== tag);
-      renderForm();
-    }
-
-    // Tool tags
-    function handleToolInput(event) {
-      if (event.key === 'Enter' && event.target.value.trim()) {
-        event.preventDefault();
-        const tag = event.target.value.trim();
-        if (!profile.toolsToShare.includes(tag)) {
-          profile.toolsToShare.push(tag);
-          renderForm();
-        }
-      }
-    }
-
-    function removeToolTag(tag) {
-      profile.toolsToShare = profile.toolsToShare.filter(t => t !== tag);
-      renderForm();
-    }
-
     // =====================================================
     // TERMS & CONDITIONS
     // =====================================================
 
-    function renderTermsSection() {
-      // Check if already accepted current version
-      const alreadyAccepted = !requiresTermsAcceptance(invite.token);
-
+    function renderTermsSection(alreadyAccepted) {
       if (alreadyAccepted) {
-        const display = getTermsAcceptanceDisplay(invite.token);
-        termsChecked = true;
-        privacyChecked = true;
+        const date = new Date(currentMember.terms_accepted_at);
+        const formattedDate = date.toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
 
         return `
           <div class="terms-agreement-section accepted">
@@ -834,7 +830,7 @@
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                   <polyline points="22 4 12 14.01 9 11.01"/>
                 </svg>
-                ${display.message}
+                Accepted ${currentMember.terms_version} on ${formattedDate}
               </span>
             </div>
             <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin: 0;">
@@ -866,7 +862,6 @@
             <span class="terms-meta">Last updated: ${TERMS_LAST_UPDATED}</span>
           </div>
 
-          <!-- Key Points Summary -->
           <div class="key-points-box">
             <h4 class="key-points-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -887,7 +882,6 @@
             </ul>
           </div>
 
-          <!-- Links to full documents -->
           <div class="terms-links">
             <a href="terms.html" target="_blank" class="terms-link">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -904,7 +898,6 @@
             </a>
           </div>
 
-          <!-- Agreement Checkboxes -->
           <div class="agreement-checkboxes">
             <label class="agreement-checkbox">
               <input type="checkbox"
@@ -946,11 +939,8 @@
 
     function updateSubmitButton() {
       const btn = document.getElementById('submit-btn');
-      if (btn) {
-        btn.disabled = !canSubmit();
-      }
+      if (btn) btn.disabled = !canSubmit();
 
-      // Update section styling when both checked
       const section = document.getElementById('terms-section');
       if (section) {
         if (canSubmit()) {
@@ -962,21 +952,31 @@
     }
 
     // =====================================================
+    // HELPERS
+    // =====================================================
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    // =====================================================
     // SUBMIT
     // =====================================================
 
-    function submitProfile() {
-      // Validate terms acceptance first
+    async function submitProfile() {
+      // Validate terms
       if (!canSubmit()) {
-        const errorEl = document.getElementById('form-error');
-        errorEl.innerHTML = 'Please accept the Terms & Conditions and Privacy Notice to continue';
-        errorEl.style.display = 'block';
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        showFormError('Please accept the Terms & Conditions and Privacy Notice to continue');
         return;
       }
 
-      // Validate
       const errors = [];
+      const displayName = document.getElementById('display-name').value.trim();
+
+      if (!displayName) {
+        errors.push('Please enter a display name');
+      }
 
       if (!profile.primaryCategory) {
         errors.push('Please select a primary category');
@@ -995,49 +995,63 @@
       }
 
       if (errors.length > 0) {
-        const errorEl = document.getElementById('form-error');
-        errorEl.innerHTML = errors.join('<br>');
-        errorEl.style.display = 'block';
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        showFormError(errors.join('<br>'));
         return;
       }
 
       // Collect remaining form data
-      profile.notWillingToDo = document.getElementById('not-willing').value;
-      profile.openToLearning = document.getElementById('open-to-learning').checked;
+      const bio = document.getElementById('bio-input').value.trim();
+      const area = document.getElementById('area-select').value;
 
-      // Record terms acceptance if not already done
-      if (requiresTermsAcceptance(invite.token)) {
-        acceptTerms(invite.token);
+      // Disable submit button
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        // Build update object
+        const updates = {
+          display_name: displayName,
+          primary_category: profile.primaryCategory,
+          secondary_categories: profile.secondaryCategories,
+          skill_tags: profile.skillTags,
+          availability: profile.availability,
+          bio: bio || null,
+          area: area,
+          status: 'REVIEW'
+        };
+
+        // Record terms acceptance if not already done
+        if (!currentMember.terms_accepted_at || currentMember.terms_version !== CURRENT_TERMS_VERSION) {
+          updates.terms_accepted_at = new Date().toISOString();
+          updates.terms_version = CURRENT_TERMS_VERSION;
+        }
+
+        // Update member in Supabase
+        await updateMember(currentMember.id, updates);
+
+        // Clear the member cache so fresh data is loaded
+        clearMemberCache();
+
+        // Clear invite token from localStorage (no longer needed)
+        clearInviteToken();
+
+        // Redirect to status page
+        window.location.href = 'join-status.html';
+
+      } catch (e) {
+        console.error('Submit error:', e);
+        showFormError('Something went wrong saving your profile. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Submit profile';
       }
+    }
 
-      // Run fit evaluation
-      const fitStatus = evaluateFit(profile.primaryCategory);
-
-      // Assign Member ID if not already assigned (stable, never changes)
-      const memberId = invite.memberId || generateMemberId();
-      const memberSince = invite.memberSince || new Date().toISOString();
-
-      // Update invite with profile and member identity
-      updateInvite(invite.token, {
-        profile: profile,
-        status: fitStatus,
-        memberId: memberId,
-        memberSince: memberSince,
-        exchangesCompleted: invite.exchangesCompleted || 0,
-        disputesCount: invite.disputesCount || 0
-      });
-
-      // If accepted, increment supply
-      if (fitStatus === 'AUTO_ACCEPT') {
-        incrementSupply(profile.primaryCategory);
-      }
-
-      // Create session for the user
-      createSession(invite.token);
-
-      // Redirect to status page - use hash to preserve token with clean URLs
-      window.location.href = `join-status.html#token=${invite.token}`;
+    function showFormError(html) {
+      const errorEl = document.getElementById('form-error');
+      errorEl.innerHTML = html;
+      errorEl.style.display = 'block';
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
     // =====================================================

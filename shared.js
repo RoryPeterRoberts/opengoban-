@@ -1,5 +1,7 @@
 // =====================================================
 // COMMUNITY CONNECT - SHARED DATA & UTILITIES
+// LEGACY: Used only by governance pages (charter, review-proposals,
+// implementation-pack, safety). All core pages now use supabase.js.
 // =====================================================
 
 // =====================================================

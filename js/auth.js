@@ -1,116 +1,175 @@
 // =====================================================
 // COMMUNITY CONNECT - AUTHENTICATION & ACCESS CONTROL
 // =====================================================
+// Uses Supabase Auth with magic links (email-based, no passwords)
+// Requires supabase.js to be loaded first.
+// =====================================================
 
-const AUTH_STORAGE_KEY = 'cc_session';
 const ADMIN_SESSION_KEY = 'cc_admin_session';
-const ADMIN_PASSWORD = 'pilot2025';  // Simple password for pilot
+const ADMIN_PASSWORD = 'pilot2025';  // Simple password for pilot admin pages
+
+// Cache for current member (avoid repeated DB calls)
+let _currentMember = null;
+let _memberPromise = null;
 
 // =====================================================
-// SESSION MANAGEMENT
+// SESSION MANAGEMENT (Supabase-based)
 // =====================================================
 
 /**
- * Check if user has valid session (has completed invite flow)
- * @returns {boolean}
+ * Check if user has a valid Supabase auth session
  */
-function hasValidSession() {
-  const session = sessionStorage.getItem(AUTH_STORAGE_KEY);
-  if (!session) return false;
-
+async function hasValidSession() {
   try {
-    const data = JSON.parse(session);
-    // Verify token exists and is valid
-    if (!data.token) return false;
+    const session = await getAuthSession();
+    if (!session) return false;
 
-    // Check if invite exists and has been accepted
-    const invite = getInviteByToken(data.token);
-    if (!invite) return false;
+    const member = await getCurrentMember();
+    if (!member) return false;
 
-    // Allow access if profile has been submitted (any status except PENDING_PROFILE)
-    return invite.status !== 'PENDING_PROFILE';
+    // Must be accepted (profile complete)
+    return member.status === 'ACCEPTED' || member.status === 'REVIEW';
   } catch (e) {
+    console.error('Session check failed:', e);
     return false;
   }
 }
 
 /**
- * Create session after successful invite redemption
- * @param {string} token - The invite token
+ * Get the current logged-in member (with caching)
  */
-function createSession(token) {
-  sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
-    token: token,
-    createdAt: new Date().toISOString()
-  }));
+async function getCachedMember() {
+  if (_currentMember) return _currentMember;
+  if (_memberPromise) return _memberPromise;
+
+  _memberPromise = getCurrentMember().then(member => {
+    _currentMember = member;
+    _memberPromise = null;
+    return member;
+  }).catch(err => {
+    _memberPromise = null;
+    throw err;
+  });
+
+  return _memberPromise;
 }
 
 /**
- * Get current session token
- * @returns {string|null}
+ * Clear the member cache (call after profile updates)
  */
-function getSessionToken() {
-  const session = sessionStorage.getItem(AUTH_STORAGE_KEY);
-  if (!session) return null;
+function clearMemberCache() {
+  _currentMember = null;
+  _memberPromise = null;
+}
 
+/**
+ * Redirect to access page if no valid session.
+ * Returns a Promise that resolves to the member if authenticated.
+ * For use at top of protected pages:
+ *   const member = await requireAuthAsync();
+ *   if (!member) return; // already redirecting
+ */
+async function requireAuthAsync() {
   try {
-    return JSON.parse(session).token;
+    const session = await getAuthSession();
+    if (!session) {
+      window.location.href = 'access.html';
+      return null;
+    }
+
+    const member = await getCurrentMember();
+    if (!member) {
+      window.location.href = 'access.html';
+      return null;
+    }
+
+    if (member.status === 'PENDING_PROFILE') {
+      window.location.href = 'join.html';
+      return null;
+    }
+
+    _currentMember = member;
+    return member;
   } catch (e) {
+    console.error('Auth check failed:', e);
+    window.location.href = 'access.html';
     return null;
   }
 }
 
 /**
- * Get current session data
- * @returns {object|null}
- */
-function getSession() {
-  const session = sessionStorage.getItem(AUTH_STORAGE_KEY);
-  if (!session) return null;
-
-  try {
-    return JSON.parse(session);
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * Clear the current session
- */
-function clearSession() {
-  sessionStorage.removeItem(AUTH_STORAGE_KEY);
-}
-
-/**
- * Redirect to access page if no valid session
- * @returns {boolean} - true if session is valid, false if redirecting
+ * Synchronous auth check for backwards compatibility.
+ * Kicks off async check and redirects if needed.
+ * Returns true optimistically if we have a cached member.
  */
 function requireAuth() {
-  if (!hasValidSession()) {
-    window.location.href = 'access.html';
-    return false;
+  if (_currentMember && (_currentMember.status === 'ACCEPTED' || _currentMember.status === 'REVIEW')) {
+    return true;
   }
+  // Kick off async check
+  requireAuthAsync();
+  // Return true to not block rendering — the async check will redirect if needed
   return true;
 }
 
+/**
+ * Sign out and redirect to access page
+ */
+async function handleSignOut() {
+  clearMemberCache();
+  await signOut();
+  window.location.href = 'access.html';
+}
+
 // =====================================================
-// ADMIN AUTHENTICATION
+// INVITE TOKEN HANDLING
 // =====================================================
 
 /**
- * Check if admin is authenticated
- * @returns {boolean}
+ * Extract invite token from URL hash or query params
  */
+function getInviteTokenFromURL() {
+  let token = null;
+  if (window.location.hash && window.location.hash.includes('token=')) {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    token = params.get('token');
+  }
+  if (!token && window.location.search) {
+    const params = new URLSearchParams(window.location.search);
+    token = params.get('token');
+  }
+  return token;
+}
+
+/**
+ * Store invite token for use after auth
+ */
+function storeInviteToken(token) {
+  if (token) {
+    localStorage.setItem('cc_pending_invite_token', token);
+  }
+}
+
+/**
+ * Retrieve and clear stored invite token
+ */
+function retrieveInviteToken() {
+  const token = localStorage.getItem('cc_pending_invite_token');
+  return token;
+}
+
+function clearInviteToken() {
+  localStorage.removeItem('cc_pending_invite_token');
+}
+
+// =====================================================
+// ADMIN AUTHENTICATION (unchanged — simple password)
+// =====================================================
+
 function isAdminAuthenticated() {
   return sessionStorage.getItem(ADMIN_SESSION_KEY) === 'true';
 }
 
-/**
- * Authenticate admin with password
- * @param {string} password
- * @returns {boolean} - true if password is correct
- */
 function authenticateAdmin(password) {
   if (password === ADMIN_PASSWORD) {
     sessionStorage.setItem(ADMIN_SESSION_KEY, 'true');
@@ -119,20 +178,19 @@ function authenticateAdmin(password) {
   return false;
 }
 
-/**
- * Clear admin session
- */
 function clearAdminSession() {
   sessionStorage.removeItem(ADMIN_SESSION_KEY);
 }
 
 /**
- * Show admin password prompt modal
- * @param {function} onSuccess - Callback when authentication succeeds
- * @returns {HTMLElement} - The modal element
+ * Check if current member is an admin/moderator
  */
+async function isAdmin() {
+  const member = await getCachedMember();
+  return member && (member.role === 'admin' || member.role === 'moderator');
+}
+
 function showAdminLoginModal(onSuccess) {
-  // Remove existing modal if present
   const existing = document.getElementById('admin-login-modal');
   if (existing) existing.remove();
 
@@ -161,94 +219,52 @@ function showAdminLoginModal(onSuccess) {
 
   document.body.appendChild(modal);
 
-  // Focus password input
   setTimeout(() => {
     const input = document.getElementById('admin-password-input');
     if (input) {
       input.focus();
       input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          handleAdminLogin();
-        }
+        if (e.key === 'Enter') handleAdminLogin();
       });
     }
   }, 100);
 
-  // Store callback
   window._adminLoginCallback = onSuccess;
-
   return modal;
 }
 
-/**
- * Handle admin login form submission
- */
 function handleAdminLogin() {
   const input = document.getElementById('admin-password-input');
   const error = document.getElementById('admin-login-error');
-
   if (!input) return;
 
-  const password = input.value;
-
-  if (authenticateAdmin(password)) {
-    // Remove modal
+  if (authenticateAdmin(input.value)) {
     const modal = document.getElementById('admin-login-modal');
     if (modal) modal.remove();
-
-    // Call success callback
     if (window._adminLoginCallback) {
       window._adminLoginCallback();
       delete window._adminLoginCallback;
     }
   } else {
-    // Show error
-    if (error) {
-      error.style.display = 'block';
-    }
+    if (error) error.style.display = 'block';
     input.value = '';
     input.focus();
   }
 }
 
-/**
- * Check admin auth or show login modal
- * @param {function} onSuccess - Callback when authenticated
- * @returns {boolean} - true if already authenticated
- */
-function requireAdmin(onSuccess) {
+async function requireAdmin(onSuccess) {
+  // Check if member is admin/moderator first
+  const memberIsAdmin = await isAdmin();
+  if (memberIsAdmin) {
+    if (onSuccess) onSuccess();
+    return true;
+  }
+
+  // Fall back to password auth
   if (isAdminAuthenticated()) {
     if (onSuccess) onSuccess();
     return true;
   }
   showAdminLoginModal(onSuccess);
   return false;
-}
-
-// =====================================================
-// SESSION USER HELPERS
-// =====================================================
-
-/**
- * Get the current user based on session
- * Returns the invite data for the current session
- * @returns {object|null}
- */
-function getSessionUser() {
-  const token = getSessionToken();
-  if (!token) return null;
-
-  return getInviteByToken(token);
-}
-
-/**
- * Update the current session user's data
- * @param {object} updates
- * @returns {object|null}
- */
-function updateSessionUser(updates) {
-  const token = getSessionToken();
-  if (!token) return null;
-
-  return updateInvite(token, updates);
 }
