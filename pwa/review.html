@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Community Review Panel - Community Connect</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    /* Balance Chip Styles */
+    .balance-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-primary-light);
+      border: 1px solid var(--color-primary);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .balance-chip:hover {
+      background: var(--color-primary);
+      color: white;
+    }
+
+    .balance-chip svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-4);
+    }
+
+    /* Page-specific styles */
+    .review-container {
+      max-width: var(--max-width-lg);
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-primary);
+      text-decoration: none;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      margin-bottom: var(--space-5);
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Ecosystem Health Section */
+    .health-section {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      margin-bottom: var(--space-6);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .health-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-4);
+    }
+
+    .health-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+    }
+
+    .health-item {
+      padding: var(--space-4);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-md);
+    }
+
+    .health-label {
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: var(--space-2);
+    }
+
+    .health-categories {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    .health-tag {
+      font-size: var(--font-size-sm);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+    }
+
+    .health-tag.shortage {
+      background: var(--color-status-accepted-bg);
+      color: var(--color-status-accepted);
+    }
+
+    .health-tag.surplus {
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-5);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-4);
+    }
+
+    .empty-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+
+    .empty-text {
+      color: var(--color-text-muted);
+    }
+
+    /* Review Card */
+    .review-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      margin-bottom: var(--space-4);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: var(--space-4);
+    }
+
+    .review-email {
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+    }
+
+    .review-status {
+      font-size: var(--font-size-xs);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    .review-status.review {
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+    }
+
+    .review-status.hold {
+      background: var(--color-status-hold-bg);
+      color: var(--color-status-hold);
+    }
+
+    /* Profile Details */
+    .profile-details {
+      margin-bottom: var(--space-5);
+    }
+
+    .detail-row {
+      display: flex;
+      margin-bottom: var(--space-3);
+    }
+
+    .detail-label {
+      width: 120px;
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+    }
+
+    .detail-value {
+      font-size: var(--font-size-sm);
+      color: var(--color-text);
+    }
+
+    .category-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-secondary-bg);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-sm);
+    }
+
+    .tags-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    .tag {
+      padding: var(--space-1) var(--space-3);
+      background: var(--color-bg-muted);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-sm);
+    }
+
+    /* Impact Summary */
+    .impact-summary {
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      margin-bottom: var(--space-5);
+    }
+
+    .impact-title {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-4);
+    }
+
+    /* Actions */
+    .review-actions {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      flex: 1;
+      min-width: 80px;
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-base);
+    }
+
+    .action-btn:active {
+      transform: scale(0.97);
+    }
+
+    .action-btn.accept {
+      background: var(--color-status-accepted);
+      color: var(--color-text-inverse);
+    }
+
+    .action-btn.accept:hover {
+      background: var(--color-primary-light);
+    }
+
+    .action-btn.hold {
+      background: var(--color-status-hold);
+      color: var(--color-text-inverse);
+    }
+
+    .action-btn.hold:hover {
+      opacity: 0.9;
+    }
+
+    .action-btn.clarify {
+      background: var(--color-bg-card);
+      color: var(--color-text);
+      border: 2px solid var(--color-border);
+    }
+
+    .action-btn.clarify:hover {
+      background: var(--color-bg-muted);
+      border-color: var(--color-secondary);
+    }
+
+    /* Modal overrides */
+    .modal-input {
+      width: 100%;
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--font-size-base);
+      font-family: var(--font-family);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-4);
+      resize: none;
+      min-height: 100px;
+    }
+
+    .modal-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-bg);
+    }
+
+    /* Shortage checkboxes */
+    .shortage-checkboxes {
+      margin-bottom: var(--space-4);
+    }
+
+    .shortage-checkbox {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-2);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+
+    .shortage-checkbox:hover {
+      background: var(--color-bg-muted);
+    }
+
+    .shortage-checkbox input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--color-primary);
+    }
+  </style>
+</head>
+<body>
+  <script src="shared.js"></script>
+
+  <div class="review-container">
+    <div class="page-header">
+      <a href="index.html" class="back-link" style="margin-bottom: 0;">← Back to home</a>
+      <button class="balance-chip" onclick="showToast('Balance: ' + getUserBalance().credits + ' credits')" aria-label="View balance">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+        <span id="balance-chip-value">0</span>
+      </button>
+    </div>
+
+    <div class="review-banner">
+      <span class="review-banner-title">Community Review Panel</span>
+      <span class="review-banner-badge">Mock</span>
+    </div>
+
+    <!-- Ecosystem Health -->
+    <div class="health-section">
+      <h3 class="health-title">Current community balance</h3>
+      <div class="health-grid">
+        <div class="health-item">
+          <div class="health-label">We need more of</div>
+          <div class="health-categories" id="shortage-categories"></div>
+        </div>
+        <div class="health-item">
+          <div class="health-label">Well covered</div>
+          <div class="health-categories" id="surplus-categories"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review Queue -->
+    <div id="review-queue"></div>
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding: var(--space-6) 0; margin-top: var(--space-6); border-top: 1px solid var(--color-border-light);">
+      <a href="terms.html" style="display: inline-flex; align-items: center; gap: var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-xs); text-decoration: none;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        Terms & Conditions
+      </a>
+      <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">·</span>
+      <a href="privacy.html" style="display: inline-flex; align-items: center; gap: var(--space-1); color: var(--color-text-muted); font-size: var(--font-size-xs); text-decoration: none;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Privacy
+      </a>
+    </footer>
+  </div>
+
+  <!-- Hold Modal -->
+  <div class="modal-overlay" id="hold-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Put application on hold</h3>
+        <p class="modal-subtitle">Let them know why and suggest categories where we need help.</p>
+      </div>
+      <div class="modal-body">
+        <textarea class="modal-input" id="hold-reason" placeholder="Reason (shown to applicant)..."></textarea>
+        <div class="shortage-checkboxes" id="shortage-checkboxes"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeHoldModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmHold()">Put on hold</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clarify Modal -->
+  <div class="modal-overlay" id="clarify-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Request clarification</h3>
+        <p class="modal-subtitle">Ask a question or request more information.</p>
+      </div>
+      <div class="modal-body">
+        <textarea class="modal-input" id="clarify-message" placeholder="Your message..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeClarifyModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmClarify()">Send message</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =====================================================
+    // STATE
+    // =====================================================
+
+    let currentToken = null;
+
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+
+    function init() {
+      renderHealthSummary();
+      renderReviewQueue();
+    }
+
+    // =====================================================
+    // TERMS STATUS HELPER
+    // =====================================================
+
+    function renderTermsStatus(token) {
+      const display = getTermsAcceptanceDisplay(token);
+      if (display.accepted) {
+        return `<span style="display: inline-flex; align-items: center; gap: var(--space-1); color: var(--color-status-accepted); font-size: var(--font-size-xs);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          Accepted ${display.version}
+        </span>`;
+      }
+      return `<span style="color: var(--color-status-review); font-size: var(--font-size-xs);">Not yet accepted</span>`;
+    }
+
+    // =====================================================
+    // ECOSYSTEM HEALTH
+    // =====================================================
+
+    function renderHealthSummary() {
+      const shortages = getShortageCategories();
+      const overcrowded = getOvercrowdedCategories();
+
+      document.getElementById('shortage-categories').innerHTML = shortages.length > 0
+        ? shortages.map(cat => `<span class="health-tag shortage">${cat.emoji} ${cat.label.split(' & ')[0]}</span>`).join('')
+        : '<span class="text-muted text-sm">None</span>';
+
+      document.getElementById('surplus-categories').innerHTML = overcrowded.length > 0
+        ? overcrowded.map(cat => `<span class="health-tag surplus">${cat.emoji} ${cat.label.split(' & ')[0]}</span>`).join('')
+        : '<span class="text-muted text-sm">None</span>';
+    }
+
+    // =====================================================
+    // REVIEW QUEUE
+    // =====================================================
+
+    function renderReviewQueue() {
+      const queue = getInvitesForReview();
+      const container = document.getElementById('review-queue');
+
+      if (queue.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">✨</div>
+            <h3 class="empty-title">All caught up!</h3>
+            <p class="empty-text">No applications pending review.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = queue.map(invite => renderReviewCard(invite)).join('');
+    }
+
+    function renderReviewCard(invite) {
+      const profile = invite.profile || {};
+      const primaryCat = getCategoryById(profile.primaryCategory);
+      const health = getEcosystemHealth();
+
+      // Calculate impact
+      const supply = health.supplyCounts[profile.primaryCategory] || 0;
+      const demand = health.demandCounts[profile.primaryCategory] || 0;
+      const maxVal = Math.max(supply, demand, 10);
+      const supplyPct = (supply / maxVal) * 100;
+      const demandPct = (demand / maxVal) * 100;
+
+      const gap = demand - supply;
+      let verdictClass, verdictText;
+      if (gap >= 2) {
+        verdictClass = 'shortage';
+        verdictText = '✅ High demand — accepting would help balance';
+      } else if (gap <= -2) {
+        verdictClass = 'surplus';
+        verdictText = '⚠️ Already well covered — consider hold';
+      } else {
+        verdictClass = 'balanced';
+        verdictText = '➖ Balanced — use judgment';
+      }
+
+      const statusClass = invite.status === 'HOLD' ? 'hold' : 'review';
+      const statusLabel = STATUS_LABELS[invite.status] || invite.status;
+
+      return `
+        <div class="review-card">
+          <div class="review-header">
+            <span class="review-email">${invite.email}</span>
+            <span class="review-status ${statusClass}">${statusLabel}</span>
+          </div>
+
+          <div class="profile-details">
+            <div class="detail-row">
+              <span class="detail-label">Primary offer</span>
+              <span class="detail-value">
+                <span class="category-badge">${primaryCat.emoji} ${primaryCat.label}</span>
+              </span>
+            </div>
+
+            ${profile.secondaryCategories && profile.secondaryCategories.length > 0 ? `
+            <div class="detail-row">
+              <span class="detail-label">Also offers</span>
+              <span class="detail-value">
+                ${profile.secondaryCategories.map(id => {
+                  const cat = getCategoryById(id);
+                  return `<span class="category-badge" style="margin-right: var(--space-2);">${cat.emoji} ${cat.label.split(' & ')[0]}</span>`;
+                }).join('')}
+              </span>
+            </div>
+            ` : ''}
+
+            <div class="detail-row">
+              <span class="detail-label">Skill tags</span>
+              <span class="detail-value">
+                <div class="tags-list">
+                  ${(profile.skillTags || []).map(tag => `<span class="tag">${tag}</span>`).join('')}
+                </div>
+              </span>
+            </div>
+
+            <div class="detail-row">
+              <span class="detail-label">Availability</span>
+              <span class="detail-value">${profile.availability || 'Not specified'}</span>
+            </div>
+
+            ${profile.notWillingToDo ? `
+            <div class="detail-row">
+              <span class="detail-label">Won't do</span>
+              <span class="detail-value">${profile.notWillingToDo}</span>
+            </div>
+            ` : ''}
+
+            <div class="detail-row">
+              <span class="detail-label">T&C Status</span>
+              <span class="detail-value">
+                ${renderTermsStatus(invite.token)}
+              </span>
+            </div>
+          </div>
+
+          <div class="impact-summary">
+            <div class="impact-title">Impact on ${primaryCat.label}</div>
+
+            <div class="impact-bar-container">
+              <div class="impact-bar-label">
+                <span>Supply (${supply} people)</span>
+              </div>
+              <div class="impact-bar">
+                <div class="impact-bar-fill supply" style="width: ${supplyPct}%"></div>
+              </div>
+            </div>
+
+            <div class="impact-bar-container">
+              <div class="impact-bar-label">
+                <span>Demand (${demand} requests)</span>
+              </div>
+              <div class="impact-bar">
+                <div class="impact-bar-fill demand" style="width: ${demandPct}%"></div>
+              </div>
+            </div>
+
+            <div class="impact-verdict ${verdictClass}">${verdictText}</div>
+          </div>
+
+          <div class="review-actions">
+            <button class="action-btn accept" onclick="acceptInvite('${invite.token}')">✓ Accept</button>
+            <button class="action-btn hold" onclick="openHoldModal('${invite.token}')">⏸ Hold</button>
+            <button class="action-btn clarify" onclick="openClarifyModal('${invite.token}')">? Clarify</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // =====================================================
+    // ACTIONS
+    // =====================================================
+
+    function acceptInvite(token) {
+      const invite = getInviteByToken(token);
+      if (!invite) return;
+
+      // Update status
+      updateInvite(token, { status: 'ACCEPTED' });
+
+      // Increment supply
+      if (invite.profile && invite.profile.primaryCategory) {
+        incrementSupply(invite.profile.primaryCategory);
+      }
+
+      showToast('Application accepted!');
+      renderHealthSummary();
+      renderReviewQueue();
+    }
+
+    // =====================================================
+    // HOLD MODAL
+    // =====================================================
+
+    function openHoldModal(token) {
+      currentToken = token;
+
+      // Populate shortage checkboxes
+      const shortages = getShortageCategories();
+      document.getElementById('shortage-checkboxes').innerHTML = shortages.length > 0
+        ? `<p class="text-muted text-sm mb-2">Suggest these categories:</p>
+           ${shortages.map(cat => `
+             <label class="shortage-checkbox">
+               <input type="checkbox" value="${cat.id}">
+               <span>${cat.emoji} ${cat.label}</span>
+             </label>
+           `).join('')}`
+        : '';
+
+      document.getElementById('hold-modal').classList.add('active');
+    }
+
+    function closeHoldModal() {
+      currentToken = null;
+      document.getElementById('hold-reason').value = '';
+      document.getElementById('hold-modal').classList.remove('active');
+    }
+
+    function confirmHold() {
+      if (!currentToken) return;
+
+      const reason = document.getElementById('hold-reason').value.trim();
+      const suggestedCategories = Array.from(
+        document.querySelectorAll('#shortage-checkboxes input:checked')
+      ).map(cb => cb.value);
+
+      updateInvite(currentToken, {
+        status: 'HOLD',
+        holdReason: reason || null,
+        suggestedCategories: suggestedCategories.length > 0 ? suggestedCategories : null
+      });
+
+      closeHoldModal();
+      showToast('Application put on hold');
+      renderReviewQueue();
+    }
+
+    // =====================================================
+    // CLARIFY MODAL
+    // =====================================================
+
+    function openClarifyModal(token) {
+      currentToken = token;
+      document.getElementById('clarify-modal').classList.add('active');
+    }
+
+    function closeClarifyModal() {
+      currentToken = null;
+      document.getElementById('clarify-message').value = '';
+      document.getElementById('clarify-modal').classList.remove('active');
+    }
+
+    function confirmClarify() {
+      if (!currentToken) return;
+
+      const message = document.getElementById('clarify-message').value.trim();
+
+      if (!message) {
+        showToast('Please enter a message');
+        return;
+      }
+
+      updateInvite(currentToken, {
+        status: 'REVIEW',
+        reviewMessage: message
+      });
+
+      closeClarifyModal();
+      showToast('Clarification requested');
+      renderReviewQueue();
+    }
+
+    // =====================================================
+    // BALANCE DISPLAY
+    // =====================================================
+
+    function updateBalanceChip() {
+      const balance = getUserBalance();
+      const chipValue = document.getElementById('balance-chip-value');
+      if (chipValue) {
+        chipValue.textContent = balance.credits;
+      }
+    }
+
+    // =====================================================
+    // INIT
+    // =====================================================
+
+    init();
+    updateBalanceChip();
+  </script>
+</body>
+</html>

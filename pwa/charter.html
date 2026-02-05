@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Community Charter — Community Connect</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .charter-header {
+      text-align: center;
+      padding: var(--space-8) var(--space-4);
+      background: var(--color-bg-warm);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .charter-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto var(--space-4);
+      background: var(--color-primary-bg);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-primary);
+    }
+
+    .charter-icon svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .charter-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+
+    .charter-subtitle {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-base);
+    }
+
+    .charter-content {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4);
+    }
+
+    .charter-section {
+      margin-bottom: var(--space-8);
+    }
+
+    .charter-section-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      color: var(--color-text);
+      margin-bottom: var(--space-3);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .charter-section-title svg {
+      width: 20px;
+      height: 20px;
+      color: var(--color-primary);
+    }
+
+    .charter-section p {
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin-bottom: var(--space-3);
+    }
+
+    .charter-section ul {
+      list-style: none;
+      padding: 0;
+      margin: var(--space-3) 0;
+    }
+
+    .charter-section li {
+      position: relative;
+      padding-left: var(--space-6);
+      margin-bottom: var(--space-2);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .charter-section li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 8px;
+      height: 8px;
+      background: var(--color-primary-bg);
+      border: 2px solid var(--color-primary);
+      border-radius: 50%;
+    }
+
+    .governance-box {
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      margin: var(--space-6) 0;
+    }
+
+    .governance-box-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+      margin-bottom: var(--space-3);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .governance-box-title svg {
+      width: 18px;
+      height: 18px;
+      color: var(--color-primary);
+    }
+
+    .governance-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .governance-list li {
+      padding: var(--space-2) 0;
+      border-bottom: 1px solid var(--color-border-light);
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-sm);
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+    }
+
+    .governance-list li:last-child {
+      border-bottom: none;
+    }
+
+    .governance-list li svg {
+      width: 16px;
+      height: 16px;
+      color: var(--color-primary);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .pilot-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .highlight-box {
+      background: var(--color-secondary-bg);
+      border-left: 4px solid var(--color-primary);
+      padding: var(--space-4);
+      border-radius: var(--radius-md);
+      margin: var(--space-4) 0;
+    }
+
+    .highlight-box p {
+      margin: 0;
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-sm);
+    }
+
+    .highlight-box strong {
+      color: var(--color-text);
+    }
+
+    .charter-nav {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+      margin-top: var(--space-6);
+      padding-top: var(--space-6);
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .charter-footer {
+      text-align: center;
+      padding: var(--space-6) var(--space-4);
+      background: var(--color-bg-muted);
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: var(--font-size-sm);
+      transition: color var(--transition-fast);
+    }
+
+    .back-link:hover {
+      color: var(--color-primary);
+    }
+
+    .back-link svg {
+      width: 16px;
+      height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <script src="shared.js"></script>
+
+  <header class="charter-header">
+    <div class="charter-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    </div>
+    <h1 class="charter-title">Community Charter</h1>
+    <p class="charter-subtitle">How Community Connect is governed</p>
+    <div style="margin-top: var(--space-3);">
+      <span class="pilot-badge">Pilot Programme</span>
+    </div>
+  </header>
+
+  <main class="charter-content">
+
+    <!-- Section: Data & Control -->
+    <section class="charter-section">
+      <h2 class="charter-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        Data & Control
+      </h2>
+      <p>
+        <strong>Who controls the database?</strong> Community Connect is community-governed. The platform operator acts as a custodian — they maintain the technology but don't own or control your community's data.
+      </p>
+      <ul>
+        <li>Your data stays local to your community</li>
+        <li>The operator maintains the software but follows community decisions</li>
+        <li>No data is sold or shared with third parties for commercial purposes</li>
+        <li>You can request your data or ask for it to be deleted</li>
+      </ul>
+      <div class="highlight-box">
+        <p><strong>Think of it like a village hall:</strong> Someone keeps the lights on and the doors open, but the community decides what happens inside.</p>
+      </div>
+    </section>
+
+    <!-- Section: How Rules Change -->
+    <section class="charter-section">
+      <h2 class="charter-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        How Rules Change
+      </h2>
+      <p>
+        Changes to how Community Connect works require community approval. We don't change the rules behind closed doors.
+      </p>
+      <ul>
+        <li>Policy proposals are shared with all members</li>
+        <li>Changes require approval from the community panel or a vote</li>
+        <li>All policy changes are logged and visible</li>
+        <li>Members can suggest changes through the feedback system</li>
+      </ul>
+    </section>
+
+    <!-- Section: No Pooled Funds -->
+    <section class="charter-section">
+      <h2 class="charter-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23"/>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+        No Pooled Funds
+      </h2>
+      <p>
+        <strong>We avoid pooled money.</strong> There's no community fund, no membership fees going into a central pot, and no treasurer controlling cash.
+      </p>
+      <ul>
+        <li>Balance credits are not money — they're bookkeeping entries</li>
+        <li>Credits cannot be exchanged for cash</li>
+        <li>No one can "run off with the money" because there is no money</li>
+        <li>All balance changes are logged and transparent</li>
+      </ul>
+      <div class="highlight-box">
+        <p><strong>Why this matters:</strong> Pooled funds create risk of mismanagement. Our credit system tracks fairness without anyone handling actual money.</p>
+      </div>
+    </section>
+
+    <!-- Section: Your Data -->
+    <section class="charter-section">
+      <h2 class="charter-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Your Data
+      </h2>
+      <p>
+        Your information is kept locally and used only to help the community function.
+      </p>
+      <ul>
+        <li>We collect only what's needed: name, contact, exchange history</li>
+        <li>Your data is visible only to other community members</li>
+        <li>We don't share data with advertisers or data brokers</li>
+        <li>You can see and export your own data anytime</li>
+      </ul>
+      <p>
+        <a href="privacy.html" style="color: var(--color-primary);">Read our full Privacy Policy →</a>
+      </p>
+    </section>
+
+    <!-- Governance Model Box -->
+    <div class="governance-box">
+      <h3 class="governance-box-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Governance Model (Pilot)
+      </h3>
+      <ul class="governance-list">
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Moderators are elected or appointed locally by the community</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Policy changes require approval by the community panel or vote</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>All moderator and admin actions are logged in the audit trail</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>During pilot: the community can revise rules or stop at any time</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Current Moderators -->
+    <section class="charter-section">
+      <h2 class="charter-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        Current Moderators
+      </h2>
+      <div id="moderators-list" style="margin-top: var(--space-3);">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- Links -->
+    <nav class="charter-nav">
+      <a href="safety.html" class="btn btn-outline">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Safety & Liability
+      </a>
+      <a href="audit.html" class="btn btn-outline">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        View Audit Log
+      </a>
+      <a href="terms.html" class="btn btn-ghost">Terms & Conditions</a>
+    </nav>
+
+    <div class="highlight-box" style="margin-top: var(--space-6);">
+      <p><strong>Have an idea?</strong> Use the feedback form to suggest changes — proposals are reviewed by the community. <a href="feedback.html" style="color: var(--color-primary);">Give feedback →</a></p>
+    </div>
+
+  </main>
+
+  <footer class="charter-footer">
+    <a href="index.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12"/>
+        <polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Back to Home
+    </a>
+  </footer>
+
+  <script>
+    // Populate moderators list
+    function renderModerators() {
+      const moderators = getModerators();
+      const container = document.getElementById('moderators-list');
+
+      if (!moderators || moderators.length === 0) {
+        container.innerHTML = '<p style="color: var(--color-text-muted); font-size: var(--font-size-sm);">No moderators assigned yet.</p>';
+        return;
+      }
+
+      container.innerHTML = moderators.map(mod => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: var(--color-bg-muted); border-radius: var(--radius-md); margin-bottom: var(--space-2);">
+          <div>
+            <div style="font-weight: var(--font-weight-medium); color: var(--color-text);">${mod.name}</div>
+            <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">${mod.role}</div>
+          </div>
+          <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Since ${formatGovernanceDate(mod.since)}</div>
+        </div>
+      `).join('');
+    }
+
+    // Initialize
+    renderModerators();
+  </script>
+</body>
+</html>
