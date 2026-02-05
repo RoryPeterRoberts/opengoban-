@@ -1,0 +1,2322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Community Connect — Neighbours helping neighbours</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    /* Balance Chip Styles */
+    .balance-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-accent-bg) 100%);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-full);
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-primary);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      box-shadow: var(--shadow-sm);
+      min-height: 40px;
+    }
+
+    .balance-chip:hover {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+      transform: scale(1.05);
+      box-shadow: var(--shadow-md);
+    }
+
+    .balance-chip:active {
+      transform: scale(0.98);
+    }
+
+    .balance-chip svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .balance-chip-value {
+      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-base);
+    }
+
+    /* Header with balance */
+    .app-header-with-balance {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: var(--space-5) var(--space-4) var(--space-4);
+      margin-bottom: var(--space-2);
+      gap: var(--space-1);
+    }
+
+    .app-header-with-balance .app-logo {
+      justify-content: center;
+      margin-bottom: 0;
+    }
+
+    .app-header-with-balance .app-tagline {
+      text-align: center;
+      margin: 0;
+      font-size: var(--font-size-sm);
+    }
+
+    /* User Identity Section */
+    .user-identity-section {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      margin-top: var(--space-2);
+      padding-top: var(--space-2);
+      border-top: 1px solid var(--color-border-light);
+      width: 100%;
+      max-width: 280px;
+    }
+
+    .user-identity-strip {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .user-identity-strip a {
+      color: var(--color-text-muted);
+      text-decoration: none;
+      transition: color var(--transition-fast);
+    }
+
+    .user-identity-strip a:hover {
+      color: var(--color-primary);
+    }
+
+    .user-name {
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-secondary);
+    }
+
+    .member-id {
+      font-family: var(--font-family-mono, monospace);
+      color: var(--color-text-muted);
+      font-size: var(--font-size-xs);
+    }
+
+    /* Trust Signals Compact */
+    .trust-signals-compact {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-3);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .trust-signal-item {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .reliability-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .reliability-badge.low {
+      background: var(--color-bg-muted);
+      color: var(--color-text-muted);
+    }
+
+    .reliability-badge.medium {
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+    }
+
+    .reliability-badge.high {
+      background: var(--color-status-accepted-bg);
+      color: var(--color-status-accepted);
+    }
+
+    /* Author Strip for Posts/Listings */
+    .author-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-3);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-3);
+    }
+
+    .author-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .author-name {
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+    }
+
+    .author-member-id {
+      font-family: var(--font-family-mono, monospace);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    /* Dev Panel */
+    .dev-panel {
+      position: fixed;
+      bottom: var(--space-4);
+      right: var(--space-4);
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      box-shadow: var(--shadow-lg);
+      z-index: 9999;
+      max-width: 280px;
+      font-size: var(--font-size-sm);
+    }
+
+    .dev-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-3);
+      padding-bottom: var(--space-2);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .dev-panel-title {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-size: var(--font-size-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .dev-panel-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--color-text-muted);
+      padding: var(--space-1);
+    }
+
+    .dev-panel-stats {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      margin-bottom: var(--space-3);
+    }
+
+    .dev-stat {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--font-size-xs);
+    }
+
+    .dev-stat-label {
+      color: var(--color-text-muted);
+    }
+
+    .dev-stat-value {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-family: var(--font-family-mono, monospace);
+    }
+
+    .dev-panel-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .dev-btn {
+      padding: var(--space-2) var(--space-3);
+      font-size: var(--font-size-xs);
+      background: var(--color-bg-muted);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .dev-btn:hover {
+      background: var(--color-primary-bg);
+      border-color: var(--color-primary);
+    }
+
+    /* Balance Modal Styles */
+    .balance-modal-content {
+      text-align: center;
+    }
+
+    .balance-display {
+      padding: var(--space-6) 0;
+    }
+
+    .balance-amount {
+      font-family: var(--font-family-heading);
+      font-size: 4rem;
+      font-weight: var(--font-weight-bold);
+      color: var(--color-primary);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .balance-label {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .balance-explanation {
+      background: var(--color-secondary-bg);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      margin: var(--space-4) 0;
+      text-align: left;
+    }
+
+    .balance-explanation p {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin: 0;
+    }
+
+    .balance-explanation strong {
+      color: var(--color-text);
+    }
+
+    /* Recent Adjustments */
+    .adjustments-section {
+      margin-top: var(--space-6);
+      text-align: left;
+    }
+
+    .adjustments-title {
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: var(--space-3);
+    }
+
+    .adjustment-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .adjustment-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-3);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+    }
+
+    .adjustment-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .adjustment-reason {
+      font-size: var(--font-size-sm);
+      color: var(--color-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .adjustment-date {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+
+    .adjustment-amount {
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-sm);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+    }
+
+    .adjustment-amount.positive {
+      color: var(--color-status-accepted);
+      background: var(--color-status-accepted-bg);
+    }
+
+    .adjustment-amount.negative {
+      color: var(--color-status-hold);
+      background: var(--color-status-hold-bg);
+    }
+
+    .no-adjustments {
+      text-align: center;
+      padding: var(--space-4);
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+    }
+
+    .balance-learn-more {
+      margin-top: var(--space-4);
+      text-align: center;
+    }
+
+    .balance-learn-more a {
+      color: var(--color-primary);
+      font-size: var(--font-size-sm);
+      text-decoration: none;
+    }
+
+    .balance-learn-more a:hover {
+      text-decoration: underline;
+    }
+
+    /* Balance Delta on listings/posts */
+    .balance-delta {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .balance-delta.credit {
+      background: var(--color-status-accepted-bg);
+      color: var(--color-status-accepted);
+    }
+
+    .balance-delta.debit {
+      background: var(--color-status-hold-bg);
+      color: var(--color-status-hold);
+    }
+
+    .balance-delta svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .balance-delta-note {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+      text-align: center;
+    }
+
+    /* High-Risk Category Tooltip */
+    .category-item-wrapper {
+      position: relative;
+      display: contents;
+    }
+
+    .category-item.has-info {
+      position: relative;
+    }
+
+    .category-info-icon {
+      position: absolute;
+      top: var(--space-2);
+      right: var(--space-2);
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-bg-muted);
+      border-radius: 50%;
+      color: var(--color-text-muted);
+      font-size: 11px;
+      font-weight: var(--font-weight-bold);
+      cursor: help;
+      transition: all var(--transition-fast);
+    }
+
+    .category-info-icon:hover {
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+    }
+
+    .category-tooltip {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-top: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      white-space: normal;
+      width: max-content;
+      max-width: 220px;
+      text-align: left;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity var(--transition-fast), visibility var(--transition-fast);
+      pointer-events: none;
+    }
+
+    .category-tooltip::before {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-bottom-color: var(--color-border);
+    }
+
+    .category-tooltip::after {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-bottom-color: var(--color-bg-card);
+    }
+
+    .category-info-icon:hover + .category-tooltip,
+    .category-info-icon:focus + .category-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    @media (max-width: 480px) {
+      .category-tooltip {
+        left: auto;
+        right: 0;
+        transform: none;
+        max-width: 180px;
+      }
+
+      .category-tooltip::before,
+      .category-tooltip::after {
+        left: auto;
+        right: var(--space-3);
+        transform: none;
+      }
+    }
+
+    /* What This Is Banner */
+    .what-this-is {
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      margin-bottom: var(--space-6);
+    }
+
+    .what-this-is-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    .what-this-is-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--color-primary-bg);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-primary);
+      flex-shrink: 0;
+    }
+
+    .what-this-is-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .what-this-is-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .what-this-is-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 var(--space-4) 0;
+    }
+
+    .what-this-is-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+      padding: var(--space-2) 0;
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .what-this-is-list li svg {
+      width: 16px;
+      height: 16px;
+      color: var(--color-primary);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .what-this-is-links {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .what-this-is-links a {
+      font-size: var(--font-size-sm);
+      color: var(--color-primary);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .what-this-is-links a:hover {
+      text-decoration: underline;
+    }
+
+    .what-this-is-links a svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Pilot Badge */
+    .pilot-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .pilot-note {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+    }
+
+    /* Governance Widget */
+    .governance-widget {
+      background: var(--color-bg-warm);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      margin-bottom: var(--space-6);
+    }
+
+    .governance-widget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-3);
+    }
+
+    .governance-widget-title {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .governance-widget-title svg {
+      width: 16px;
+      height: 16px;
+      color: var(--color-primary);
+    }
+
+    .governance-widget-content {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+    }
+
+    .governance-widget-row {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--space-2) 0;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .governance-widget-row:last-child {
+      border-bottom: none;
+    }
+
+    .governance-widget-label {
+      color: var(--color-text-muted);
+    }
+
+    .governance-widget-value {
+      color: var(--color-text);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .governance-widget-link {
+      display: block;
+      text-align: center;
+      margin-top: var(--space-3);
+      font-size: var(--font-size-xs);
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .governance-widget-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Area Selection */
+    .area-select {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .area-option {
+      display: flex;
+      align-items: center;
+      padding: var(--space-3);
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .area-option:hover {
+      border-color: var(--color-primary);
+    }
+
+    .area-option.selected {
+      border-color: var(--color-primary);
+      background: var(--color-primary-bg);
+    }
+
+    .area-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .area-option-radio {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--color-border);
+      border-radius: 50%;
+      margin-right: var(--space-3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .area-option.selected .area-option-radio {
+      border-color: var(--color-primary);
+    }
+
+    .area-option.selected .area-option-radio::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      background: var(--color-primary);
+      border-radius: 50%;
+    }
+
+    .area-option-content {
+      flex: 1;
+    }
+
+    .area-option-label {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text);
+    }
+
+    .area-option-desc {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    /* Travel Notice */
+    .travel-notice {
+      background: var(--color-status-review-bg);
+      border-left: 3px solid var(--color-status-review);
+      padding: var(--space-3);
+      border-radius: var(--radius-sm);
+      margin-top: var(--space-3);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      display: none;
+    }
+
+    .travel-notice.visible {
+      display: block;
+    }
+
+    /* Safety Warning Panel */
+    .safety-warning {
+      background: var(--color-status-hold-bg);
+      border: 2px solid rgba(var(--color-status-hold-rgb, 194, 65, 12), 0.3);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      margin: var(--space-4) 0;
+      display: none;
+    }
+
+    .safety-warning.visible {
+      display: block;
+    }
+
+    .safety-warning-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-3);
+    }
+
+    .safety-warning-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--color-status-hold);
+    }
+
+    .safety-warning-title {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-status-hold);
+    }
+
+    .safety-warning-text {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin-bottom: var(--space-3);
+    }
+
+    .safety-checkbox {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--color-bg-card);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+    }
+
+    .safety-checkbox input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+      accent-color: var(--color-primary);
+    }
+
+    .safety-checkbox-label {
+      font-size: var(--font-size-sm);
+      color: var(--color-text);
+      line-height: var(--line-height-relaxed);
+    }
+
+    /* Area Tag on listings */
+    .area-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      background: var(--color-bg-muted);
+      color: var(--color-text-muted);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+    }
+
+    .area-tag svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    .area-tag.near-you {
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+    }
+
+    /* Feedback FAB Button */
+    .feedback-fab {
+      position: fixed;
+      bottom: var(--space-4);
+      right: var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      background: var(--color-primary);
+      color: white;
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-full);
+      border: none;
+      cursor: pointer;
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      font-family: var(--font-family);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      transition: all var(--transition-fast);
+    }
+
+    .feedback-fab:hover {
+      background: var(--color-primary-dark);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-xl);
+    }
+
+    .feedback-fab:active {
+      transform: translateY(0);
+    }
+
+    .feedback-fab svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Feedback Modal Styles */
+    .feedback-type-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    .feedback-type-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: var(--space-4);
+      background: var(--color-bg-warm);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .feedback-type-option:hover {
+      border-color: var(--color-secondary);
+      background: var(--color-bg-muted);
+    }
+
+    .feedback-type-option.selected {
+      border-color: var(--color-primary);
+      background: var(--color-primary-bg);
+    }
+
+    .feedback-type-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .feedback-type-emoji {
+      font-size: 1.5rem;
+      margin-bottom: var(--space-2);
+    }
+
+    .feedback-type-label {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text);
+    }
+
+    .feedback-type-desc {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+  </style>
+</head>
+<body>
+  <script src="shared.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // Require valid session to access main app
+    if (!requireAuth()) {
+      // requireAuth() redirects if not authenticated
+      document.body.style.display = 'none';
+    }
+  </script>
+
+  <!-- ============================================================
+       SCREEN 0: HOME
+       ============================================================ -->
+  <div id="screen-home" class="screen active">
+    <div class="container">
+      <!-- App Header -->
+      <header class="app-header-with-balance">
+        <div class="app-logo">
+          <div class="app-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+          <span class="app-logo-text">Community Connect</span>
+        </div>
+        <p class="app-tagline">Neighbours helping neighbours.</p>
+        <div class="user-identity-section">
+          <div class="user-identity-strip">
+            <a href="profile.html" class="user-name" id="header-user-name">You</a>
+            <span>•</span>
+            <span class="member-id" id="header-member-id">CC-0001</span>
+          </div>
+          <button class="balance-chip" onclick="openBalanceModal()" aria-label="View balance">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            <span class="balance-chip-value" id="balance-chip-value">0</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Welcome Card -->
+      <div class="card card-welcome mb-6">
+        <h2 class="card-title">Welcome to the village exchange</h2>
+        <p class="card-subtitle mt-2">Share what you have. Ask for what you need.</p>
+        <div style="margin-top: var(--space-3);">
+          <span class="pilot-badge">Pilot Programme</span>
+          <p class="pilot-note">Trial period — the community can revise rules or stop at any time.</p>
+        </div>
+      </div>
+
+      <!-- What This Is Banner -->
+      <div class="what-this-is">
+        <div class="what-this-is-header">
+          <div class="what-this-is-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h3 class="what-this-is-title">What Community Connect is</h3>
+        </div>
+        <ul class="what-this-is-list">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>A local noticeboard to ask for and offer help.</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>A shared balance ledger to keep exchanges fair.</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Not a club, not an organiser, and not an insurer.</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Balance is not money and can't be exchanged for cash.</span>
+          </li>
+        </ul>
+        <div class="what-this-is-links">
+          <a href="charter.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Read the Community Charter
+          </a>
+          <a href="safety.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Safety & Liability
+          </a>
+        </div>
+      </div>
+
+      <!-- Main Actions -->
+      <div class="flex flex-col gap-4 mb-6">
+        <button class="btn btn-secondary btn-xl btn-block" onclick="selectMode('need')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          I need something
+        </button>
+
+        <button class="btn btn-primary btn-xl btn-block" onclick="selectMode('offer')">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+          I can offer help
+        </button>
+      </div>
+
+      <!-- Community Needs Widget -->
+      <div class="needs-widget mb-6" id="needs-widget">
+        <h3 class="needs-widget-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          What the community needs right now
+        </h3>
+        <div class="needs-tags" id="needs-tags"></div>
+      </div>
+
+      <!-- Invite Section -->
+      <div class="card card-elevated">
+        <div class="card-header">
+          <h3 class="card-title">Grow your village</h3>
+          <p class="card-subtitle">Know someone who'd like to join?</p>
+        </div>
+        <button class="btn btn-outline btn-block" onclick="openInviteModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          Invite a neighbour
+        </button>
+
+        <!-- Pending Invites -->
+        <div class="invite-widget" id="pending-invites" style="display: none;">
+          <div class="invite-widget-header">
+            <span class="invite-widget-title">Your invites</span>
+            <span class="invite-widget-count" id="invite-count">0</span>
+          </div>
+          <div id="invite-list"></div>
+          <a href="review.html" class="btn btn-ghost btn-sm btn-block mt-4">
+            Open Review Panel →
+          </a>
+        </div>
+      </div>
+
+      <!-- Governance Widget -->
+      <div class="governance-widget" id="governance-widget">
+        <div class="governance-widget-header">
+          <span class="governance-widget-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Governance (Pilot)
+          </span>
+          <span class="pilot-badge">Pilot</span>
+        </div>
+        <div class="governance-widget-content">
+          <div class="governance-widget-row">
+            <span class="governance-widget-label">Moderators</span>
+            <span class="governance-widget-value" id="gov-moderator-count">2</span>
+          </div>
+          <div class="governance-widget-row">
+            <span class="governance-widget-label">Last policy change</span>
+            <span class="governance-widget-value" id="gov-last-policy">—</span>
+          </div>
+          <div class="governance-widget-row">
+            <span class="governance-widget-label">Pilot ends</span>
+            <span class="governance-widget-value" id="gov-pilot-end">—</span>
+          </div>
+        </div>
+        <a href="audit.html" class="governance-widget-link">View audit log →</a>
+      </div>
+
+      <!-- Footer -->
+      <footer class="app-footer">
+        <div class="app-footer-text">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+            <circle cx="12" cy="10" r="3"/>
+          </svg>
+          Made for local communities.
+        </div>
+        <div style="margin-top: var(--space-3);">
+          <a href="charter.html" style="color: var(--color-text-muted); font-size: var(--font-size-xs); text-decoration: none; display: inline-flex; align-items: center; gap: var(--space-1);">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+            Governance & Data
+          </a>
+          <span style="color: var(--color-text-muted); margin: 0 var(--space-2);">·</span>
+          <a href="terms.html" style="color: var(--color-text-muted); font-size: var(--font-size-xs); text-decoration: none; display: inline-flex; align-items: center; gap: var(--space-1);">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Terms
+          </a>
+          <span style="color: var(--color-text-muted); margin: 0 var(--space-2);">·</span>
+          <a href="privacy.html" style="color: var(--color-text-muted); font-size: var(--font-size-xs); text-decoration: none; display: inline-flex; align-items: center; gap: var(--space-1);">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Privacy
+          </a>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 1: CATEGORY SELECTION
+       ============================================================ -->
+  <div id="screen-category" class="screen">
+    <div class="container">
+      <header class="app-header-minimal" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: var(--space-2);">
+          <button class="btn btn-icon btn-ghost" onclick="goBack()" aria-label="Go back">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </button>
+          <div class="app-logo">
+            <div class="app-logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </div>
+            <span class="app-logo-text">Community Connect</span>
+          </div>
+        </div>
+        <button class="balance-chip" onclick="openBalanceModal()" aria-label="View balance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          <span class="balance-chip-value">0</span>
+        </button>
+      </header>
+
+      <div class="card card-elevated mb-4">
+        <h2 class="card-title" id="category-title">What do you need?</h2>
+        <p class="card-subtitle">Pick the closest match — you can add tags next.</p>
+      </div>
+
+      <div class="category-list" id="category-list"></div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 2: DESCRIBE
+       ============================================================ -->
+  <div id="screen-describe" class="screen">
+    <div class="container">
+      <header class="app-header-minimal" style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: var(--space-2);">
+          <button class="btn btn-icon btn-ghost" onclick="goBack()" aria-label="Go back">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </button>
+          <div class="app-logo">
+            <div class="app-logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+            </div>
+            <span class="app-logo-text">Community Connect</span>
+          </div>
+        </div>
+        <button class="balance-chip" onclick="openBalanceModal()" aria-label="View balance">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          <span class="balance-chip-value">0</span>
+        </button>
+      </header>
+
+      <div class="card card-elevated">
+        <div class="card-header">
+          <h2 class="card-title">Tell us more</h2>
+          <p class="card-subtitle">A few details help neighbours find you.</p>
+        </div>
+
+        <!-- Voice/Text Input -->
+        <div class="text-center mb-6">
+          <button class="btn btn-icon btn-outline" onclick="simulateMic()" style="width: 80px; height: 80px; border-radius: 50%;" aria-label="Voice input">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </button>
+          <p class="text-muted text-sm mt-2">Voice coming soon</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Describe it in one sentence</label>
+          <textarea class="textarea" id="description-input" placeholder="e.g., Need help moving a sofa this Saturday..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tags (optional)</label>
+          <input type="text" class="input" id="tags-input" placeholder="e.g. gardening, babysitting, potatoes">
+          <p class="form-hint">Separate with commas</p>
+        </div>
+
+        <!-- Area Selection (Required) -->
+        <div class="form-group">
+          <label class="form-label">Area <span style="color: var(--color-status-hold);">*</span></label>
+          <div class="area-select" id="area-select">
+            <label class="area-option selected" data-area="neighbourhood">
+              <input type="radio" name="area" value="neighbourhood" checked>
+              <div class="area-option-radio"></div>
+              <div class="area-option-content">
+                <div class="area-option-label">My neighbourhood</div>
+                <div class="area-option-desc">Walking distance</div>
+              </div>
+            </label>
+            <label class="area-option" data-area="village">
+              <input type="radio" name="area" value="village">
+              <div class="area-option-radio"></div>
+              <div class="area-option-content">
+                <div class="area-option-label">My village</div>
+                <div class="area-option-desc">Local area</div>
+              </div>
+            </label>
+            <label class="area-option" data-area="nearby">
+              <input type="radio" name="area" value="nearby">
+              <div class="area-option-radio"></div>
+              <div class="area-option-content">
+                <div class="area-option-label">Nearby (within 10km)</div>
+                <div class="area-option-desc">Short drive</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Travel Checkbox -->
+        <div class="form-group">
+          <label class="safety-checkbox" style="background: var(--color-bg-muted);">
+            <input type="checkbox" id="travel-needed" onchange="toggleTravelNotice()">
+            <span class="safety-checkbox-label">Travel needed for this exchange</span>
+          </label>
+          <div class="travel-notice" id="travel-notice">
+            Long travel can make exchanges harder. Consider offering remote help or splitting into closer groups. Hyper-local exchanges work best.
+          </div>
+        </div>
+
+        <!-- Pickers -->
+        <div class="form-group">
+          <label class="form-label">When do you need this?</label>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost flex-1" data-picker="urgency" data-value="Now" onclick="selectPicker(this)">Now</button>
+            <button class="btn btn-outline flex-1" data-picker="urgency" data-value="Today" onclick="selectPicker(this)">Today</button>
+            <button class="btn btn-ghost flex-1" data-picker="urgency" data-value="This week" onclick="selectPicker(this)">This week</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Where?</label>
+          <div class="flex gap-2">
+            <button class="btn btn-outline flex-1" data-picker="where" data-value="Here" onclick="selectPicker(this)">Here</button>
+            <button class="btn btn-ghost flex-1" data-picker="where" data-value="Nearby" onclick="selectPicker(this)">Nearby</button>
+            <button class="btn btn-ghost flex-1" data-picker="where" data-value="My place" onclick="selectPicker(this)">My place</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Who can see this?</label>
+          <div class="flex gap-2">
+            <button class="btn btn-outline flex-1" data-picker="privacy" data-value="Public" onclick="selectPicker(this)">Everyone</button>
+            <button class="btn btn-ghost flex-1" data-picker="privacy" data-value="Invitees only" onclick="selectPicker(this)">Invitees only</button>
+          </div>
+        </div>
+
+        <!-- Safety Warning (shown for high-risk categories) -->
+        <div class="safety-warning" id="safety-warning">
+          <div class="safety-warning-header">
+            <svg class="safety-warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span class="safety-warning-title">Safety notice</span>
+          </div>
+          <p class="safety-warning-text">
+            Some help can carry risk. Agree details directly with your neighbour. Community Connect is a noticeboard — we don't provide insurance or supervision.
+          </p>
+          <label class="safety-checkbox">
+            <input type="checkbox" id="safety-confirmed" required>
+            <span class="safety-checkbox-label">I understand Community Connect is a noticeboard and I'm responsible for assessing safety.</span>
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-lg btn-block mt-6" id="submit-btn" onclick="submitPost()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          Post to community
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 3: SUCCESS
+       ============================================================ -->
+  <div id="screen-success" class="screen">
+    <div class="status-page">
+      <div class="status-card">
+        <div class="status-icon">🌿</div>
+        <h1 class="status-title" style="color: var(--color-status-accepted);">Posted!</h1>
+        <p class="status-message">Your neighbours will see this soon. Good things take root in community.</p>
+
+        <div class="card mb-6" id="summary-card"></div>
+
+        <button class="btn btn-primary btn-block" onclick="startOver()">Back to home</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       INVITE MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="invite-modal">
+    <div class="modal">
+      <!-- Form View -->
+      <div id="invite-form-view">
+        <div class="modal-header">
+          <h2 class="modal-title">Invite a neighbour</h2>
+          <p class="modal-subtitle">Help grow the village exchange by inviting people you trust.</p>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Their name <span class="required">*</span></label>
+            <input type="text" class="input" id="invite-name" placeholder="e.g., Sarah">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Note to yourself (optional)</label>
+            <input type="text" class="input" id="invite-note" placeholder="e.g., Lives on Oak Street">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeInviteModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="sendInvite()">
+            Create invite link
+          </button>
+        </div>
+      </div>
+
+      <!-- Success View with Link -->
+      <div id="invite-success-view" style="display: none;">
+        <div class="modal-header">
+          <h2 class="modal-title">✓ Invite created!</h2>
+          <p class="modal-subtitle">Share this link with <strong id="invite-success-name"></strong></p>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Invite link</label>
+            <div style="display: flex; gap: var(--space-2);">
+              <input type="text" class="input" id="invite-link" readonly style="font-size: var(--font-size-sm); background: var(--color-bg-warm);">
+              <button class="btn btn-primary" onclick="copyInviteLink()" id="copy-btn">Copy</button>
+            </div>
+          </div>
+
+          <div style="margin-top: var(--space-4); padding: var(--space-4); background: var(--color-bg-warm); border-radius: var(--radius-md);">
+            <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin: 0;">
+              <strong>Send via:</strong> WhatsApp, text message, or email.<br>
+              They'll use this link to join and set up their profile.
+            </p>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-ghost" onclick="closeInviteModal()">Done</button>
+          <button class="btn btn-secondary" onclick="shareInviteLink()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            Share
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       BALANCE MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="balance-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Your Balance</h2>
+        <p class="modal-subtitle">Community credits earned through helping neighbours.</p>
+      </div>
+
+      <div class="modal-body balance-modal-content">
+        <div class="balance-display">
+          <div class="balance-amount" id="balance-modal-amount">0</div>
+          <div class="balance-label">Community Credits</div>
+        </div>
+
+        <div class="balance-explanation">
+          <p>
+            <strong>How it works:</strong> When you help a neighbour, you earn credits.
+            When you receive help, you spend credits. This keeps the community exchange
+            balanced and fair for everyone.
+          </p>
+        </div>
+
+        <div class="adjustments-section">
+          <div class="adjustments-title">Recent Activity</div>
+          <div class="adjustment-list" id="adjustment-list">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <div class="balance-learn-more">
+          <a href="terms.html#credits">Learn more about community credits →</a>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-block" onclick="closeBalanceModal()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       FEEDBACK MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="feedback-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">Send Feedback</h2>
+        <p class="modal-subtitle">Help us improve Community Connect.</p>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">What type of feedback?</label>
+          <div class="feedback-type-grid" id="feedback-type-grid">
+            <label class="feedback-type-option selected" data-type="idea">
+              <input type="radio" name="feedback-type" value="idea" checked>
+              <span class="feedback-type-emoji">💡</span>
+              <span class="feedback-type-label">Idea</span>
+              <span class="feedback-type-desc">Feature suggestion</span>
+            </label>
+            <label class="feedback-type-option" data-type="bug">
+              <input type="radio" name="feedback-type" value="bug">
+              <span class="feedback-type-emoji">🐛</span>
+              <span class="feedback-type-label">Bug</span>
+              <span class="feedback-type-desc">Something broken</span>
+            </label>
+            <label class="feedback-type-option" data-type="question">
+              <input type="radio" name="feedback-type" value="question">
+              <span class="feedback-type-emoji">❓</span>
+              <span class="feedback-type-label">Question</span>
+              <span class="feedback-type-desc">Need clarification</span>
+            </label>
+            <label class="feedback-type-option" data-type="other">
+              <input type="radio" name="feedback-type" value="other">
+              <span class="feedback-type-emoji">💬</span>
+              <span class="feedback-type-label">Other</span>
+              <span class="feedback-type-desc">General feedback</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Your message</label>
+          <textarea class="textarea" id="feedback-message" placeholder="Tell us what's on your mind..." rows="4"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeFeedbackModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitFeedback()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          Send Feedback
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       FEEDBACK FAB BUTTON
+       ============================================================ -->
+  <button class="feedback-fab" onclick="openFeedbackModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+    Feedback
+  </button>
+
+  <script>
+    // =====================================================
+    // STATE
+    // =====================================================
+    const state = {
+      mode: null,
+      category: null,
+      description: '',
+      tags: '',
+      area: 'neighbourhood',
+      travelNeeded: false,
+      urgency: 'Today',
+      where: 'Here',
+      privacy: 'Public',
+      safetyConfirmed: false
+    };
+
+    // High-risk categories that require safety confirmation
+    const SAFETY_RISK_CATEGORIES = ['care_support', 'home_property', 'tools_things'];
+
+    const screenHistory = ['screen-home'];
+
+    // =====================================================
+    // NAVIGATION
+    // =====================================================
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+      window.scrollTo(0, 0);
+    }
+
+    function navigateTo(screenId) {
+      screenHistory.push(screenId);
+      showScreen(screenId);
+    }
+
+    function goBack() {
+      if (screenHistory.length > 1) {
+        screenHistory.pop();
+        const prevScreen = screenHistory[screenHistory.length - 1];
+        showScreen(prevScreen);
+      }
+    }
+
+    // =====================================================
+    // MODE & CATEGORY SELECTION
+    // =====================================================
+    function selectMode(mode) {
+      state.mode = mode;
+      const title = mode === 'need' ? 'What do you need?' : 'What can you offer?';
+      document.getElementById('category-title').textContent = title;
+      renderCategories();
+      navigateTo('screen-category');
+    }
+
+    // High-risk categories defined in shared.js
+
+    function renderCategories() {
+      const list = document.getElementById('category-list');
+      list.innerHTML = CATEGORIES.map(cat => {
+        const isHighRisk = HIGH_RISK_CATEGORIES.includes(cat.id);
+        const isEvents = cat.id === 'events_community';
+
+        // Tooltip for high-risk or events categories
+        let infoIcon = '';
+        if (isHighRisk) {
+          infoIcon = `
+            <span class="category-info-icon" tabindex="0" aria-label="More information">i</span>
+            <span class="category-tooltip">Some categories may require a minimum exchange history in future versions.</span>
+          `;
+        } else if (isEvents) {
+          infoIcon = `
+            <span class="category-info-icon" tabindex="0" aria-label="More information">i</span>
+            <span class="category-tooltip">Members arrange meetups independently. Community Connect is only a noticeboard.</span>
+          `;
+        }
+
+        // Hint text for events category
+        const hintText = cat.hint ? `<span style="font-size: var(--font-size-xs); color: var(--color-text-muted); display: block;">${cat.hint}</span>` : '';
+
+        return `
+          <button class="category-item ${isHighRisk || isEvents ? 'has-info' : ''}" onclick="selectCategory('${cat.id}')">
+            <span class="emoji">${cat.emoji}</span>
+            <span>${cat.label}${hintText}</span>
+            ${infoIcon}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectCategory(categoryId) {
+      state.category = categoryId;
+      // Show/hide safety warning based on category risk
+      updateSafetyWarning();
+      navigateTo('screen-describe');
+    }
+
+    function updateSafetyWarning() {
+      const warningEl = document.getElementById('safety-warning');
+      const isHighRisk = SAFETY_RISK_CATEGORIES.includes(state.category);
+      if (warningEl) {
+        warningEl.classList.toggle('visible', isHighRisk);
+      }
+    }
+
+    function toggleTravelNotice() {
+      const checkbox = document.getElementById('travel-needed');
+      const notice = document.getElementById('travel-notice');
+      state.travelNeeded = checkbox.checked;
+      if (notice) {
+        notice.classList.toggle('visible', checkbox.checked);
+      }
+    }
+
+    function initAreaSelection() {
+      const areaOptions = document.querySelectorAll('.area-option');
+      areaOptions.forEach(option => {
+        option.addEventListener('click', () => {
+          // Update visual state
+          areaOptions.forEach(o => o.classList.remove('selected'));
+          option.classList.add('selected');
+          // Update state
+          const radio = option.querySelector('input[type="radio"]');
+          if (radio) {
+            radio.checked = true;
+            state.area = radio.value;
+          }
+        });
+      });
+    }
+
+    // =====================================================
+    // DESCRIBE SCREEN
+    // =====================================================
+    function selectPicker(btn) {
+      const picker = btn.dataset.picker;
+      const value = btn.dataset.value;
+      state[picker] = value;
+
+      document.querySelectorAll(`[data-picker="${picker}"]`).forEach(b => {
+        b.classList.remove('btn-outline');
+        b.classList.add('btn-ghost');
+      });
+      btn.classList.remove('btn-ghost');
+      btn.classList.add('btn-outline');
+    }
+
+    function simulateMic() {
+      const input = document.getElementById('description-input');
+      input.focus();
+      input.placeholder = 'Voice coming soon... Type here for now.';
+    }
+
+    function submitPost() {
+      state.description = document.getElementById('description-input').value;
+      state.tags = document.getElementById('tags-input').value;
+
+      // Check safety confirmation for high-risk categories
+      const isHighRisk = SAFETY_RISK_CATEGORIES.includes(state.category);
+      if (isHighRisk) {
+        const safetyCheckbox = document.getElementById('safety-confirmed');
+        if (!safetyCheckbox.checked) {
+          showToast('Please confirm you understand the safety notice');
+          safetyCheckbox.focus();
+          return;
+        }
+        state.safetyConfirmed = true;
+      }
+
+      // Get area selection
+      const selectedArea = document.querySelector('input[name="area"]:checked');
+      if (selectedArea) {
+        state.area = selectedArea.value;
+      }
+
+      // Get travel needed
+      const travelCheckbox = document.getElementById('travel-needed');
+      state.travelNeeded = travelCheckbox ? travelCheckbox.checked : false;
+
+      // Mock balance adjustment on post
+      // Offers don't immediately change balance (credit comes when help is given)
+      // Needs don't immediately change balance (debit comes when help is received)
+      // For demo, we show the potential delta
+      state.potentialDelta = state.mode === 'offer' ? '+1' : '-1';
+
+      renderSummary();
+      navigateTo('screen-success');
+    }
+
+    // =====================================================
+    // SUCCESS SCREEN
+    // =====================================================
+    function renderSummary() {
+      const modeLabel = state.mode === 'need' ? 'Need' : 'Offer';
+      const category = getCategoryById(state.category);
+      const isOffer = state.mode === 'offer';
+      const user = getCurrentUser();
+      const trustSignals = getUserTrustSignals(user);
+
+      // Balance delta display
+      const deltaClass = isOffer ? 'credit' : 'debit';
+      const deltaIcon = isOffer
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>`;
+      const deltaNote = isOffer
+        ? 'You\'ll earn 1 credit when someone accepts your help'
+        : 'You\'ll spend 1 credit when a neighbour helps you';
+
+      document.getElementById('summary-card').innerHTML = `
+        <!-- Author Identity Strip -->
+        <div class="author-strip">
+          <div class="author-info">
+            <span class="author-name">${user.name}</span>
+            <span class="author-member-id">${user.memberId}</span>
+          </div>
+          <div class="trust-signals-compact">
+            <span class="trust-signal-item">Exchanges: ${trustSignals.exchangesCompleted}</span>
+            <span class="reliability-badge ${trustSignals.reliabilityBand.toLowerCase()}">${trustSignals.reliabilityBand}</span>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border-light);">
+          <span class="text-muted">Type</span>
+          <span class="status-pill ${state.mode === 'need' ? 'status-pill-review' : 'status-pill-accepted'}">${modeLabel}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border-light);">
+          <span class="text-muted">Category</span>
+          <span>${category.emoji} ${category.label}</span>
+        </div>
+        ${state.description ? `
+        <div style="display: flex; justify-content: space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border-light);">
+          <span class="text-muted">Details</span>
+          <span style="text-align: right; max-width: 60%;">${state.description}</span>
+        </div>
+        ` : ''}
+        <div style="display: flex; justify-content: space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border-light);">
+          <span class="text-muted">When</span>
+          <span>${state.urgency}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border-light);">
+          <span class="text-muted">Area</span>
+          <span class="area-tag ${isNearUser(state.area) ? 'near-you' : ''}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            ${state.area === 'neighbourhood' ? 'Neighbourhood' : state.area === 'village' ? 'Village' : 'Nearby'}
+            ${isNearUser(state.area) ? ' · Near you' : ''}
+          </span>
+        </div>
+        ${state.travelNeeded ? `
+        <div style="display: flex; justify-content: space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border-light);">
+          <span class="text-muted">Travel</span>
+          <span style="color: var(--color-status-review);">Travel may be needed</span>
+        </div>
+        ` : ''}
+        <div style="display: flex; flex-direction: column; align-items: center; padding: var(--space-4) 0;">
+          <span class="balance-delta ${deltaClass}">
+            ${deltaIcon}
+            ${state.potentialDelta} credit
+          </span>
+          <p class="balance-delta-note">${deltaNote}</p>
+        </div>
+      `;
+    }
+
+    function startOver() {
+      state.mode = null;
+      state.category = null;
+      state.description = '';
+      state.tags = '';
+      state.area = 'neighbourhood';
+      state.travelNeeded = false;
+      state.urgency = 'Today';
+      state.where = 'Here';
+      state.privacy = 'Public';
+      state.safetyConfirmed = false;
+
+      document.getElementById('description-input').value = '';
+      document.getElementById('tags-input').value = '';
+
+      // Reset area selection
+      document.querySelectorAll('.area-option').forEach(opt => opt.classList.remove('selected'));
+      const defaultAreaOption = document.querySelector('.area-option[data-area="neighbourhood"]');
+      if (defaultAreaOption) {
+        defaultAreaOption.classList.add('selected');
+        defaultAreaOption.querySelector('input').checked = true;
+      }
+
+      // Reset travel checkbox
+      const travelCheckbox = document.getElementById('travel-needed');
+      if (travelCheckbox) travelCheckbox.checked = false;
+      const travelNotice = document.getElementById('travel-notice');
+      if (travelNotice) travelNotice.classList.remove('visible');
+
+      // Reset safety confirmation
+      const safetyCheckbox = document.getElementById('safety-confirmed');
+      if (safetyCheckbox) safetyCheckbox.checked = false;
+      const safetyWarning = document.getElementById('safety-warning');
+      if (safetyWarning) safetyWarning.classList.remove('visible');
+
+      // Reset picker buttons
+      document.querySelectorAll('[data-picker]').forEach(btn => {
+        btn.classList.remove('btn-outline');
+        btn.classList.add('btn-ghost');
+      });
+      document.querySelector('[data-picker="urgency"][data-value="Today"]').classList.add('btn-outline');
+      document.querySelector('[data-picker="urgency"][data-value="Today"]').classList.remove('btn-ghost');
+      document.querySelector('[data-picker="where"][data-value="Here"]').classList.add('btn-outline');
+      document.querySelector('[data-picker="where"][data-value="Here"]').classList.remove('btn-ghost');
+      document.querySelector('[data-picker="privacy"][data-value="Public"]').classList.add('btn-outline');
+      document.querySelector('[data-picker="privacy"][data-value="Public"]').classList.remove('btn-ghost');
+
+      screenHistory.length = 0;
+      screenHistory.push('screen-home');
+      showScreen('screen-home');
+      renderPendingInvites();
+      renderNeedsWidget();
+    }
+
+    // =====================================================
+    // INVITE MODAL
+    // =====================================================
+    let currentInviteLink = '';
+
+    function openInviteModal() {
+      document.getElementById('invite-modal').classList.add('active');
+      document.getElementById('invite-form-view').style.display = 'block';
+      document.getElementById('invite-success-view').style.display = 'none';
+      document.getElementById('invite-name').focus();
+    }
+
+    function closeInviteModal() {
+      document.getElementById('invite-modal').classList.remove('active');
+      document.getElementById('invite-name').value = '';
+      document.getElementById('invite-note').value = '';
+      currentInviteLink = '';
+    }
+
+    function sendInvite() {
+      const name = document.getElementById('invite-name').value.trim();
+      const note = document.getElementById('invite-note').value.trim();
+
+      if (!name) {
+        showToast('Please enter their name');
+        return;
+      }
+
+      // Create invite with name as identifier
+      const invite = createInvite(name + '@invite', note || name);
+
+      // Generate shareable link
+      const baseUrl = window.location.origin;
+      currentInviteLink = `${baseUrl}/access.html#token=${invite.token}`;
+
+      // Show success view with link
+      document.getElementById('invite-form-view').style.display = 'none';
+      document.getElementById('invite-success-view').style.display = 'block';
+      document.getElementById('invite-success-name').textContent = name;
+      document.getElementById('invite-link').value = currentInviteLink;
+      document.getElementById('copy-btn').textContent = 'Copy';
+
+      renderPendingInvites();
+    }
+
+    function copyInviteLink() {
+      navigator.clipboard.writeText(currentInviteLink).then(() => {
+        document.getElementById('copy-btn').textContent = 'Copied!';
+        setTimeout(() => {
+          document.getElementById('copy-btn').textContent = 'Copy';
+        }, 2000);
+      });
+    }
+
+    function shareInviteLink() {
+      const name = document.getElementById('invite-success-name').textContent;
+      if (navigator.share) {
+        navigator.share({
+          title: 'Join Community Connect',
+          text: `Hi ${name}! Join our community exchange:`,
+          url: currentInviteLink
+        });
+      } else {
+        copyInviteLink();
+        showToast('Link copied - paste it in your message');
+      }
+    }
+
+    // =====================================================
+    // PENDING INVITES WIDGET
+    // =====================================================
+    function renderPendingInvites() {
+      const invites = getInvites();
+      const container = document.getElementById('pending-invites');
+      const list = document.getElementById('invite-list');
+      const count = document.getElementById('invite-count');
+
+      if (invites.length === 0) {
+        container.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'block';
+      count.textContent = invites.length;
+
+      list.innerHTML = invites.map(inv => {
+        const statusClass = inv.status === 'ACCEPTED' || inv.status === 'AUTO_ACCEPT' ? 'status-pill-accepted'
+          : inv.status === 'PENDING_PROFILE' ? 'status-pill-pending'
+          : inv.status === 'HOLD' ? 'status-pill-hold'
+          : 'status-pill-review';
+
+        const statusLabel = STATUS_LABELS[inv.status] || inv.status;
+
+        return `
+          <div class="invite-item">
+            <div class="invite-item-row">
+              <span class="invite-email">${inv.email}</span>
+              <span class="status-pill ${statusClass}">${statusLabel}</span>
+            </div>
+            <div class="invite-actions">
+              <button class="btn btn-sm btn-ghost" onclick="copyInviteLink('${inv.token}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                Copy link
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function copyInviteLink(token) {
+      const url = `${window.location.origin}/join.html?token=${token}`;
+      copyToClipboard(url);
+      showToast('Link copied!');
+    }
+
+    // =====================================================
+    // COMMUNITY NEEDS WIDGET
+    // =====================================================
+    function renderNeedsWidget() {
+      const shortages = getShortageCategories();
+      const container = document.getElementById('needs-tags');
+
+      if (shortages.length === 0) {
+        container.innerHTML = '<span class="text-muted text-sm">The community is well balanced right now.</span>';
+        return;
+      }
+
+      container.innerHTML = shortages.map(cat =>
+        `<span class="needs-tag">${cat.emoji} ${cat.label}</span>`
+      ).join('');
+    }
+
+    // =====================================================
+    // BALANCE MODAL
+    // =====================================================
+    function openBalanceModal() {
+      updateBalanceDisplay();
+      renderAdjustmentsList();
+      document.getElementById('balance-modal').classList.add('active');
+    }
+
+    function closeBalanceModal() {
+      document.getElementById('balance-modal').classList.remove('active');
+    }
+
+    function updateBalanceDisplay() {
+      const balance = getUserBalance();
+      // Update all balance chip values across screens
+      document.querySelectorAll('.balance-chip-value').forEach(el => {
+        el.textContent = balance.credits;
+      });
+      // Update modal amount
+      const modalAmount = document.getElementById('balance-modal-amount');
+      if (modalAmount) {
+        modalAmount.textContent = balance.credits;
+      }
+    }
+
+    function renderAdjustmentsList() {
+      const adjustments = getRecentAdjustments(5);
+      const container = document.getElementById('adjustment-list');
+
+      if (adjustments.length === 0) {
+        container.innerHTML = `
+          <div class="no-adjustments">
+            <p>No activity yet.</p>
+            <p style="margin-top: var(--space-2);">Start by helping a neighbour or posting what you need!</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = adjustments.map(adj => {
+        const isPositive = adj.amount > 0;
+        const amountText = isPositive ? `+${adj.amount}` : adj.amount;
+        const amountClass = isPositive ? 'positive' : 'negative';
+
+        // Format date
+        const date = new Date(adj.timestamp);
+        const formattedDate = date.toLocaleDateString('en-IE', {
+          day: 'numeric',
+          month: 'short'
+        });
+
+        return `
+          <div class="adjustment-item">
+            <div class="adjustment-info">
+              <div class="adjustment-reason">${adj.reason}</div>
+              <div class="adjustment-date">${formattedDate}</div>
+            </div>
+            <div class="adjustment-amount ${amountClass}">${amountText}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // =====================================================
+    // USER IDENTITY DISPLAY
+    // =====================================================
+    function updateUserIdentityDisplay() {
+      const user = getCurrentUser();
+      const nameEl = document.getElementById('header-user-name');
+      const memberIdEl = document.getElementById('header-member-id');
+
+      if (nameEl) nameEl.textContent = user.name || 'You';
+      if (memberIdEl) memberIdEl.textContent = user.memberId || 'CC-0001';
+    }
+
+    // =====================================================
+    // DEV PANEL (enabled via ?dev=1)
+    // =====================================================
+    function isDevMode() {
+      return new URLSearchParams(window.location.search).get('dev') === '1';
+    }
+
+    function renderDevPanel() {
+      if (!isDevMode()) return;
+
+      const user = getCurrentUser();
+      const trustSignals = getUserTrustSignals(user);
+
+      // Remove existing panel if present
+      const existing = document.getElementById('dev-panel');
+      if (existing) existing.remove();
+
+      const panel = document.createElement('div');
+      panel.id = 'dev-panel';
+      panel.className = 'dev-panel';
+      panel.innerHTML = `
+        <div class="dev-panel-header">
+          <span class="dev-panel-title">🔧 Dev Tools</span>
+          <button class="dev-panel-close" onclick="document.getElementById('dev-panel').remove()">&times;</button>
+        </div>
+        <div class="dev-panel-stats">
+          <div class="dev-stat">
+            <span class="dev-stat-label">Member ID</span>
+            <span class="dev-stat-value">${user.memberId}</span>
+          </div>
+          <div class="dev-stat">
+            <span class="dev-stat-label">Exchanges</span>
+            <span class="dev-stat-value">${trustSignals.exchangesCompleted}</span>
+          </div>
+          <div class="dev-stat">
+            <span class="dev-stat-label">Disputes</span>
+            <span class="dev-stat-value">${trustSignals.disputesCount}</span>
+          </div>
+          <div class="dev-stat">
+            <span class="dev-stat-label">Reliability</span>
+            <span class="dev-stat-value">${trustSignals.reliabilityBand}</span>
+          </div>
+          <div class="dev-stat">
+            <span class="dev-stat-label">Member Since</span>
+            <span class="dev-stat-value">${formatMemberSince(trustSignals.memberSince)}</span>
+          </div>
+        </div>
+        <div class="dev-panel-buttons">
+          <button class="dev-btn" onclick="devAddExchange()">+1 Completed Exchange</button>
+          <button class="dev-btn" onclick="devAddDispute()">+1 Dispute</button>
+          <button class="dev-btn" onclick="devResetSignals()">Reset Trust Signals</button>
+        </div>
+      `;
+      document.body.appendChild(panel);
+    }
+
+    function devAddExchange() {
+      incrementExchangesCompleted();
+      renderDevPanel();
+      updateUserIdentityDisplay();
+      showToast('Exchange added! Reliability may have changed.');
+    }
+
+    function devAddDispute() {
+      incrementDisputesCount();
+      renderDevPanel();
+      updateUserIdentityDisplay();
+      showToast('Dispute added! Reliability may have changed.');
+    }
+
+    function devResetSignals() {
+      debugResetTrustSignals();
+      renderDevPanel();
+      updateUserIdentityDisplay();
+      showToast('Trust signals reset to defaults.');
+    }
+
+    // =====================================================
+    // GOVERNANCE WIDGET
+    // =====================================================
+    function renderGovernanceWidget() {
+      const pilotInfo = getPilotInfo();
+      const moderators = getModerators();
+
+      // Update moderator count
+      const modCountEl = document.getElementById('gov-moderator-count');
+      if (modCountEl) modCountEl.textContent = moderators.length;
+
+      // Update last policy change
+      const lastPolicyEl = document.getElementById('gov-last-policy');
+      if (lastPolicyEl && pilotInfo.lastPolicyChange) {
+        lastPolicyEl.textContent = formatGovernanceDate(pilotInfo.lastPolicyChange.date);
+      }
+
+      // Update pilot end date
+      const pilotEndEl = document.getElementById('gov-pilot-end');
+      if (pilotEndEl && pilotInfo.endDate) {
+        pilotEndEl.textContent = formatGovernanceDate(pilotInfo.endDate);
+      }
+    }
+
+    // =====================================================
+    // FEEDBACK MODAL
+    // =====================================================
+    let selectedFeedbackType = 'idea';
+
+    function openFeedbackModal() {
+      document.getElementById('feedback-modal').classList.add('active');
+      document.getElementById('feedback-message').focus();
+      initFeedbackTypeSelection();
+    }
+
+    function closeFeedbackModal() {
+      document.getElementById('feedback-modal').classList.remove('active');
+      document.getElementById('feedback-message').value = '';
+      selectedFeedbackType = 'idea';
+      // Reset selection
+      document.querySelectorAll('.feedback-type-option').forEach(opt => {
+        opt.classList.remove('selected');
+        if (opt.dataset.type === 'idea') {
+          opt.classList.add('selected');
+          opt.querySelector('input').checked = true;
+        }
+      });
+    }
+
+    function initFeedbackTypeSelection() {
+      const typeOptions = document.querySelectorAll('.feedback-type-option');
+      typeOptions.forEach(option => {
+        option.addEventListener('click', () => {
+          typeOptions.forEach(o => o.classList.remove('selected'));
+          option.classList.add('selected');
+          option.querySelector('input').checked = true;
+          selectedFeedbackType = option.dataset.type;
+        });
+      });
+    }
+
+    function submitFeedback() {
+      const message = document.getElementById('feedback-message').value.trim();
+
+      if (!message) {
+        showToast('Please enter your feedback message');
+        return;
+      }
+
+      // Get token from session
+      const token = getSessionToken();
+      if (!token) {
+        showToast('Please sign in to submit feedback');
+        return;
+      }
+
+      // Create feedback
+      const feedback = createFeedback(selectedFeedbackType, message, token);
+
+      closeFeedbackModal();
+      showToast('Thank you! Your feedback has been submitted.');
+
+      // Log for debugging
+      console.log('Feedback submitted:', feedback);
+    }
+
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+    renderCategories();
+    renderPendingInvites();
+    renderNeedsWidget();
+    getEcosystemHealth();
+    updateBalanceDisplay();
+    updateUserIdentityDisplay();
+    renderGovernanceWidget();
+    initAreaSelection();
+    renderDevPanel();
+
+    // Initialize user and balance
+    getCurrentUser();
+    getUserBalance();
+    // Initialize governance data
+    getGovernance();
+  </script>
+</body>
+</html>

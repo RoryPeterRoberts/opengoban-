@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Feedback Triage - Admin - Community Connect</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .admin-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-5);
+      min-height: 100vh;
+    }
+
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-6);
+    }
+
+    .admin-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .back-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+
+    .back-link:hover {
+      background: var(--color-bg-muted);
+      color: var(--color-primary);
+    }
+
+    .back-link svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .admin-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      background: var(--color-status-hold-bg);
+      color: var(--color-status-hold);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+    }
+
+    /* Stats Row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+
+    .stat-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-primary);
+    }
+
+    .stat-value.new { color: var(--color-status-review); }
+    .stat-value.actioned { color: var(--color-status-accepted); }
+
+    .stat-label {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    /* Filters */
+    .filters-row {
+      display: flex;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: var(--space-2) var(--space-4);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .filter-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .filter-btn.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+
+    /* Feedback List */
+    .feedback-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .feedback-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .feedback-card.priority-high {
+      border-left: 4px solid var(--color-status-hold);
+    }
+
+    .feedback-card.priority-medium {
+      border-left: 4px solid var(--color-status-review);
+    }
+
+    .feedback-card.priority-low {
+      border-left: 4px solid var(--color-border);
+    }
+
+    .feedback-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: var(--space-3);
+    }
+
+    .feedback-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      align-items: center;
+    }
+
+    .type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .type-badge.bug {
+      background: var(--color-status-hold-bg);
+      color: var(--color-status-hold);
+    }
+
+    .type-badge.idea {
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+    }
+
+    .type-badge.question {
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+    }
+
+    .type-badge.other {
+      background: var(--color-bg-muted);
+      color: var(--color-text-muted);
+    }
+
+    .priority-badge {
+      display: inline-block;
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+    }
+
+    .priority-badge.high {
+      background: var(--color-status-hold-bg);
+      color: var(--color-status-hold);
+    }
+
+    .priority-badge.medium {
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+    }
+
+    .priority-badge.low {
+      background: var(--color-bg-muted);
+      color: var(--color-text-muted);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .status-badge.new {
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+    }
+
+    .status-badge.triaged {
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+    }
+
+    .status-badge.actioned {
+      background: var(--color-status-accepted-bg);
+      color: var(--color-status-accepted);
+    }
+
+    .status-badge.declined {
+      background: var(--color-bg-muted);
+      color: var(--color-text-muted);
+    }
+
+    .feedback-message {
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+      line-height: var(--line-height-relaxed);
+      margin-bottom: var(--space-3);
+    }
+
+    .feedback-info {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-4);
+    }
+
+    /* AI Triage Box */
+    .triage-box {
+      background: var(--color-bg-warm);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+
+    .triage-box-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: var(--space-3);
+    }
+
+    .triage-box-title svg {
+      width: 14px;
+      height: 14px;
+      color: var(--color-accent);
+    }
+
+    .triage-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-4);
+      font-size: var(--font-size-sm);
+    }
+
+    .triage-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-secondary);
+    }
+
+    .triage-item strong {
+      color: var(--color-text);
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+    }
+
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      border: 1px solid var(--color-border);
+      background: var(--color-bg-card);
+      color: var(--color-text-secondary);
+    }
+
+    .action-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .action-btn.primary {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+
+    .action-btn.primary:hover {
+      background: var(--color-primary-dark);
+    }
+
+    .action-btn.danger {
+      color: var(--color-status-hold);
+      border-color: var(--color-status-hold);
+    }
+
+    .action-btn.danger:hover {
+      background: var(--color-status-hold-bg);
+    }
+
+    .action-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-5);
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-4);
+    }
+
+    .empty-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+
+    .empty-message {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+
+    /* Admin Nav */
+    .admin-nav {
+      display: flex;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .admin-nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+
+    .admin-nav-link:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .admin-nav-link.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+
+    .admin-nav-link svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Promote Modal */
+    .promote-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+  <script src="shared.js"></script>
+  <script src="js/auth.js"></script>
+
+  <div class="admin-container" id="main-container">
+    <!-- Content rendered by JS after admin auth -->
+  </div>
+
+  <!-- Promote to Proposal Modal -->
+  <div class="modal-overlay" id="promote-modal">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Promote to Proposal</h2>
+        <p class="modal-subtitle">Create a community proposal from this feedback.</p>
+      </div>
+      <div class="modal-body">
+        <div class="promote-form">
+          <div class="form-group">
+            <label class="form-label">Proposal Title</label>
+            <input type="text" class="input" id="proposal-title" placeholder="Short, descriptive title">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="textarea" id="proposal-description" rows="4" placeholder="What should be done and why..."></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closePromoteModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitProposal()">Create Proposal</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentFilter = 'all';
+    let promotingFeedbackId = null;
+
+    function init() {
+      // Require admin authentication
+      requireAdmin(renderTriagePage);
+    }
+
+    function renderTriagePage() {
+      const container = document.getElementById('main-container');
+      const counts = getFeedbackCounts();
+      const feedback = getAllFeedback();
+
+      container.innerHTML = `
+        <header class="admin-header">
+          <div class="admin-header-left">
+            <a href="index.html" class="back-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+              </svg>
+            </a>
+            <h1 class="admin-title">Feedback Triage</h1>
+          </div>
+          <span class="admin-badge">Admin</span>
+        </header>
+
+        <nav class="admin-nav">
+          <a href="triage.html" class="admin-nav-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            Triage
+          </a>
+          <a href="review-proposals.html" class="admin-nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Proposals
+          </a>
+          <a href="implementation-pack.html" class="admin-nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="16 18 22 12 16 6"/>
+              <polyline points="8 6 2 12 8 18"/>
+            </svg>
+            Packs
+          </a>
+        </nav>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-value">${counts.total}</div>
+            <div class="stat-label">Total</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value new">${counts.new}</div>
+            <div class="stat-label">New</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${counts.triaged}</div>
+            <div class="stat-label">Triaged</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value actioned">${counts.actioned}</div>
+            <div class="stat-label">Actioned</div>
+          </div>
+        </div>
+
+        <div class="filters-row">
+          <button class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" onclick="setFilter('all')">All</button>
+          <button class="filter-btn ${currentFilter === 'new' ? 'active' : ''}" onclick="setFilter('new')">New</button>
+          <button class="filter-btn ${currentFilter === 'triaged' ? 'active' : ''}" onclick="setFilter('triaged')">Triaged</button>
+          <button class="filter-btn ${currentFilter === 'actioned' ? 'active' : ''}" onclick="setFilter('actioned')">Actioned</button>
+          <button class="filter-btn ${currentFilter === 'declined' ? 'active' : ''}" onclick="setFilter('declined')">Declined</button>
+        </div>
+
+        <div class="feedback-list" id="feedback-list">
+          ${renderFeedbackList(feedback)}
+        </div>
+      `;
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      renderTriagePage();
+    }
+
+    function renderFeedbackList(feedback) {
+      // Filter
+      let filtered = feedback;
+      if (currentFilter !== 'all') {
+        filtered = feedback.filter(f => f.status === currentFilter);
+      }
+
+      if (filtered.length === 0) {
+        return `
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h2 class="empty-title">No feedback ${currentFilter !== 'all' ? 'in this category' : 'yet'}</h2>
+            <p class="empty-message">${currentFilter === 'new' ? 'All caught up!' : 'Feedback will appear here.'}</p>
+          </div>
+        `;
+      }
+
+      return filtered.map(item => renderFeedbackCard(item)).join('');
+    }
+
+    function renderFeedbackCard(item) {
+      const typeEmoji = {
+        bug: '🐛',
+        idea: '💡',
+        question: '❓',
+        other: '💬'
+      };
+
+      const statusLabel = {
+        new: 'New',
+        triaged: 'Triaged',
+        actioned: 'Actioned',
+        declined: 'Declined'
+      };
+
+      // Format date
+      const date = new Date(item.submittedAt);
+      const formattedDate = date.toLocaleDateString('en-IE', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      const priority = item.aiTriage?.priority || 'medium';
+
+      // Triage box
+      let triageBox = '';
+      if (item.aiTriage) {
+        triageBox = `
+          <div class="triage-box">
+            <div class="triage-box-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              AI Triage Assessment
+            </div>
+            <div class="triage-info">
+              <span class="triage-item">
+                <strong>Priority:</strong>
+                <span class="priority-badge ${item.aiTriage.priority}">${item.aiTriage.priority}</span>
+              </span>
+              <span class="triage-item">
+                <strong>Category:</strong> ${item.aiTriage.category}
+              </span>
+              <span class="triage-item">
+                <strong>Suggested:</strong> ${item.aiTriage.suggestedAction}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+
+      // Action buttons based on status
+      let actionButtons = '';
+      if (item.status === 'new') {
+        actionButtons = `
+          <button class="action-btn" onclick="markTriaged('${item.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Mark Reviewed
+          </button>
+          <button class="action-btn primary" onclick="openPromoteModal('${item.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            Promote to Proposal
+          </button>
+          <button class="action-btn danger" onclick="declineFeedback('${item.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Decline
+          </button>
+        `;
+      } else if (item.status === 'triaged') {
+        actionButtons = `
+          <button class="action-btn primary" onclick="openPromoteModal('${item.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            Promote to Proposal
+          </button>
+          <button class="action-btn danger" onclick="declineFeedback('${item.id}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Decline
+          </button>
+        `;
+      } else if (item.status === 'actioned' && item.proposalId) {
+        actionButtons = `
+          <a href="review-proposals.html" class="action-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+            View Proposal
+          </a>
+        `;
+      }
+
+      return `
+        <div class="feedback-card priority-${priority}">
+          <div class="feedback-card-header">
+            <div class="feedback-card-meta">
+              <span class="type-badge ${item.type}">
+                ${typeEmoji[item.type] || '💬'} ${item.type}
+              </span>
+              <span class="priority-badge ${priority}">${priority}</span>
+              <span class="status-badge ${item.status}">${statusLabel[item.status]}</span>
+            </div>
+          </div>
+
+          <p class="feedback-message">${escapeHtml(item.message)}</p>
+          <div class="feedback-info">
+            ID: ${item.id} &bull; Submitted ${formattedDate}
+          </div>
+
+          ${triageBox}
+
+          <div class="action-buttons">
+            ${actionButtons}
+          </div>
+        </div>
+      `;
+    }
+
+    function markTriaged(id) {
+      updateFeedback(id, { status: FEEDBACK_STATUS.TRIAGED });
+      showToast('Marked as reviewed');
+      renderTriagePage();
+    }
+
+    function declineFeedback(id) {
+      if (confirm('Decline this feedback?')) {
+        updateFeedback(id, { status: FEEDBACK_STATUS.DECLINED });
+        showToast('Feedback declined');
+        renderTriagePage();
+      }
+    }
+
+    function openPromoteModal(feedbackId) {
+      promotingFeedbackId = feedbackId;
+      const feedback = getFeedbackById(feedbackId);
+      document.getElementById('proposal-title').value = '';
+      document.getElementById('proposal-description').value = feedback?.message || '';
+      document.getElementById('promote-modal').classList.add('active');
+    }
+
+    function closePromoteModal() {
+      document.getElementById('promote-modal').classList.remove('active');
+      promotingFeedbackId = null;
+    }
+
+    function submitProposal() {
+      if (!promotingFeedbackId) return;
+
+      const title = document.getElementById('proposal-title').value.trim();
+      const description = document.getElementById('proposal-description').value.trim();
+
+      if (!title) {
+        showToast('Please enter a title');
+        return;
+      }
+
+      const proposal = createProposalFromFeedback(promotingFeedbackId, title, description);
+
+      closePromoteModal();
+      showToast('Proposal created!');
+      renderTriagePage();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    init();
+  </script>
+</body>
+</html>

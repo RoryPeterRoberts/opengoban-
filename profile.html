@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>My Profile - Community Connect</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    /* Profile Page Styles */
+    .profile-container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-5);
+      min-height: 100vh;
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+
+    .back-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+
+    .back-link:hover {
+      background: var(--color-bg-muted);
+      color: var(--color-primary);
+    }
+
+    .back-link svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .profile-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+
+    /* Identity Card */
+    .identity-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow-card);
+    }
+
+    .identity-avatar {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-accent-bg) 100%);
+      border: 3px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto var(--space-4);
+      font-size: 2.5rem;
+    }
+
+    .identity-name {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+      text-align: center;
+      margin-bottom: var(--space-2);
+    }
+
+    .identity-member-id {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+
+    .member-id-badge {
+      font-family: var(--font-family-mono, monospace);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      background: var(--color-bg-muted);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
+    }
+
+    .copy-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      color: var(--color-text-muted);
+      transition: all var(--transition-fast);
+    }
+
+    .copy-btn:hover {
+      background: var(--color-primary-bg);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .copy-btn:focus-visible {
+      outline: 3px solid var(--color-primary-lighter);
+      outline-offset: 2px;
+    }
+
+    .copy-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .identity-meta {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      text-align: center;
+    }
+
+    /* Balance Section */
+    .balance-section {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4);
+      background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-accent-bg) 100%);
+      border-radius: var(--radius-lg);
+      margin-top: var(--space-4);
+    }
+
+    .balance-label {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+    }
+
+    .balance-value {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-primary);
+    }
+
+    /* Trust Signals Section */
+    .trust-section {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow-card);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+
+    .section-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+
+    .section-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--color-secondary);
+    }
+
+    .trust-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+    }
+
+    .trust-item {
+      padding: var(--space-4);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-lg);
+      text-align: center;
+    }
+
+    .trust-item-value {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+      margin-bottom: var(--space-1);
+    }
+
+    .trust-item-label {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .reliability-section {
+      margin-top: var(--space-4);
+      padding: var(--space-4);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-lg);
+      text-align: center;
+    }
+
+    .reliability-label {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-2);
+    }
+
+    .reliability-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .reliability-badge.low {
+      background: var(--color-bg-muted);
+      color: var(--color-text-muted);
+    }
+
+    .reliability-badge.medium {
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+    }
+
+    .reliability-badge.high {
+      background: var(--color-status-accepted-bg);
+      color: var(--color-status-accepted);
+    }
+
+    /* Privacy Note */
+    .privacy-note {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-5);
+    }
+
+    .privacy-note-icon {
+      width: 20px;
+      height: 20px;
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .privacy-note-text {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      line-height: var(--line-height-relaxed);
+    }
+
+    /* Edit Profile Section */
+    .edit-section {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow-card);
+    }
+
+    .form-group {
+      margin-bottom: var(--space-5);
+    }
+
+    .form-label {
+      display: block;
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+
+    .input {
+      width: 100%;
+      padding: var(--space-4);
+      font-family: var(--font-family);
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 4px var(--color-primary-bg);
+    }
+
+    /* Footer */
+    .profile-footer {
+      text-align: center;
+      padding: var(--space-6) 0;
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+      text-decoration: none;
+    }
+
+    .footer-link:hover {
+      color: var(--color-primary);
+    }
+
+    .footer-link svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Dev Panel */
+    .dev-panel {
+      position: fixed;
+      bottom: var(--space-4);
+      right: var(--space-4);
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      box-shadow: var(--shadow-lg);
+      z-index: 9999;
+      max-width: 280px;
+      font-size: var(--font-size-sm);
+    }
+
+    .dev-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-3);
+      padding-bottom: var(--space-2);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .dev-panel-title {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-size: var(--font-size-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .dev-panel-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--color-text-muted);
+      padding: var(--space-1);
+      font-size: var(--font-size-lg);
+    }
+
+    .dev-panel-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .dev-btn {
+      padding: var(--space-2) var(--space-3);
+      font-size: var(--font-size-xs);
+      background: var(--color-bg-muted);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .dev-btn:hover {
+      background: var(--color-primary-bg);
+      border-color: var(--color-primary);
+    }
+  </style>
+</head>
+<body>
+  <script src="shared.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // Require valid session to access profile
+    if (!requireAuth()) {
+      document.body.style.display = 'none';
+    }
+  </script>
+
+  <div class="profile-container" id="main-container">
+    <!-- Content rendered by JS -->
+  </div>
+
+  <script>
+    // =====================================================
+    // STATE
+    // =====================================================
+    let user = null;
+    let trustSignals = null;
+    let balance = null;
+
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+    function init() {
+      user = getCurrentUser();
+      trustSignals = getUserTrustSignals(user);
+      balance = getUserBalance();
+      renderProfile();
+      renderDevPanel();
+    }
+
+    // =====================================================
+    // RENDER PROFILE
+    // =====================================================
+    function renderProfile() {
+      const container = document.getElementById('main-container');
+
+      container.innerHTML = `
+        <header class="profile-header">
+          <a href="index.html" class="back-link" aria-label="Back to home">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </a>
+          <h1 class="profile-title">My Profile</h1>
+        </header>
+
+        <!-- Identity Card -->
+        <div class="identity-card">
+          <div class="identity-avatar">
+            ${getInitials(user.name)}
+          </div>
+          <h2 class="identity-name">${escapeHtml(user.name)}</h2>
+          <div class="identity-member-id">
+            <span class="member-id-badge">${user.memberId}</span>
+            <button class="copy-btn" onclick="copyMemberId()" aria-label="Copy Member ID" title="Copy Member ID">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+            </button>
+          </div>
+          <p class="identity-meta">Member since ${formatMemberSince(trustSignals.memberSince)}</p>
+
+          <div class="balance-section">
+            <span class="balance-label">Community Balance</span>
+            <span class="balance-value">${balance.credits} credits</span>
+          </div>
+        </div>
+
+        <!-- Trust Signals -->
+        <div class="trust-section">
+          <div class="section-header">
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <h3 class="section-title">Trust Signals</h3>
+          </div>
+
+          <div class="trust-grid">
+            <div class="trust-item">
+              <div class="trust-item-value">${trustSignals.exchangesCompleted}</div>
+              <div class="trust-item-label">Exchanges</div>
+            </div>
+            <div class="trust-item">
+              <div class="trust-item-value">${trustSignals.disputesCount}</div>
+              <div class="trust-item-label">Disputes</div>
+            </div>
+          </div>
+
+          <div class="reliability-section">
+            <div class="reliability-label">Reliability</div>
+            <span class="reliability-badge ${trustSignals.reliabilityBand.toLowerCase()}">${trustSignals.reliabilityBand}</span>
+          </div>
+        </div>
+
+        <!-- Privacy Note -->
+        <div class="privacy-note">
+          <svg class="privacy-note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <p class="privacy-note-text">
+            Your Member ID helps with disputes and record-keeping inside this community. It is not shared publicly and is only visible to you and community moderators.
+          </p>
+        </div>
+
+        <!-- Edit Profile -->
+        <div class="edit-section">
+          <div class="section-header">
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            <h3 class="section-title">Edit Profile</h3>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="display-name">Display Name</label>
+            <input type="text" class="input" id="display-name" value="${escapeHtml(user.name)}" placeholder="Your name">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="email">Email</label>
+            <input type="email" class="input" id="email" value="${escapeHtml(user.email)}" placeholder="your@email.com">
+          </div>
+
+          <button class="btn btn-primary btn-block" onclick="saveProfile()">Save Changes</button>
+        </div>
+
+        <!-- Footer -->
+        <footer class="profile-footer">
+          <a href="terms.html" class="footer-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Terms & Conditions
+          </a>
+          <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">·</span>
+          <a href="privacy.html" class="footer-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Privacy
+          </a>
+        </footer>
+      `;
+    }
+
+    // =====================================================
+    // HELPERS
+    // =====================================================
+    function getInitials(name) {
+      if (!name) return '?';
+      const parts = name.trim().split(/\s+/);
+      if (parts.length === 1) {
+        return parts[0].charAt(0).toUpperCase();
+      }
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function copyMemberId() {
+      copyToClipboard(user.memberId);
+      showToast('Member ID copied!');
+    }
+
+    function saveProfile() {
+      const name = document.getElementById('display-name').value.trim();
+      const email = document.getElementById('email').value.trim();
+
+      if (!name) {
+        showToast('Please enter a display name');
+        return;
+      }
+
+      updateCurrentUser({ name, email });
+      user = getCurrentUser();
+      showToast('Profile saved!');
+      renderProfile();
+    }
+
+    // =====================================================
+    // DEV PANEL
+    // =====================================================
+    function isDevMode() {
+      return new URLSearchParams(window.location.search).get('dev') === '1';
+    }
+
+    function renderDevPanel() {
+      if (!isDevMode()) return;
+
+      const existing = document.getElementById('dev-panel');
+      if (existing) existing.remove();
+
+      const panel = document.createElement('div');
+      panel.id = 'dev-panel';
+      panel.className = 'dev-panel';
+      panel.innerHTML = `
+        <div class="dev-panel-header">
+          <span class="dev-panel-title">🔧 Dev Tools</span>
+          <button class="dev-panel-close" onclick="document.getElementById('dev-panel').remove()">&times;</button>
+        </div>
+        <div class="dev-panel-buttons">
+          <button class="dev-btn" onclick="devAddExchange()">+1 Completed Exchange</button>
+          <button class="dev-btn" onclick="devAddDispute()">+1 Dispute</button>
+          <button class="dev-btn" onclick="devResetSignals()">Reset Trust Signals</button>
+        </div>
+      `;
+      document.body.appendChild(panel);
+    }
+
+    function devAddExchange() {
+      incrementExchangesCompleted();
+      user = getCurrentUser();
+      trustSignals = getUserTrustSignals(user);
+      renderProfile();
+      renderDevPanel();
+      showToast('Exchange added!');
+    }
+
+    function devAddDispute() {
+      incrementDisputesCount();
+      user = getCurrentUser();
+      trustSignals = getUserTrustSignals(user);
+      renderProfile();
+      renderDevPanel();
+      showToast('Dispute added!');
+    }
+
+    function devResetSignals() {
+      debugResetTrustSignals();
+      user = getCurrentUser();
+      trustSignals = getUserTrustSignals(user);
+      renderProfile();
+      renderDevPanel();
+      showToast('Trust signals reset!');
+    }
+
+    // =====================================================
+    // INIT
+    // =====================================================
+    init();
+  </script>
+</body>
+</html>

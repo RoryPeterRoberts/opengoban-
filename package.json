@@ -1,40 +1,20 @@
 {
-  "name": "opengoban",
+  "name": "community-connect",
   "version": "0.1.0",
-  "description": "Cell Protocol - A mutual credit system with strict invariant enforcement",
-  "main": "dist/cell-protocol/index.js",
-  "types": "dist/cell-protocol/index.d.ts",
+  "private": true,
+  "description": "Community Connect - Neighbours helping neighbours. A local community exchange platform.",
   "scripts": {
-    "build": "tsc",
-    "build:pwa": "node scripts/build-pwa.js",
-    "build:pwa:watch": "node scripts/build-pwa.js --watch",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "lint": "eslint src --ext .ts",
-    "clean": "rm -rf dist",
-    "serve": "npx serve pwa -l 3000"
+    "start": "npx serve -l 3000",
+    "dev": "npx serve -l 3000",
+    "serve": "npx serve -l 3000",
+    "serve:lan": "npx serve -l 3000 --listen 0.0.0.0"
   },
   "keywords": [
-    "mutual-credit",
-    "cell-protocol",
-    "ledger",
-    "offline-first"
+    "community",
+    "local",
+    "exchange",
+    "neighbours"
   ],
   "author": "",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "@types/node": "^20.11.0",
-    "esbuild": "^0.27.2",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.1.2",
-    "typescript": "^5.3.3"
-  },
-  "dependencies": {
-    "tweetnacl": "^1.0.3"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "license": "UNLICENSED"
 }

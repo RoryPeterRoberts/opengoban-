@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Join Community Connect</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    /* Page-specific styles */
+    .join-container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4);
+      min-height: 100vh;
+    }
+
+    .join-header {
+      text-align: center;
+      margin-bottom: var(--space-8);
+    }
+
+    .join-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+
+    .join-logo-icon {
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-primary-bg);
+      border-radius: var(--radius-lg);
+      color: var(--color-primary);
+    }
+
+    .join-logo-icon svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .join-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-primary);
+      margin-bottom: var(--space-2);
+    }
+
+    .join-subtitle {
+      font-size: var(--font-size-base);
+      color: var(--color-text-secondary);
+    }
+
+    /* Form sections */
+    .form-section {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .section-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-1);
+    }
+
+    .section-subtitle {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-4);
+    }
+
+    /* Checkbox grid for categories */
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--color-bg-warm);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-base);
+      font-size: var(--font-size-sm);
+    }
+
+    .checkbox-item:hover {
+      border-color: var(--color-secondary);
+      background: var(--color-bg-muted);
+    }
+
+    .checkbox-item:has(input:checked) {
+      border-color: var(--color-primary);
+      background: var(--color-primary-bg);
+    }
+
+    .checkbox-item input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--color-primary);
+    }
+
+    .checkbox-item .emoji {
+      font-size: var(--font-size-lg);
+    }
+
+    /* Single checkbox */
+    .single-checkbox {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      cursor: pointer;
+      font-size: var(--font-size-base);
+    }
+
+    .single-checkbox input {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--color-primary);
+    }
+
+    /* Error state */
+    .error-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-5);
+    }
+
+    .error-icon {
+      font-size: 4rem;
+      margin-bottom: var(--space-6);
+    }
+
+    .error-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-3);
+    }
+
+    .error-message {
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-6);
+    }
+
+    .error-link {
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: var(--font-weight-medium);
+    }
+
+    .error-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Validation error */
+    .validation-error {
+      color: var(--color-status-hold);
+      font-size: var(--font-size-sm);
+      margin-top: var(--space-2);
+    }
+
+    /* Terms Section */
+    .terms-agreement-section {
+      background: var(--color-bg-warm);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      margin-bottom: var(--space-5);
+    }
+
+    .terms-agreement-section.accepted {
+      border-color: var(--color-status-accepted);
+      background: var(--color-status-accepted-bg);
+    }
+
+    .terms-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-4);
+    }
+
+    .terms-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+
+    .terms-meta {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    /* Key Points Box */
+    .key-points-box {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+
+    .key-points-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-accent);
+      margin-bottom: var(--space-3);
+    }
+
+    .key-points-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .key-points-list li {
+      position: relative;
+      padding-left: var(--space-5);
+      margin-bottom: var(--space-2);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .key-points-list li::before {
+      content: "•";
+      position: absolute;
+      left: var(--space-2);
+      color: var(--color-accent);
+      font-weight: bold;
+    }
+
+    .key-points-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Terms Links */
+    .terms-links {
+      display: flex;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    .terms-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-sm);
+      color: var(--color-primary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+
+    .terms-link:hover {
+      border-color: var(--color-primary);
+      background: var(--color-primary-bg);
+    }
+
+    .terms-link svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Agreement Checkboxes */
+    .agreement-checkboxes {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .agreement-checkbox {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .agreement-checkbox:hover {
+      border-color: var(--color-secondary);
+    }
+
+    .agreement-checkbox:has(input:checked) {
+      border-color: var(--color-status-accepted);
+      background: var(--color-status-accepted-bg);
+    }
+
+    .agreement-checkbox input {
+      width: 20px;
+      height: 20px;
+      margin-top: 2px;
+      accent-color: var(--color-status-accepted);
+      flex-shrink: 0;
+    }
+
+    .agreement-checkbox-text {
+      font-size: var(--font-size-sm);
+      color: var(--color-text);
+      line-height: var(--line-height-normal);
+    }
+
+    .agreement-checkbox-text a {
+      color: var(--color-primary);
+      text-decoration: underline;
+    }
+
+    /* Accepted Badge */
+    .terms-accepted-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-status-accepted-bg);
+      color: var(--color-status-accepted);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .terms-accepted-badge svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Submit disabled state */
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Footer */
+    .join-footer {
+      text-align: center;
+      padding: var(--space-6) 0;
+      margin-top: var(--space-4);
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .join-footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+      text-decoration: none;
+    }
+
+    .join-footer-link:hover {
+      color: var(--color-primary);
+    }
+
+    .join-footer-link svg {
+      width: 14px;
+      height: 14px;
+    }
+  </style>
+</head>
+<body>
+  <script src="shared.js"></script>
+  <script src="js/auth.js"></script>
+
+  <div class="join-container" id="main-container">
+    <!-- Content will be rendered by JS -->
+  </div>
+
+  <script>
+    // =====================================================
+    // STATE
+    // =====================================================
+
+    let invite = null;
+    let profile = {
+      primaryCategory: '',
+      secondaryCategories: [],
+      skillTags: [],
+      availability: '',
+      notWillingToDo: '',
+      needHelpWith: [],
+      toolsToShare: [],
+      openToLearning: false
+    };
+
+    // Terms acceptance state
+    let termsChecked = false;
+    let privacyChecked = false;
+
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+
+    function init() {
+      // Support both hash and query params for token (hash preferred due to clean URLs)
+      let token = null;
+      if (window.location.hash && window.location.hash.includes('token=')) {
+        token = new URLSearchParams(window.location.hash.slice(1)).get('token');
+      } else if (window.location.search) {
+        token = new URLSearchParams(window.location.search).get('token');
+      }
+
+      if (!token) {
+        renderError('No invite link provided');
+        return;
+      }
+
+      invite = getInviteByToken(token);
+
+      if (!invite) {
+        renderError('Invite link not found');
+        return;
+      }
+
+      // If already has profile, load it
+      if (invite.profile) {
+        profile = { ...profile, ...invite.profile };
+      }
+
+      // Check existing terms acceptance
+      if (!requiresTermsAcceptance(invite.token)) {
+        termsChecked = true;
+        privacyChecked = true;
+      }
+
+      // Check status
+      if (invite.status === 'ACCEPTED' || invite.status === 'AUTO_ACCEPT') {
+        window.location.href = `join-status.html#token=${token}`;
+        return;
+      }
+
+      if (invite.status !== 'PENDING_PROFILE' && invite.status !== 'HOLD' && invite.status !== 'REVIEW') {
+        renderError('This invite is no longer valid');
+        return;
+      }
+
+      renderForm();
+    }
+
+    // =====================================================
+    // ERROR STATE
+    // =====================================================
+
+    function renderError(message) {
+      document.getElementById('main-container').innerHTML = `
+        <div class="error-state">
+          <div class="error-icon">🔗</div>
+          <h2 class="error-title">Invite link not found</h2>
+          <p class="error-message">${message}</p>
+          <a href="index.html" class="error-link">← Back to Community Connect</a>
+        </div>
+      `;
+    }
+
+    // =====================================================
+    // FORM RENDERING
+    // =====================================================
+
+    function renderForm() {
+      const container = document.getElementById('main-container');
+
+      container.innerHTML = `
+        <div class="join-header">
+          <div class="join-logo">
+            <div class="join-logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9,22 9,12 15,12 15,22"/>
+              </svg>
+            </div>
+          </div>
+          <h1 class="join-title">Join Community Connect</h1>
+          <p class="join-subtitle">Tell us what you can offer to help balance the community exchange.</p>
+          <div style="margin-top: var(--space-3);">
+            <span style="display: inline-flex; align-items: center; gap: var(--space-1); background: var(--color-status-review-bg); color: var(--color-status-review); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: 0.03em;">Pilot Programme</span>
+            <p style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: var(--space-2);">Trial period — the community can revise rules or stop at any time.</p>
+          </div>
+        </div>
+
+        <!-- What This Is Banner -->
+        <div style="background: var(--color-bg-card); border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-5); margin-bottom: var(--space-5);">
+          <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4);">
+            <div style="width: 40px; height: 40px; background: var(--color-primary-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--color-primary); flex-shrink: 0;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <h3 style="font-family: var(--font-family-heading); font-size: var(--font-size-base); color: var(--color-text); font-weight: var(--font-weight-semibold); margin: 0;">What Community Connect is</h3>
+          </div>
+          <ul style="list-style: none; padding: 0; margin: 0 0 var(--space-4) 0; font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: var(--line-height-relaxed);">
+            <li style="display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-2) 0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>A local noticeboard to ask for and offer help.</span>
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-2) 0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>A shared balance ledger to keep exchanges fair.</span>
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-2) 0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Not a club, not an organiser, and not an insurer.</span>
+            </li>
+            <li style="display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-2) 0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Balance is not money and can't be exchanged for cash.</span>
+            </li>
+          </ul>
+          <div style="display: flex; gap: var(--space-3); flex-wrap: wrap; padding-top: var(--space-3); border-top: 1px solid var(--color-border-light);">
+            <a href="charter.html" style="font-size: var(--font-size-sm); color: var(--color-primary); text-decoration: none; display: inline-flex; align-items: center; gap: var(--space-1);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              Read the Community Charter
+            </a>
+            <a href="safety.html" style="font-size: var(--font-size-sm); color: var(--color-primary); text-decoration: none; display: inline-flex; align-items: center; gap: var(--space-1);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              Safety & Liability
+            </a>
+          </div>
+        </div>
+
+        <!-- Primary Category -->
+        <div class="form-section">
+          <h3 class="section-title">What's your main offering?</h3>
+          <p class="section-subtitle">Pick the closest match — you can add tags next.</p>
+
+          <div class="form-group">
+            <label class="form-label">Primary offer category <span class="required">*</span></label>
+            <select class="select" id="primary-category" onchange="updatePrimary(this.value)">
+              <option value="">Select a category...</option>
+              ${CATEGORIES.map(cat => `
+                <option value="${cat.id}" ${profile.primaryCategory === cat.id ? 'selected' : ''}>
+                  ${cat.emoji} ${cat.label}
+                </option>
+              `).join('')}
+            </select>
+          </div>
+        </div>
+
+        <!-- Secondary Categories -->
+        <div class="form-section">
+          <h3 class="section-title">Any other areas?</h3>
+          <p class="section-subtitle">Select up to 2 additional categories (optional).</p>
+
+          <div class="checkbox-grid" id="secondary-grid">
+            ${CATEGORIES.filter(cat => cat.id !== profile.primaryCategory).map(cat => `
+              <label class="checkbox-item">
+                <input type="checkbox"
+                  value="${cat.id}"
+                  ${profile.secondaryCategories.includes(cat.id) ? 'checked' : ''}
+                  onchange="updateSecondary(this)">
+                <span class="emoji">${cat.emoji}</span>
+                <span>${cat.label.split(' & ')[0]}</span>
+              </label>
+            `).join('')}
+          </div>
+          <div id="secondary-error" class="validation-error" style="display: none;"></div>
+        </div>
+
+        <!-- Skill Tags -->
+        <div class="form-section">
+          <h3 class="section-title">Your skills</h3>
+          <p class="section-subtitle">Add 3–10 specific things you can help with.</p>
+          <p style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-bottom: var(--space-3);">
+            Examples: painting, plumbing, gardening, cooking meals, dog walking, driving, DIY repairs, tech support, babysitting, tutoring maths
+          </p>
+
+          <div class="form-group">
+            <label class="form-label">Skill tags <span class="required">*</span></label>
+            <div class="chips-container" id="skill-chips" onclick="document.getElementById('skill-input').focus()">
+              ${profile.skillTags.map(tag => `
+                <span class="chip">${tag}<button class="chip-remove" onclick="removeSkillTag('${tag}')">&times;</button></span>
+              `).join('')}
+              <input type="text"
+                class="chips-input"
+                id="skill-input"
+                placeholder="${profile.skillTags.length === 0 ? 'e.g., painting, gardening...' : ''}"
+                onkeydown="handleSkillInput(event)">
+            </div>
+            <p class="chips-count ${profile.skillTags.length < 3 ? 'error' : ''}" id="skill-count">
+              ${profile.skillTags.length}/10 tags (minimum 3)
+            </p>
+          </div>
+        </div>
+
+        <!-- Availability -->
+        <div class="form-section">
+          <h3 class="section-title">When are you usually available?</h3>
+
+          <div class="form-group">
+            <label class="form-label">Availability <span class="required">*</span></label>
+            <select class="select" id="availability" onchange="profile.availability = this.value">
+              <option value="">Select availability...</option>
+              <option value="weekdays" ${profile.availability === 'weekdays' ? 'selected' : ''}>Weekdays</option>
+              <option value="weekends" ${profile.availability === 'weekends' ? 'selected' : ''}>Weekends</option>
+              <option value="evenings" ${profile.availability === 'evenings' ? 'selected' : ''}>Evenings</option>
+              <option value="flexible" ${profile.availability === 'flexible' ? 'selected' : ''}>Flexible</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Not Willing To Do -->
+        <div class="form-section">
+          <h3 class="section-title">Boundaries</h3>
+          <p class="section-subtitle">It's okay to have limits. What would you prefer not to do?</p>
+
+          <div class="form-group">
+            <label class="form-label">I'm not willing to do...</label>
+            <textarea class="textarea"
+              id="not-willing"
+              placeholder="e.g., Heavy lifting, overnight stays, driving long distances..."
+              onchange="profile.notWillingToDo = this.value">${profile.notWillingToDo}</textarea>
+          </div>
+        </div>
+
+        <!-- Optional: Needs -->
+        <div class="form-section">
+          <h3 class="section-title">What about your needs? (optional)</h3>
+          <p class="section-subtitle">Knowing what you need helps us match you better.</p>
+
+          <div class="form-group">
+            <label class="form-label">I often need help with...</label>
+            <div class="chips-container" id="needs-chips" onclick="document.getElementById('needs-input').focus()">
+              ${profile.needHelpWith.map(tag => `
+                <span class="chip">${tag}<button class="chip-remove" onclick="removeNeedTag('${tag}')">&times;</button></span>
+              `).join('')}
+              <input type="text"
+                class="chips-input"
+                id="needs-input"
+                placeholder="Type and press Enter..."
+                onkeydown="handleNeedInput(event)">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tools/resources I can share</label>
+            <div class="chips-container" id="tools-chips" onclick="document.getElementById('tools-input').focus()">
+              ${profile.toolsToShare.map(tag => `
+                <span class="chip">${tag}<button class="chip-remove" onclick="removeToolTag('${tag}')">&times;</button></span>
+              `).join('')}
+              <input type="text"
+                class="chips-input"
+                id="tools-input"
+                placeholder="e.g., car, ladder, sewing machine..."
+                onkeydown="handleToolInput(event)">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="single-checkbox">
+              <input type="checkbox"
+                id="open-to-learning"
+                ${profile.openToLearning ? 'checked' : ''}
+                onchange="profile.openToLearning = this.checked">
+              <span>I'm open to learning new skills from others</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Terms & Conditions Agreement -->
+        ${renderTermsSection()}
+
+        <!-- Submit -->
+        <button class="btn btn-primary btn-lg btn-block" id="submit-btn" onclick="submitProfile()" ${!canSubmit() ? 'disabled' : ''}>
+          Submit profile
+        </button>
+
+        <div id="form-error" class="validation-error" style="text-align: center; margin-top: var(--space-4); display: none;"></div>
+
+        <!-- Footer with links -->
+        <footer class="join-footer">
+          <a href="charter.html" class="join-footer-link" target="_blank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+            Governance & Data
+          </a>
+          <span style="color: var(--color-text-muted); margin: 0 var(--space-2);">·</span>
+          <a href="terms.html" class="join-footer-link" target="_blank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Terms
+          </a>
+          <span style="color: var(--color-text-muted); margin: 0 var(--space-2);">·</span>
+          <a href="safety.html" class="join-footer-link" target="_blank">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Safety
+          </a>
+        </footer>
+      `;
+    }
+
+    // =====================================================
+    // FORM HANDLERS
+    // =====================================================
+
+    function updatePrimary(value) {
+      profile.primaryCategory = value;
+      // Remove from secondary if selected
+      profile.secondaryCategories = profile.secondaryCategories.filter(c => c !== value);
+      renderForm();
+    }
+
+    function updateSecondary(checkbox) {
+      const value = checkbox.value;
+
+      if (checkbox.checked) {
+        // Don't allow primary to be selected
+        if (value === profile.primaryCategory) {
+          checkbox.checked = false;
+          return;
+        }
+        // Max 2
+        if (profile.secondaryCategories.length >= 2) {
+          checkbox.checked = false;
+          document.getElementById('secondary-error').textContent = 'Maximum 2 additional categories';
+          document.getElementById('secondary-error').style.display = 'block';
+          return;
+        }
+        profile.secondaryCategories.push(value);
+      } else {
+        profile.secondaryCategories = profile.secondaryCategories.filter(c => c !== value);
+      }
+
+      document.getElementById('secondary-error').style.display = 'none';
+    }
+
+    // Skill tags
+    function handleSkillInput(event) {
+      if (event.key === 'Enter' && event.target.value.trim()) {
+        event.preventDefault();
+        const tag = event.target.value.trim();
+        if (profile.skillTags.length < 10 && !profile.skillTags.includes(tag)) {
+          profile.skillTags.push(tag);
+          renderForm();
+        }
+      }
+    }
+
+    function removeSkillTag(tag) {
+      profile.skillTags = profile.skillTags.filter(t => t !== tag);
+      renderForm();
+    }
+
+    // Need tags
+    function handleNeedInput(event) {
+      if (event.key === 'Enter' && event.target.value.trim()) {
+        event.preventDefault();
+        const tag = event.target.value.trim();
+        if (!profile.needHelpWith.includes(tag)) {
+          profile.needHelpWith.push(tag);
+          renderForm();
+        }
+      }
+    }
+
+    function removeNeedTag(tag) {
+      profile.needHelpWith = profile.needHelpWith.filter(t => t !== tag);
+      renderForm();
+    }
+
+    // Tool tags
+    function handleToolInput(event) {
+      if (event.key === 'Enter' && event.target.value.trim()) {
+        event.preventDefault();
+        const tag = event.target.value.trim();
+        if (!profile.toolsToShare.includes(tag)) {
+          profile.toolsToShare.push(tag);
+          renderForm();
+        }
+      }
+    }
+
+    function removeToolTag(tag) {
+      profile.toolsToShare = profile.toolsToShare.filter(t => t !== tag);
+      renderForm();
+    }
+
+    // =====================================================
+    // TERMS & CONDITIONS
+    // =====================================================
+
+    function renderTermsSection() {
+      // Check if already accepted current version
+      const alreadyAccepted = !requiresTermsAcceptance(invite.token);
+
+      if (alreadyAccepted) {
+        const display = getTermsAcceptanceDisplay(invite.token);
+        termsChecked = true;
+        privacyChecked = true;
+
+        return `
+          <div class="terms-agreement-section accepted">
+            <div class="terms-header">
+              <h3 class="terms-title">Terms & Conditions</h3>
+              <span class="terms-accepted-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                ${display.message}
+              </span>
+            </div>
+            <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin: 0;">
+              You have already accepted the current Terms & Conditions and Privacy Notice.
+            </p>
+            <div class="terms-links" style="margin-top: var(--space-3); margin-bottom: 0;">
+              <a href="terms.html" target="_blank" class="terms-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                View Terms
+              </a>
+              <a href="privacy.html" target="_blank" class="terms-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                View Privacy Notice
+              </a>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="terms-agreement-section" id="terms-section">
+          <div class="terms-header">
+            <h3 class="terms-title">Terms & Conditions</h3>
+            <span class="terms-meta">Last updated: ${TERMS_LAST_UPDATED}</span>
+          </div>
+
+          <!-- Key Points Summary -->
+          <div class="key-points-box">
+            <h4 class="key-points-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              Key Points (Plain English)
+            </h4>
+            <ul class="key-points-list">
+              <li><strong>Platform is a facilitator only.</strong> We provide a ledger and matching — we don't provide or supervise services.</li>
+              <li><strong>You are responsible for your own safety.</strong> All exchanges happen directly between members.</li>
+              <li><strong>No liability for accidents, injury, or disputes.</strong> Platform creators accept no responsibility for exchanges.</li>
+              <li><strong>Credits are NOT money.</strong> They're internal bookkeeping only — not legal tender, not convertible to cash.</li>
+              <li><strong>Credits are closed-loop.</strong> They exist only within this community.</li>
+              <li><strong>Service provided "as-is".</strong> No guarantees about availability or suitability.</li>
+              <li><strong>You must handle your own tax/legal obligations.</strong></li>
+            </ul>
+          </div>
+
+          <!-- Links to full documents -->
+          <div class="terms-links">
+            <a href="terms.html" target="_blank" class="terms-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              Read Full Terms
+            </a>
+            <a href="privacy.html" target="_blank" class="terms-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              Privacy Notice
+            </a>
+          </div>
+
+          <!-- Agreement Checkboxes -->
+          <div class="agreement-checkboxes">
+            <label class="agreement-checkbox">
+              <input type="checkbox"
+                id="terms-checkbox"
+                ${termsChecked ? 'checked' : ''}
+                onchange="handleTermsCheck(this.checked)">
+              <span class="agreement-checkbox-text">
+                I have read and agree to the <a href="terms.html" target="_blank">Terms & Conditions</a>
+              </span>
+            </label>
+
+            <label class="agreement-checkbox">
+              <input type="checkbox"
+                id="privacy-checkbox"
+                ${privacyChecked ? 'checked' : ''}
+                onchange="handlePrivacyCheck(this.checked)">
+              <span class="agreement-checkbox-text">
+                I have read and agree to the <a href="privacy.html" target="_blank">Privacy Notice</a>
+              </span>
+            </label>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleTermsCheck(checked) {
+      termsChecked = checked;
+      updateSubmitButton();
+    }
+
+    function handlePrivacyCheck(checked) {
+      privacyChecked = checked;
+      updateSubmitButton();
+    }
+
+    function canSubmit() {
+      return termsChecked && privacyChecked;
+    }
+
+    function updateSubmitButton() {
+      const btn = document.getElementById('submit-btn');
+      if (btn) {
+        btn.disabled = !canSubmit();
+      }
+
+      // Update section styling when both checked
+      const section = document.getElementById('terms-section');
+      if (section) {
+        if (canSubmit()) {
+          section.classList.add('accepted');
+        } else {
+          section.classList.remove('accepted');
+        }
+      }
+    }
+
+    // =====================================================
+    // SUBMIT
+    // =====================================================
+
+    function submitProfile() {
+      // Validate terms acceptance first
+      if (!canSubmit()) {
+        const errorEl = document.getElementById('form-error');
+        errorEl.innerHTML = 'Please accept the Terms & Conditions and Privacy Notice to continue';
+        errorEl.style.display = 'block';
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        return;
+      }
+
+      // Validate
+      const errors = [];
+
+      if (!profile.primaryCategory) {
+        errors.push('Please select a primary category');
+      }
+
+      if (profile.skillTags.length < 3) {
+        errors.push('Please add at least 3 skill tags');
+      }
+
+      if (profile.skillTags.length > 10) {
+        errors.push('Maximum 10 skill tags allowed');
+      }
+
+      if (!profile.availability) {
+        errors.push('Please select your availability');
+      }
+
+      if (errors.length > 0) {
+        const errorEl = document.getElementById('form-error');
+        errorEl.innerHTML = errors.join('<br>');
+        errorEl.style.display = 'block';
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        return;
+      }
+
+      // Collect remaining form data
+      profile.notWillingToDo = document.getElementById('not-willing').value;
+      profile.openToLearning = document.getElementById('open-to-learning').checked;
+
+      // Record terms acceptance if not already done
+      if (requiresTermsAcceptance(invite.token)) {
+        acceptTerms(invite.token);
+      }
+
+      // Run fit evaluation
+      const fitStatus = evaluateFit(profile.primaryCategory);
+
+      // Assign Member ID if not already assigned (stable, never changes)
+      const memberId = invite.memberId || generateMemberId();
+      const memberSince = invite.memberSince || new Date().toISOString();
+
+      // Update invite with profile and member identity
+      updateInvite(invite.token, {
+        profile: profile,
+        status: fitStatus,
+        memberId: memberId,
+        memberSince: memberSince,
+        exchangesCompleted: invite.exchangesCompleted || 0,
+        disputesCount: invite.disputesCount || 0
+      });
+
+      // If accepted, increment supply
+      if (fitStatus === 'AUTO_ACCEPT') {
+        incrementSupply(profile.primaryCategory);
+      }
+
+      // Create session for the user
+      createSession(invite.token);
+
+      // Redirect to status page - use hash to preserve token with clean URLs
+      window.location.href = `join-status.html#token=${invite.token}`;
+    }
+
+    // =====================================================
+    // INIT
+    // =====================================================
+
+    init();
+  </script>
+</body>
+</html>

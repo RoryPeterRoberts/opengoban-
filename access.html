@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Access Community Connect</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .access-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6) var(--space-4);
+      background: var(--color-bg);
+    }
+
+    .access-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-8);
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .access-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+
+    .access-logo-icon {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-primary-bg);
+      border-radius: var(--radius-lg);
+      color: var(--color-primary);
+    }
+
+    .access-logo-icon svg {
+      width: 36px;
+      height: 36px;
+    }
+
+    .access-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-primary);
+      margin-bottom: var(--space-2);
+    }
+
+    .access-subtitle {
+      font-size: var(--font-size-base);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-6);
+    }
+
+    .pilot-notice {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: var(--space-6);
+    }
+
+    .token-form {
+      text-align: left;
+    }
+
+    .token-input {
+      width: 100%;
+      padding: var(--space-4);
+      font-size: var(--font-size-base);
+      font-family: var(--font-family-mono);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-bg-warm);
+      transition: all var(--transition-fast);
+    }
+
+    .token-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      background: var(--color-bg-card);
+    }
+
+    .token-input::placeholder {
+      color: var(--color-text-muted);
+      font-family: var(--font-family);
+    }
+
+    .token-error {
+      color: var(--color-status-hold);
+      font-size: var(--font-size-sm);
+      margin-top: var(--space-2);
+      display: none;
+    }
+
+    .token-error.visible {
+      display: block;
+    }
+
+    .access-btn {
+      width: 100%;
+      margin-top: var(--space-4);
+    }
+
+    .access-divider {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      margin: var(--space-6) 0;
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+    }
+
+    .access-divider::before,
+    .access-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--color-border);
+    }
+
+    .public-links {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .public-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-3);
+      background: var(--color-bg-warm);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      font-size: var(--font-size-sm);
+      transition: all var(--transition-fast);
+    }
+
+    .public-link:hover {
+      background: var(--color-primary-bg);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .public-link svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .access-footer {
+      margin-top: var(--space-6);
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--color-border-light);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .access-footer a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .access-footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <script src="shared.js"></script>
+  <script src="js/auth.js"></script>
+
+  <div class="access-page">
+    <div class="access-card">
+      <div class="access-logo">
+        <div class="access-logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </div>
+      </div>
+
+      <h1 class="access-title">Community Connect</h1>
+      <p class="access-subtitle">Neighbours helping neighbours</p>
+
+      <span class="pilot-notice">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Private Pilot
+      </span>
+
+      <div class="token-form">
+        <div class="form-group">
+          <label class="form-label">Enter your invite token</label>
+          <input
+            type="text"
+            class="token-input"
+            id="token-input"
+            placeholder="INV_..."
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <p class="token-error" id="token-error">Invalid or expired token. Please check your invite link.</p>
+        </div>
+
+        <button class="btn btn-primary btn-lg access-btn" onclick="validateToken()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          Enter Community Connect
+        </button>
+      </div>
+
+      <div class="access-divider">or learn more</div>
+
+      <div class="public-links">
+        <a href="charter.html" class="public-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Community Charter
+        </a>
+        <a href="safety.html" class="public-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Safety & Liability
+        </a>
+        <a href="terms.html" class="public-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          Terms & Privacy
+        </a>
+      </div>
+
+      <div class="access-footer">
+        <p>Don't have an invite? <a href="mailto:hello@communityconnect.ie">Request access</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Check if already has valid session
+    if (hasValidSession()) {
+      window.location.href = 'index.html';
+    }
+
+    // Check for token in URL (from invite link) - supports both hash and query params
+    let urlToken = null;
+    if (window.location.hash && window.location.hash.includes('token=')) {
+      urlToken = new URLSearchParams(window.location.hash.slice(1)).get('token');
+    } else if (window.location.search) {
+      urlToken = new URLSearchParams(window.location.search).get('token');
+    }
+    if (urlToken) {
+      document.getElementById('token-input').value = urlToken;
+      // Auto-validate if token is in URL
+      setTimeout(validateToken, 100);
+    }
+
+    // Handle Enter key
+    document.getElementById('token-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        validateToken();
+      }
+    });
+
+    function validateToken() {
+      const input = document.getElementById('token-input');
+      const error = document.getElementById('token-error');
+      const token = input.value.trim();
+
+      // Hide error
+      error.classList.remove('visible');
+
+      if (!token) {
+        error.textContent = 'Please enter your invite token';
+        error.classList.add('visible');
+        return;
+      }
+
+      // Check if invite exists
+      const invite = getInviteByToken(token);
+
+      if (!invite) {
+        error.textContent = 'Invalid or expired token. Please check your invite link.';
+        error.classList.add('visible');
+        return;
+      }
+
+      // Check invite status
+      if (invite.status === 'PENDING_PROFILE') {
+        // Needs to complete profile first - use hash to preserve token with clean URLs
+        window.location.href = `join.html#token=${token}`;
+        return;
+      }
+
+      // Create session and redirect
+      createSession(token);
+
+      // Redirect based on status
+      if (invite.status === 'ACCEPTED' || invite.status === 'AUTO_ACCEPT') {
+        window.location.href = 'index.html';
+      } else {
+        // REVIEW or HOLD status - show status page - use hash to preserve token
+        window.location.href = `join-status.html#token=${token}`;
+      }
+    }
+  </script>
+</body>
+</html>

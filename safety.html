@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Safety & Liability — Community Connect</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .safety-header {
+      text-align: center;
+      padding: var(--space-8) var(--space-4);
+      background: var(--color-bg-warm);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .safety-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto var(--space-4);
+      background: var(--color-status-review-bg);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--color-status-review);
+    }
+
+    .safety-icon svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .safety-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+
+    .safety-subtitle {
+      color: var(--color-text-muted);
+      font-size: var(--font-size-base);
+    }
+
+    .safety-content {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4);
+    }
+
+    .safety-section {
+      margin-bottom: var(--space-8);
+    }
+
+    .safety-section-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      color: var(--color-text);
+      margin-bottom: var(--space-3);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .safety-section-title svg {
+      width: 20px;
+      height: 20px;
+      color: var(--color-status-review);
+    }
+
+    .safety-section p {
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin-bottom: var(--space-3);
+    }
+
+    .key-point {
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      margin: var(--space-4) 0;
+    }
+
+    .key-point-title {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+      font-size: var(--font-size-base);
+    }
+
+    .key-point p {
+      margin: 0;
+      font-size: var(--font-size-sm);
+    }
+
+    .warning-box {
+      background: var(--color-status-hold-bg);
+      border-left: 4px solid var(--color-status-hold);
+      padding: var(--space-4);
+      border-radius: var(--radius-md);
+      margin: var(--space-4) 0;
+    }
+
+    .warning-box p {
+      margin: 0;
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+    }
+
+    .warning-box strong {
+      color: var(--color-status-hold);
+    }
+
+    /* Safety Checklist */
+    .safety-checklist {
+      background: var(--color-primary-bg);
+      border: 2px solid var(--color-primary);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      margin: var(--space-6) 0;
+    }
+
+    .checklist-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-base);
+      color: var(--color-primary);
+      margin-bottom: var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .checklist-title svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .checklist-items {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .checklist-items li {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding: var(--space-3) 0;
+      border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.2);
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .checklist-items li:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .checklist-number {
+      width: 24px;
+      height: 24px;
+      background: var(--color-primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-bold);
+      flex-shrink: 0;
+    }
+
+    .high-risk-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin: var(--space-3) 0;
+    }
+
+    .high-risk-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-sm);
+    }
+
+    .safety-nav {
+      display: flex;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+      margin-top: var(--space-6);
+      padding-top: var(--space-6);
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .safety-footer {
+      text-align: center;
+      padding: var(--space-6) var(--space-4);
+      background: var(--color-bg-muted);
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: var(--font-size-sm);
+      transition: color var(--transition-fast);
+    }
+
+    .back-link:hover {
+      color: var(--color-primary);
+    }
+
+    .back-link svg {
+      width: 16px;
+      height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <script src="shared.js"></script>
+
+  <header class="safety-header">
+    <div class="safety-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    </div>
+    <h1 class="safety-title">Safety & Liability</h1>
+    <p class="safety-subtitle">Understanding how Community Connect works</p>
+  </header>
+
+  <main class="safety-content">
+
+    <!-- Section: Direct Arrangements -->
+    <section class="safety-section">
+      <h2 class="safety-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        You are arranging directly with neighbours
+      </h2>
+      <p>
+        When you use Community Connect, you're making arrangements directly with other people in your community. We're the noticeboard — the exchange happens between you.
+      </p>
+      <div class="key-point">
+        <div class="key-point-title">What this means</div>
+        <p>If you agree to help someone fix their fence, or ask for a lift to town, that's an arrangement between the two of you. Community Connect helps you find each other and keeps track of exchanges, but we're not part of the arrangement itself.</p>
+      </div>
+    </section>
+
+    <!-- Section: Not a Service Provider -->
+    <section class="safety-section">
+      <h2 class="safety-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        Community Connect does not provide services or supervision
+      </h2>
+      <p>
+        We are a noticeboard and ledger, not a service provider. We don't:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-2) 0; padding-left: var(--space-5); position: relative;">
+          <span style="position: absolute; left: 0; color: var(--color-status-hold);">✗</span>
+          Provide, deliver, or perform any services
+        </li>
+        <li style="padding: var(--space-2) 0; padding-left: var(--space-5); position: relative;">
+          <span style="position: absolute; left: 0; color: var(--color-status-hold);">✗</span>
+          Supervise or check on exchanges
+        </li>
+        <li style="padding: var(--space-2) 0; padding-left: var(--space-5); position: relative;">
+          <span style="position: absolute; left: 0; color: var(--color-status-hold);">✗</span>
+          Verify qualifications or run background checks
+        </li>
+        <li style="padding: var(--space-2) 0; padding-left: var(--space-5); position: relative;">
+          <span style="position: absolute; left: 0; color: var(--color-status-hold);">✗</span>
+          Guarantee the quality of help offered
+        </li>
+        <li style="padding: var(--space-2) 0; padding-left: var(--space-5); position: relative;">
+          <span style="position: absolute; left: 0; color: var(--color-status-hold);">✗</span>
+          Employ or contract anyone
+        </li>
+      </ul>
+    </section>
+
+    <!-- Section: Risk Assessment -->
+    <section class="safety-section">
+      <h2 class="safety-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        Risk is yours to assess
+      </h2>
+      <p>
+        When you accept help or offer help, you're making a personal judgement. Ask yourself:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-2) 0; color: var(--color-text-secondary);">• Do I feel comfortable with this person?</li>
+        <li style="padding: var(--space-2) 0; color: var(--color-text-secondary);">• Does this seem safe to do?</li>
+        <li style="padding: var(--space-2) 0; color: var(--color-text-secondary);">• Am I clear on what's being asked or offered?</li>
+        <li style="padding: var(--space-2) 0; color: var(--color-text-secondary);">• Would I be comfortable if something went wrong?</li>
+      </ul>
+      <p>
+        Trust your instincts. If something doesn't feel right, don't proceed.
+      </p>
+    </section>
+
+    <!-- Section: Insurance -->
+    <section class="safety-section">
+      <h2 class="safety-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Insurance Note
+      </h2>
+
+      <div class="warning-box">
+        <p><strong>Important:</strong> Community Connect does not provide any insurance. Exchanges between neighbours are not covered by any policy held by the platform.</p>
+      </div>
+
+      <p>
+        If you're concerned about liability for a particular activity, consider:
+      </p>
+      <ul style="list-style: none; padding: 0; margin: var(--space-3) 0;">
+        <li style="padding: var(--space-2) 0; color: var(--color-text-secondary);">• Your own home insurance (some policies cover volunteer activities)</li>
+        <li style="padding: var(--space-2) 0; color: var(--color-text-secondary);">• Personal liability insurance</li>
+        <li style="padding: var(--space-2) 0; color: var(--color-text-secondary);">• Discussing the activity scope before starting</li>
+      </ul>
+    </section>
+
+    <!-- Section: High-Risk Activities -->
+    <section class="safety-section">
+      <h2 class="safety-section-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        High-Risk Activities
+      </h2>
+      <p>
+        Some activities carry more risk than others. Take extra care with:
+      </p>
+
+      <div class="high-risk-list">
+        <span class="high-risk-tag">Ladders & heights</span>
+        <span class="high-risk-tag">Power tools</span>
+        <span class="high-risk-tag">Childcare</span>
+        <span class="high-risk-tag">Eldercare</span>
+        <span class="high-risk-tag">Medical assistance</span>
+        <span class="high-risk-tag">Heavy lifting</span>
+        <span class="high-risk-tag">Driving others</span>
+        <span class="high-risk-tag">Pet care</span>
+      </div>
+
+      <p>
+        For these activities, have a clear conversation about experience, expectations, and what happens if something goes wrong. Never feel pressured to do something outside your comfort zone.
+      </p>
+    </section>
+
+    <!-- Safety Checklist -->
+    <div class="safety-checklist">
+      <h3 class="checklist-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 11 12 14 22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        Safety Checklist
+      </h3>
+      <ol class="checklist-items">
+        <li>
+          <span class="checklist-number">1</span>
+          <span><strong>Agree scope clearly</strong> — What exactly are you helping with? What's included and what's not?</span>
+        </li>
+        <li>
+          <span class="checklist-number">2</span>
+          <span><strong>Confirm experience</strong> — Has the person done this before? Are they comfortable with the task?</span>
+        </li>
+        <li>
+          <span class="checklist-number">3</span>
+          <span><strong>Use proper tools</strong> — Don't improvise. If you don't have the right equipment, don't proceed.</span>
+        </li>
+        <li>
+          <span class="checklist-number">4</span>
+          <span><strong>Stop if unsafe</strong> — Either party can stop at any time. Safety comes first.</span>
+        </li>
+        <li>
+          <span class="checklist-number">5</span>
+          <span><strong>Keep records</strong> — Note what was agreed and what was done. This helps if questions arise later.</span>
+        </li>
+        <li>
+          <span class="checklist-number">6</span>
+          <span><strong>Trust your instincts</strong> — If something feels wrong, it's okay to say no or stop.</span>
+        </li>
+        <li>
+          <span class="checklist-number">7</span>
+          <span><strong>Report concerns</strong> — If you have a bad experience, let the community moderators know.</span>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Links -->
+    <nav class="safety-nav">
+      <a href="charter.html" class="btn btn-outline">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        Community Charter
+      </a>
+      <a href="terms.html" class="btn btn-outline">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        Terms & Conditions
+      </a>
+    </nav>
+
+  </main>
+
+  <footer class="safety-footer">
+    <a href="index.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="19" y1="12" x2="5" y2="12"/>
+        <polyline points="12 19 5 12 12 5"/>
+      </svg>
+      Back to Home
+    </a>
+  </footer>
+
+</body>
+</html>
