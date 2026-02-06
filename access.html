@@ -516,12 +516,17 @@
         // Redeem invite and create member stub
         try {
           const memberId = await generateNextMemberId();
+
+          // Look up invite to record who invited this member
+          const invite = await getInviteByToken(inviteToken).catch(() => null);
+
           member = await createMember({
             auth_id: user.id,
             email: user.email,
             display_name: user.email.split('@')[0],
             member_id: memberId,
-            status: 'PENDING_PROFILE'
+            status: 'PENDING_PROFILE',
+            invited_by: invite?.created_by || null
           });
 
           // Mark invite as redeemed

@@ -241,6 +241,10 @@
     /* Sign out link */
     .signout-link { color: var(--color-text-muted); font-size: var(--font-size-xs); text-decoration: none; cursor: pointer; }
     .signout-link:hover { color: var(--color-status-hold); }
+
+    /* Degrees badge */
+    .degrees-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px var(--space-2); border-radius: var(--radius-sm); font-size: 10px; font-weight: var(--font-weight-semibold); background: var(--color-primary-bg); color: var(--color-primary); }
+    .degrees-badge svg { width: 12px; height: 12px; }
   </style>
 </head>
 <body>
@@ -633,6 +637,7 @@
     let currentMember = null;
     let currentBalance = { credits: 5, total_earned: 0, total_spent: 0 };
     let allListings = [];
+    let allMembers = [];
     let currentFilter = 'all';
 
     const postState = {
@@ -680,6 +685,7 @@
         // Populate UI
         updateUserIdentity();
         await loadBalance();
+        allMembers = await getAcceptedMembers();
         await loadFeed();
         initAreaSelection();
         initFeedbackTypeSelection();
@@ -849,6 +855,7 @@
               <span style="font-family:var(--font-family-mono,monospace);">${author.member_id || ''}</span>
               <span>&middot;</span>
               <span class="reliability-badge ${band.toLowerCase()}">${band}</span>
+              ${renderDegreesBadge(author.id)}
             </div>
           </a>
         `;
@@ -1122,6 +1129,20 @@
     function escapeHtml(str) {
       if (!str) return '';
       return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function renderDegreesBadge(authorId) {
+      if (!currentMember || !allMembers.length || !authorId) return '';
+      if (authorId === currentMember.id) return '';
+      const degrees = getDegreesFromUser(allMembers, currentMember.id, authorId);
+      if (degrees < 0) return '';
+      const label = degrees === 1 ? '1 step' : degrees + ' steps';
+      return `
+        <span class="degrees-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+          ${label}
+        </span>
+      `;
     }
 
     // =====================================================

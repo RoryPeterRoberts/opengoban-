@@ -458,6 +458,24 @@
       color: var(--color-text-muted);
       margin-bottom: var(--space-6);
     }
+
+    /* Degrees badge */
+    .degrees-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: var(--font-weight-semibold);
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+    }
+
+    .degrees-badge svg {
+      width: 12px;
+      height: 12px;
+    }
   </style>
 </head>
 <body>
@@ -480,6 +498,7 @@
     let listing = null;
     let exchanges = [];
     let listingId = null;
+    let allMembers = [];
 
     // =====================================================
     // INITIALIZATION
@@ -534,6 +553,9 @@
           console.error('Exchanges fetch error:', e);
           exchanges = [];
         }
+
+        // Load all members for degrees calculation
+        allMembers = await getAcceptedMembers();
 
         renderListing();
       } catch (e) {
@@ -610,6 +632,7 @@
               <div class="author-trust">
                 <span>${author.exchanges_completed || 0} exchange${(author.exchanges_completed || 0) !== 1 ? 's' : ''}</span>
                 <span class="reliability-badge ${band.toLowerCase()}">${band}</span>
+                ${renderDegreesBadge(author.id)}
               </div>
             </div>
           </div>
@@ -870,6 +893,20 @@
         case 'nearby': return 'Nearby';
         default: return area || 'Village';
       }
+    }
+
+    function renderDegreesBadge(authorId) {
+      if (!currentMember || !allMembers.length || !authorId) return '';
+      if (authorId === currentMember.id) return '';
+      const degrees = getDegreesFromUser(allMembers, currentMember.id, authorId);
+      if (degrees < 0) return '';
+      const label = degrees === 1 ? '1 step' : degrees + ' steps';
+      return `
+        <span class="degrees-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+          ${label}
+        </span>
+      `;
     }
 
     function getProposerInfo(exchange) {

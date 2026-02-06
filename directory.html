@@ -367,6 +367,109 @@
       height: 18px;
       color: var(--color-secondary);
     }
+
+    /* Invited-by line on cards */
+    .member-invited-by {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .member-invited-by svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* View toggle */
+    .view-toggle {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+
+    .view-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      border: 1px solid var(--color-border);
+      background: var(--color-bg-card);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .view-toggle-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .view-toggle-btn.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+
+    .view-toggle-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Invite tree */
+    .invite-tree {
+      padding: var(--space-2) 0;
+    }
+
+    .tree-node {
+      padding: var(--space-2) 0;
+    }
+
+    .tree-node-content {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      text-decoration: none;
+      color: inherit;
+      transition: all var(--transition-fast);
+    }
+
+    .tree-node-content:hover {
+      border-color: var(--color-border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .tree-node-name {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+    }
+
+    .tree-node-id {
+      font-family: var(--font-family-mono, monospace);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .tree-node-label {
+      font-size: var(--font-size-xs);
+      color: var(--color-primary);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .tree-children {
+      margin-left: var(--space-6);
+      padding-left: var(--space-4);
+      border-left: 2px solid var(--color-border-light);
+    }
   </style>
 </head>
 <body>
@@ -410,6 +513,18 @@
       <!-- Populated by JS -->
     </div>
 
+    <!-- View Toggle -->
+    <div class="view-toggle" id="view-toggle" style="display:none;">
+      <button class="view-toggle-btn active" id="btn-grid-view" onclick="setView('grid')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Cards
+      </button>
+      <button class="view-toggle-btn" id="btn-tree-view" onclick="setView('tree')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Invite Tree
+      </button>
+    </div>
+
     <!-- Member List -->
     <div id="member-list">
       <div class="loading-state">
@@ -442,6 +557,8 @@
     let filteredMembers = [];
     let activeCategory = 'all';
     let searchQuery = '';
+    let memberLookup = {};
+    let currentView = 'grid';
 
     // =====================================================
     // INITIALIZATION
@@ -464,6 +581,13 @@
         // Load members
         allMembers = await getAcceptedMembers();
         filteredMembers = allMembers;
+
+        // Build lookup map for "Invited by" names
+        memberLookup = {};
+        allMembers.forEach(m => { memberLookup[m.id] = m; });
+
+        // Show view toggle
+        document.getElementById('view-toggle').style.display = 'flex';
 
         // Render UI
         renderFilterPills();
@@ -539,7 +663,14 @@
         return true;
       });
 
-      renderMemberList();
+      // Filters switch to grid view (tree shows all members)
+      if (currentView === 'tree' && (activeCategory !== 'all' || searchQuery)) {
+        setView('grid');
+      } else if (currentView === 'tree') {
+        renderInviteTree();
+      } else {
+        renderMemberList();
+      }
       updateMemberCount();
     }
 
@@ -621,6 +752,7 @@
               </svg>
               Member since ${memberSince}
             </span>
+            ${getInvitedByHtml(member)}
           </div>
         </a>
       `;
@@ -653,6 +785,90 @@
     function escapeHtml(str) {
       if (!str) return '';
       return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function getInvitedByHtml(member) {
+      if (member.invited_by && memberLookup[member.invited_by]) {
+        const inviter = memberLookup[member.invited_by];
+        return `
+          <span class="member-invited-by">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>
+            </svg>
+            Invited by ${escapeHtml(inviter.display_name)}
+          </span>
+        `;
+      }
+      if (!member.invited_by) {
+        return `
+          <span class="member-invited-by">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Founding member
+          </span>
+        `;
+      }
+      return '';
+    }
+
+    // =====================================================
+    // VIEW TOGGLE
+    // =====================================================
+    function setView(view) {
+      currentView = view;
+      document.getElementById('btn-grid-view').classList.toggle('active', view === 'grid');
+      document.getElementById('btn-tree-view').classList.toggle('active', view === 'tree');
+
+      if (view === 'tree') {
+        renderInviteTree();
+      } else {
+        renderMemberList();
+      }
+    }
+
+    function renderInviteTree() {
+      const container = document.getElementById('member-list');
+      const roots = buildInviteTree(allMembers);
+
+      if (roots.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">&#127793;</div>
+            <div class="empty-state-title">No members yet</div>
+            <p class="empty-state-text">The community is just getting started.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '<div class="invite-tree">' + roots.map(node => renderTreeNode(node)).join('') + '</div>';
+    }
+
+    function renderTreeNode(node) {
+      const m = node.member;
+      const isFounder = !m.invited_by;
+      const label = isFounder ? '<span class="tree-node-label">Founder</span>' : '';
+
+      let html = `
+        <div class="tree-node">
+          <a href="profile.html?id=${m.id}" class="tree-node-content">
+            <div>
+              <span class="tree-node-name">${escapeHtml(m.display_name)}</span>
+              <span class="tree-node-id">${escapeHtml(m.member_id || '')}</span>
+            </div>
+            ${label}
+          </a>
+      `;
+
+      if (node.children.length > 0) {
+        html += '<div class="tree-children">';
+        html += node.children.map(child => renderTreeNode(child)).join('');
+        html += '</div>';
+      }
+
+      html += '</div>';
+      return html;
     }
 
     // =====================================================

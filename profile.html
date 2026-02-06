@@ -351,6 +351,61 @@
     }
 
     /* Dev Panel */
+    /* Invite Chain Section */
+    .invite-chain-section {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow-card);
+    }
+
+    .chain-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-2);
+      text-decoration: none;
+      color: inherit;
+      transition: all var(--transition-fast);
+    }
+
+    .chain-item:hover {
+      background: var(--color-primary-bg);
+    }
+
+    .chain-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .chain-item-name {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+    }
+
+    .chain-item-id {
+      font-family: var(--font-family-mono, monospace);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .chain-label {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-3);
+    }
+
+    .chain-empty {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
     .dev-panel {
       position: fixed;
       bottom: var(--space-4);
@@ -428,6 +483,8 @@
     // =====================================================
     let member = null;
     let balance = null;
+    let allMembers = [];
+    let memberLookup = {};
 
     // =====================================================
     // INITIALIZATION
@@ -443,6 +500,12 @@
         if (member.status === 'PENDING_PROFILE') { window.location.href = 'join.html'; return; }
 
         balance = await getBalance(member.id);
+
+        // Load all members for invite chain display
+        allMembers = await getAcceptedMembers();
+        memberLookup = {};
+        allMembers.forEach(m => { memberLookup[m.id] = m; });
+
         renderProfile();
       } catch (e) {
         console.error('Init error:', e);
@@ -491,6 +554,9 @@
             <span class="balance-value">${balance.credits} credits</span>
           </div>
         </div>
+
+        <!-- Invite Chain -->
+        ${renderInviteChain()}
 
         <!-- Trust Signals -->
         <div class="trust-section">
@@ -623,6 +689,57 @@
         console.error('Save error:', e);
         showToast('Failed to save. Please try again.');
       }
+    }
+
+    function renderInviteChain() {
+      // Who invited this member
+      let inviterHtml = '';
+      if (member.invited_by && memberLookup[member.invited_by]) {
+        const inviter = memberLookup[member.invited_by];
+        inviterHtml = `
+          <div class="chain-label">Invited by</div>
+          <a href="profile.html?id=${inviter.id}" class="chain-item">
+            <div>
+              <span class="chain-item-name">${escapeHtml(inviter.display_name)}</span>
+              <span class="chain-item-id">${escapeHtml(inviter.member_id || '')}</span>
+            </div>
+          </a>
+        `;
+      } else if (!member.invited_by) {
+        inviterHtml = '<div class="chain-label">Founding member — no inviter</div>';
+      }
+
+      // Who this member has invited
+      const invitees = allMembers.filter(m => m.invited_by === member.id);
+      let inviteesHtml = '';
+      if (invitees.length > 0) {
+        inviteesHtml = `
+          <div class="chain-label" style="margin-top: var(--space-4);">Invited ${invitees.length} member${invitees.length !== 1 ? 's' : ''}</div>
+          ${invitees.map(m => `
+            <a href="profile.html?id=${m.id}" class="chain-item">
+              <div>
+                <span class="chain-item-name">${escapeHtml(m.display_name)}</span>
+                <span class="chain-item-id">${escapeHtml(m.member_id || '')}</span>
+              </div>
+            </a>
+          `).join('')}
+        `;
+      } else {
+        inviteesHtml = `<div class="chain-label" style="margin-top: var(--space-4);">No members invited yet</div>`;
+      }
+
+      return `
+        <div class="invite-chain-section">
+          <div class="section-header">
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>
+            </svg>
+            <h3 class="section-title">Invite Chain</h3>
+          </div>
+          ${inviterHtml}
+          ${inviteesHtml}
+        </div>
+      `;
     }
 
     async function doSignOut() {

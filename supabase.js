@@ -180,7 +180,7 @@ async function getActiveListings(filters = {}) {
       *,
       author:members!listings_author_id_fkey (
         id, display_name, member_id, primary_category,
-        area, exchanges_completed, disputes_count, created_at
+        area, exchanges_completed, disputes_count, created_at, invited_by
       )
     `)
     .eq('status', 'active')
@@ -703,4 +703,63 @@ function showToast(message, duration = 3000) {
 
 function generateInviteLink(token) {
   return window.location.origin + '/access.html#token=' + token;
+}
+
+// =====================================================
+// INVITE CHAIN / DEGREES OF SEPARATION
+// =====================================================
+
+/**
+ * Walk invited_by chains to find shortest path between two members.
+ * Returns integer (0 = self, 1 = direct invite, 2 = two steps, etc.) or -1 if not connected.
+ * Uses BFS on the undirected invite graph.
+ */
+function getDegreesFromUser(allMembers, fromId, toId) {
+  if (fromId === toId) return 0;
+
+  // Build adjacency list (undirected: inviter <-> invitee)
+  const adj = {};
+  allMembers.forEach(m => {
+    if (!adj[m.id]) adj[m.id] = [];
+    if (m.invited_by) {
+      if (!adj[m.invited_by]) adj[m.invited_by] = [];
+      adj[m.id].push(m.invited_by);
+      adj[m.invited_by].push(m.id);
+    }
+  });
+
+  // BFS from fromId
+  const visited = new Set([fromId]);
+  const queue = [[fromId, 0]];
+  while (queue.length > 0) {
+    const [current, depth] = queue.shift();
+    for (const neighbour of (adj[current] || [])) {
+      if (neighbour === toId) return depth + 1;
+      if (!visited.has(neighbour)) {
+        visited.add(neighbour);
+        queue.push([neighbour, depth + 1]);
+      }
+    }
+  }
+  return -1; // not connected
+}
+
+/**
+ * Build invite tree from flat members array.
+ * Returns array of root nodes, each with { member, children[] }.
+ */
+function buildInviteTree(allMembers) {
+  const memberMap = {};
+  allMembers.forEach(m => { memberMap[m.id] = { member: m, children: [] }; });
+
+  const roots = [];
+  allMembers.forEach(m => {
+    if (m.invited_by && memberMap[m.invited_by]) {
+      memberMap[m.invited_by].children.push(memberMap[m.id]);
+    } else {
+      roots.push(memberMap[m.id]);
+    }
+  });
+
+  return roots;
 }
