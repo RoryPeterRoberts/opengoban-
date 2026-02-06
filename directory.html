@@ -765,11 +765,12 @@
       const countEl = document.getElementById('member-count');
       const total = allMembers.length;
       const showing = filteredMembers.length;
+      const cap = COMMUNITY_SETTINGS.MEMBER_CAP;
 
       if (showing === total) {
-        countEl.textContent = `${total} member${total !== 1 ? 's' : ''}`;
+        countEl.textContent = `${total} of ${cap} members`;
       } else {
-        countEl.textContent = `Showing ${showing} of ${total} member${total !== 1 ? 's' : ''}`;
+        countEl.textContent = `Showing ${showing} of ${total} members (${cap} max)`;
       }
     }
 

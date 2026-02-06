@@ -348,6 +348,83 @@
       height: 18px;
       accent-color: var(--color-primary);
     }
+
+    /* Capacity Bar */
+    .capacity-bar {
+      height: 8px;
+      background: var(--color-bg-muted);
+      border-radius: 4px;
+      position: relative;
+      margin-bottom: var(--space-4);
+    }
+
+    .capacity-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--color-primary);
+      transition: width 0.3s;
+    }
+
+    .capacity-label {
+      position: absolute;
+      right: 0;
+      top: -20px;
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    /* Coverage Grid */
+    .coverage-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: var(--space-2);
+      margin-top: var(--space-4);
+    }
+
+    .coverage-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-sm);
+    }
+
+    .coverage-item.gap {
+      background: var(--color-bg-warning, #fef3cd);
+    }
+
+    .coverage-item.concentrated {
+      background: var(--color-bg-muted);
+    }
+
+    .coverage-count {
+      margin-left: auto;
+      font-weight: 600;
+    }
+
+    .coverage-flag {
+      font-size: var(--font-size-xs);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      background: var(--color-status-review);
+      color: white;
+    }
+
+    .coverage-flag.warn {
+      background: var(--color-text-muted);
+    }
+
+    .fills-gap-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: var(--font-size-xs);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      background: var(--color-primary);
+      color: white;
+      margin-left: var(--space-2);
+    }
   </style>
 </head>
 <body>
@@ -367,7 +444,12 @@
 
     <!-- Ecosystem Health -->
     <div class="health-section">
-      <h3 class="health-title">Current community balance</h3>
+      <h3 class="health-title">Community health</h3>
+      <!-- Member capacity bar -->
+      <div class="capacity-bar">
+        <div class="capacity-fill" id="capacity-fill"></div>
+        <span class="capacity-label" id="capacity-label"></span>
+      </div>
       <div class="health-grid">
         <div class="health-item">
           <div class="health-label">We need more of</div>
@@ -378,6 +460,8 @@
           <div class="health-categories" id="surplus-categories"></div>
         </div>
       </div>
+      <!-- Skill coverage breakdown -->
+      <div class="coverage-grid" id="coverage-grid"></div>
     </div>
 
     <!-- Review Queue -->
@@ -444,6 +528,7 @@
     let currentMemberId = null; // member being acted on
     let currentAdmin = null;
     let reviewQueue = [];
+    let skillData = null;
 
     // =====================================================
     // INITIALIZATION
@@ -488,6 +573,28 @@
         document.getElementById('surplus-categories').innerHTML = surplus.length > 0
           ? surplus.map(catId => { const c = getCategoryById(catId); return `<span class="health-tag surplus">${c.emoji} ${c.label.split(' & ')[0]}</span>`; }).join('')
           : '<span style="color:var(--color-text-muted);font-size:var(--font-size-sm);">None</span>';
+
+        // Render member capacity bar
+        const members = await getAcceptedMembers();
+        const pct = (members.length / COMMUNITY_SETTINGS.MEMBER_CAP) * 100;
+        document.getElementById('capacity-fill').style.width = Math.min(pct, 100) + '%';
+        document.getElementById('capacity-label').textContent =
+          `${members.length} / ${COMMUNITY_SETTINGS.MEMBER_CAP} members`;
+
+        // Render skill coverage grid
+        skillData = getSkillCoverageData(members);
+        document.getElementById('coverage-grid').innerHTML = CATEGORIES.map(cat => {
+          const data = skillData.coverage[cat.id];
+          const isGap = skillData.gaps.includes(cat.id);
+          const isConc = skillData.concentrations.includes(cat.id);
+          return `<div class="coverage-item ${isGap ? 'gap' : ''} ${isConc ? 'concentrated' : ''}">
+            <span>${cat.emoji}</span>
+            <span>${cat.label.split(' & ')[0]}</span>
+            <span class="coverage-count">${data.count}</span>
+            ${isGap ? '<span class="coverage-flag">Needs members</span>' : ''}
+            ${isConc ? '<span class="coverage-flag warn">Over-represented</span>' : ''}
+          </div>`;
+        }).join('');
       } catch (e) {
         console.error('Health load error:', e);
       }
@@ -534,7 +641,7 @@
           <div style="font-size:var(--font-size-sm);color:var(--color-text-muted);margin-bottom:var(--space-3);">${escapeHtml(member.email)}</div>
 
           <div class="profile-details">
-            ${primaryCat ? `<div class="detail-row"><span class="detail-label">Primary offer</span><span class="detail-value"><span class="category-badge">${primaryCat.emoji} ${primaryCat.label}</span></span></div>` : ''}
+            ${primaryCat ? `<div class="detail-row"><span class="detail-label">Primary offer</span><span class="detail-value"><span class="category-badge">${primaryCat.emoji} ${primaryCat.label}</span>${skillData && skillData.gaps.includes(member.primary_category) ? '<span class="fills-gap-badge">Fills a gap</span>' : ''}</span></div>` : ''}
 
             ${member.secondary_categories && member.secondary_categories.length > 0 ? `
             <div class="detail-row"><span class="detail-label">Also offers</span><span class="detail-value">

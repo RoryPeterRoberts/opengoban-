@@ -334,9 +334,9 @@
       <div class="card card-elevated">
         <div class="card-header">
           <h3 class="card-title">Grow your village</h3>
-          <p class="card-subtitle">Know someone who'd like to join?</p>
+          <p class="card-subtitle" id="invite-status">Loading...</p>
         </div>
-        <button class="btn btn-outline btn-block" onclick="openInviteModal()">
+        <button class="btn btn-outline btn-block" id="invite-btn" onclick="openInviteModal()" disabled>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           Invite a neighbour
         </button>
@@ -687,6 +687,7 @@
         await loadBalance();
         allMembers = await getAcceptedMembers();
         await loadFeed();
+        updateInviteStatus();
         initAreaSelection();
         initFeedbackTypeSelection();
 
@@ -1037,6 +1038,21 @@
 
       if (!name) { showToast('Please enter their name'); return; }
 
+      // Check member cap
+      const capMembers = await getAcceptedMembers();
+      if (capMembers.length >= COMMUNITY_SETTINGS.MEMBER_CAP) {
+        showToast('Community is at capacity. Invites are paused.');
+        return;
+      }
+
+      // Check personal invite allowance
+      const myInvites = await getMyInvites(currentMember.id);
+      const allowance = getInviteAllowance(currentMember, myInvites.length);
+      if (allowance.remaining <= 0) {
+        showToast(`You've used all ${allowance.limit} invites. Complete more exchanges to earn more.`);
+        return;
+      }
+
       try {
         const invite = await createInviteRecord({
           created_by: currentMember.id,
@@ -1051,6 +1067,7 @@
         document.getElementById('invite-success-name').textContent = name;
         document.getElementById('invite-link').value = currentInviteLink;
         document.getElementById('copy-btn').textContent = 'Copy';
+        updateInviteStatus();
       } catch (e) {
         console.error('Invite error:', e);
         showToast('Failed to create invite. Please try again.');
@@ -1071,6 +1088,36 @@
       } else {
         copyInviteLinkToClipboard();
         showToast('Link copied - paste it in your message');
+      }
+    }
+
+    // =====================================================
+    // INVITE STATUS
+    // =====================================================
+    async function updateInviteStatus() {
+      try {
+        const capMembers = await getAcceptedMembers();
+        const myInvites = await getMyInvites(currentMember.id);
+        const allowance = getInviteAllowance(currentMember, myInvites.length);
+        const atCap = capMembers.length >= COMMUNITY_SETTINGS.MEMBER_CAP;
+
+        const statusEl = document.getElementById('invite-status');
+        const btnEl = document.getElementById('invite-btn');
+
+        if (atCap) {
+          statusEl.textContent = `Community full (${capMembers.length}/${COMMUNITY_SETTINGS.MEMBER_CAP} members)`;
+          btnEl.disabled = true;
+        } else if (allowance.remaining <= 0) {
+          statusEl.textContent = `No invites remaining (${allowance.used}/${allowance.limit} used)`;
+          btnEl.disabled = true;
+        } else {
+          statusEl.textContent = `${allowance.remaining} invite${allowance.remaining !== 1 ? 's' : ''} remaining · ${capMembers.length}/${COMMUNITY_SETTINGS.MEMBER_CAP} members`;
+          btnEl.disabled = false;
+        }
+      } catch (e) {
+        console.error('Invite status error:', e);
+        document.getElementById('invite-status').textContent = 'Know someone who\'d like to join?';
+        document.getElementById('invite-btn').disabled = false;
       }
     }
 

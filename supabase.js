@@ -744,6 +744,44 @@ function getDegreesFromUser(allMembers, fromId, toId) {
   return -1; // not connected
 }
 
+// =====================================================
+// COMMUNITY GOVERNANCE
+// =====================================================
+
+const COMMUNITY_SETTINGS = {
+  MEMBER_CAP: 80,
+  BASE_INVITE_LIMIT: 2,
+  INVITE_PER_EXCHANGE: 1,
+  EXCHANGE_THRESHOLD: 3,
+  MAX_INVITE_LIMIT: 5
+};
+
+function getInviteAllowance(member, inviteCount) {
+  const base = COMMUNITY_SETTINGS.BASE_INVITE_LIMIT;
+  const bonus = Math.floor((member.exchanges_completed || 0) / COMMUNITY_SETTINGS.EXCHANGE_THRESHOLD) * COMMUNITY_SETTINGS.INVITE_PER_EXCHANGE;
+  const limit = Math.min(base + bonus, COMMUNITY_SETTINGS.MAX_INVITE_LIMIT);
+  return { limit, used: inviteCount, remaining: Math.max(0, limit - inviteCount) };
+}
+
+function getSkillCoverageData(members) {
+  const coverage = {};
+  CATEGORIES.forEach(c => { coverage[c.id] = { count: 0, members: [] }; });
+  members.forEach(m => {
+    if (m.primary_category && coverage[m.primary_category]) {
+      coverage[m.primary_category].count++;
+      coverage[m.primary_category].members.push(m.display_name);
+    }
+  });
+  const total = members.length || 1;
+  const gaps = [];
+  const concentrations = [];
+  Object.entries(coverage).forEach(([catId, data]) => {
+    if (data.count <= 1) gaps.push(catId);
+    if (data.count / total > 0.3) concentrations.push(catId);
+  });
+  return { coverage, gaps, concentrations, total };
+}
+
 /**
  * Build invite tree from flat members array.
  * Returns array of root nodes, each with { member, children[] }.
