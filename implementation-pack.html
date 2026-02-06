@@ -375,215 +375,25 @@
   </style>
 </head>
 <body>
-  <script src="shared.js"></script>
-  <script src="js/auth.js"></script>
+  <div class="admin-container">
+    <header class="admin-header">
+      <div class="admin-header-left">
+        <a href="index.html" class="back-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"/>
+            <polyline points="12 19 5 12 12 5"/>
+          </svg>
+        </a>
+        <h1 class="admin-title">Implementation Packs</h1>
+      </div>
+      <span class="admin-badge">Admin</span>
+    </header>
 
-  <div class="admin-container" id="main-container">
-    <!-- Content rendered by JS after admin auth -->
+    <div class="empty-state">
+      <div class="empty-icon">📦</div>
+      <h2 class="empty-title">Coming soon</h2>
+      <p class="empty-message">Implementation tracking will be available in a future update. For now, use the <a href="triage.html" style="color: var(--color-primary);">feedback triage</a> to manage changes.</p>
+    </div>
   </div>
-
-  <script>
-    function init() {
-      requireAdmin(renderPacksPage);
-    }
-
-    function renderPacksPage() {
-      const container = document.getElementById('main-container');
-      const packs = getAllImplementationPacks();
-
-      const draftCount = packs.filter(p => p.status === 'draft').length;
-      const readyCount = packs.filter(p => p.status === 'ready').length;
-      const appliedCount = packs.filter(p => p.status === 'applied').length;
-
-      container.innerHTML = `
-        <header class="admin-header">
-          <div class="admin-header-left">
-            <a href="index.html" class="back-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="19" y1="12" x2="5" y2="12"/>
-                <polyline points="12 19 5 12 12 5"/>
-              </svg>
-            </a>
-            <h1 class="admin-title">Implementation Packs</h1>
-          </div>
-          <span class="admin-badge">Admin</span>
-        </header>
-
-        <nav class="admin-nav">
-          <a href="triage.html" class="admin-nav-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            Triage
-          </a>
-          <a href="review-proposals.html" class="admin-nav-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-            </svg>
-            Proposals
-          </a>
-          <a href="implementation-pack.html" class="admin-nav-link active">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="16 18 22 12 16 6"/>
-              <polyline points="8 6 2 12 8 18"/>
-            </svg>
-            Packs
-          </a>
-        </nav>
-
-        <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-value">${packs.length}</div>
-            <div class="stat-label">Total</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value ready">${draftCount + readyCount}</div>
-            <div class="stat-label">Pending</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value applied">${appliedCount}</div>
-            <div class="stat-label">Applied</div>
-          </div>
-        </div>
-
-        <div class="pack-list" id="pack-list">
-          ${renderPackList(packs)}
-        </div>
-      `;
-    }
-
-    function renderPackList(packs) {
-      if (packs.length === 0) {
-        return `
-          <div class="empty-state">
-            <div class="empty-icon">📦</div>
-            <h2 class="empty-title">No implementation packs yet</h2>
-            <p class="empty-message">Create packs from approved proposals to track implementation.</p>
-          </div>
-        `;
-      }
-
-      return packs.map(pack => renderPackCard(pack)).join('');
-    }
-
-    function renderPackCard(pack) {
-      const date = new Date(pack.createdAt);
-      const formattedDate = date.toLocaleDateString('en-IE', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
-      });
-
-      const proposal = pack.proposalId ? getProposalById(pack.proposalId) : null;
-
-      // Files section
-      let filesHtml = '';
-      if (pack.files && pack.files.length > 0) {
-        filesHtml = `
-          <div class="files-section">
-            <div class="files-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-              </svg>
-              Files to Change
-            </div>
-            <div class="file-list">
-              ${pack.files.map(f => `
-                <div class="file-item">
-                  <span class="file-path">${escapeHtml(f.path)}</span>
-                  <span class="change-type ${f.changeType}">${f.changeType}</span>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      } else {
-        filesHtml = `
-          <div class="files-section">
-            <div class="files-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-              </svg>
-              Files to Change
-            </div>
-            <p class="no-files">No files specified</p>
-          </div>
-        `;
-      }
-
-      // Action buttons
-      let actionButtons = '';
-      if (pack.status === 'draft') {
-        actionButtons = `
-          <button class="action-btn" onclick="setPackStatus('${pack.id}', 'ready')">
-            Mark Ready
-          </button>
-        `;
-      } else if (pack.status === 'ready') {
-        actionButtons = `
-          <button class="action-btn success" onclick="markApplied('${pack.id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            Mark as Applied
-          </button>
-        `;
-      } else if (pack.status === 'applied') {
-        actionButtons = `
-          <span style="font-size: var(--font-size-xs); color: var(--color-status-accepted);">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><polyline points="20 6 9 17 4 12"/></svg>
-            Applied
-          </span>
-        `;
-      }
-
-      return `
-        <div class="pack-card ${pack.status}">
-          <div class="pack-card-header">
-            <div>
-              <h3 class="pack-title">${escapeHtml(pack.title)}</h3>
-              <span class="status-badge ${pack.status}">${pack.status}</span>
-            </div>
-          </div>
-
-          ${pack.description ? `<p class="pack-description">${escapeHtml(pack.description)}</p>` : ''}
-
-          <div class="pack-meta">
-            ID: ${pack.id} &bull; Created ${formattedDate}
-            ${proposal ? ` &bull; Proposal: ${escapeHtml(proposal.title)}` : ''}
-          </div>
-
-          ${filesHtml}
-
-          <div class="action-buttons">
-            ${actionButtons}
-          </div>
-        </div>
-      `;
-    }
-
-    function setPackStatus(id, status) {
-      updateImplementationPack(id, { status });
-      showToast(`Pack marked as ${status}`);
-      renderPacksPage();
-    }
-
-    function markApplied(id) {
-      if (confirm('Mark this implementation pack as applied? This will also mark the associated proposal as implemented.')) {
-        markPackAsApplied(id);
-        showToast('Implementation pack applied!');
-        renderPacksPage();
-      }
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    init();
-  </script>
 </body>
 </html>

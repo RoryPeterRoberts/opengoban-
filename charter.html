@@ -222,8 +222,6 @@
   </style>
 </head>
 <body>
-  <script src="shared.js"></script>
-
   <header class="charter-header">
     <div class="charter-icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -397,7 +395,7 @@
     </nav>
 
     <div class="highlight-box" style="margin-top: var(--space-6);">
-      <p><strong>Have an idea?</strong> Use the feedback form to suggest changes — proposals are reviewed by the community. <a href="feedback.html" style="color: var(--color-primary);">Give feedback →</a></p>
+      <p><strong>Have an idea?</strong> Use the feedback button on the main page to suggest changes — all feedback is reviewed by the community admin. <a href="index.html" style="color: var(--color-primary);">Back to Community Connect →</a></p>
     </div>
 
   </main>
@@ -413,29 +411,7 @@
   </footer>
 
   <script>
-    // Populate moderators list
-    function renderModerators() {
-      const moderators = getModerators();
-      const container = document.getElementById('moderators-list');
-
-      if (!moderators || moderators.length === 0) {
-        container.innerHTML = '<p style="color: var(--color-text-muted); font-size: var(--font-size-sm);">No moderators assigned yet.</p>';
-        return;
-      }
-
-      container.innerHTML = moderators.map(mod => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3); background: var(--color-bg-muted); border-radius: var(--radius-md); margin-bottom: var(--space-2);">
-          <div>
-            <div style="font-weight: var(--font-weight-medium); color: var(--color-text);">${mod.name}</div>
-            <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">${mod.role}</div>
-          </div>
-          <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Since ${formatGovernanceDate(mod.since)}</div>
-        </div>
-      `).join('');
-    }
-
-    // Initialize
-    renderModerators();
+    document.getElementById('moderators-list').innerHTML = '<p style="color: var(--color-text-muted); font-size: var(--font-size-sm);">Moderator list will be populated as the community grows during pilot.</p>';
   </script>
 </body>
 </html>
