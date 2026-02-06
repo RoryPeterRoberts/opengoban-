@@ -130,13 +130,13 @@ async function handleSignOut() {
  */
 function getInviteTokenFromURL() {
   let token = null;
-  if (window.location.hash && window.location.hash.includes('token=')) {
+  if (window.location.hash && (window.location.hash.includes('token=') || window.location.hash.includes('invite='))) {
     const params = new URLSearchParams(window.location.hash.slice(1));
-    token = params.get('token');
+    token = params.get('token') || params.get('invite');
   }
   if (!token && window.location.search) {
     const params = new URLSearchParams(window.location.search);
-    token = params.get('token');
+    token = params.get('token') || params.get('invite');
   }
   return token;
 }
