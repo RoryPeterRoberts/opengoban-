@@ -6,7 +6,7 @@
 // =====================================================
 
 const ADMIN_SESSION_KEY = 'cc_admin_session';
-const ADMIN_PASSWORD = 'pilot2025';  // Simple password for pilot admin pages
+const ADMIN_PASSWORD = 'pilot2026';  // Simple password for pilot admin pages
 
 // Cache for current member (avoid repeated DB calls)
 let _currentMember = null;
