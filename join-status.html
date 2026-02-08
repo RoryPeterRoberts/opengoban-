@@ -18,6 +18,26 @@
       justify-content: center;
     }
 
+    /* Loading */
+    .loading-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-5);
+    }
+
+    .loading-spinner-lg {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto var(--space-4);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
     /* Status card variants */
     .status-card.accepted .status-title {
       color: var(--color-status-accepted);
@@ -174,11 +194,15 @@
   </style>
 </head>
 <body>
-  <script src="shared.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
   <script src="js/auth.js"></script>
 
   <div class="status-container" id="main-container">
-    <!-- Content will be rendered by JS -->
+    <div class="loading-state">
+      <div class="loading-spinner-lg"></div>
+      <p style="color: var(--color-text-muted);">Checking your status...</p>
+    </div>
   </div>
 
   <script>
@@ -186,28 +210,27 @@
     // INITIALIZATION
     // =====================================================
 
-    function init() {
-      // Support both hash and query params for token (hash preferred due to clean URLs)
-      let token = null;
-      if (window.location.hash && window.location.hash.includes('token=')) {
-        token = new URLSearchParams(window.location.hash.slice(1)).get('token');
-      } else if (window.location.search) {
-        token = new URLSearchParams(window.location.search).get('token');
+    async function init() {
+      try {
+        // Must be authenticated
+        const session = await getAuthSession();
+        if (!session) {
+          window.location.href = 'access.html';
+          return;
+        }
+
+        // Get current member
+        const member = await getCurrentMember();
+        if (!member) {
+          window.location.href = 'access.html';
+          return;
+        }
+
+        renderStatus(member);
+      } catch (e) {
+        console.error('Init error:', e);
+        renderError('Something went wrong. Please try signing in again.');
       }
-
-      if (!token) {
-        renderError('No invite link provided');
-        return;
-      }
-
-      const invite = getInviteByToken(token);
-
-      if (!invite) {
-        renderError('Invite not found');
-        return;
-      }
-
-      renderStatus(invite);
     }
 
     // =====================================================
@@ -218,9 +241,9 @@
       document.getElementById('main-container').innerHTML = `
         <div class="error-state">
           <div class="error-icon">🔗</div>
-          <h2 class="error-title">Link not found</h2>
+          <h2 class="error-title">Something went wrong</h2>
           <p style="color: var(--color-text-secondary); margin-bottom: var(--space-6);">${message}</p>
-          <a href="index.html" class="error-link">← Back to Community Connect</a>
+          <a href="access.html" class="error-link">&larr; Back to sign in</a>
         </div>
       `;
     }
@@ -229,19 +252,21 @@
     // STATUS RENDERING
     // =====================================================
 
-    function renderStatus(invite) {
+    function renderStatus(member) {
       const container = document.getElementById('main-container');
-      const status = invite.status;
+      const status = member.status;
 
-      if (status === 'ACCEPTED' || status === 'AUTO_ACCEPT') {
-        renderAccepted(container, invite);
+      if (status === 'ACCEPTED') {
+        renderAccepted(container, member);
       } else if (status === 'REVIEW') {
-        renderReview(container, invite);
+        renderReview(container, member);
       } else if (status === 'HOLD') {
-        renderHold(container, invite);
+        renderHold(container, member);
+      } else if (status === 'PENDING_PROFILE') {
+        // Need to complete profile first
+        window.location.href = 'join.html';
       } else {
-        // PENDING_PROFILE - redirect to form - use hash for clean URLs
-        window.location.href = `join.html#token=${invite.token}`;
+        renderError('Your account has an unexpected status. Please contact a community member.');
       }
     }
 
@@ -249,16 +274,14 @@
     // ACCEPTED
     // =====================================================
 
-    function renderAccepted(container, invite) {
-      // Get terms acceptance display
-      const termsDisplay = getTermsAcceptanceDisplay(invite.token);
-      const termsInfo = termsDisplay.accepted
+    function renderAccepted(container, member) {
+      const termsInfo = member.terms_accepted_at
         ? `<div class="terms-info">
              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                <polyline points="22 4 12 14.01 9 11.01"/>
              </svg>
-             Terms accepted: ${termsDisplay.message}
+             Terms accepted: ${member.terms_version} on ${formatDate(member.terms_accepted_at)}
            </div>`
         : '';
 
@@ -276,30 +299,7 @@
           ${termsInfo}
           <a href="index.html" class="btn btn-secondary btn-lg btn-block">Go to home</a>
 
-          <footer class="status-footer">
-            <a href="charter.html" class="footer-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-              </svg>
-              Governance
-            </a>
-            <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">·</span>
-            <a href="terms.html" class="footer-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-              </svg>
-              Terms
-            </a>
-            <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">·</span>
-            <a href="privacy.html" class="footer-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              Privacy
-            </a>
-          </footer>
+          ${renderFooter()}
         </div>
       `;
     }
@@ -308,14 +308,7 @@
     // AWAITING REVIEW
     // =====================================================
 
-    function renderReview(container, invite) {
-      const reviewMessage = invite.reviewMessage
-        ? `<div class="review-message">
-             <div class="review-message-label">Message from reviewer</div>
-             <div class="review-message-text">${invite.reviewMessage}</div>
-           </div>`
-        : '';
-
+    function renderReview(container, member) {
       container.innerHTML = `
         <div class="status-card review">
           <div class="status-icon">⏳</div>
@@ -324,34 +317,17 @@
             Your application is being reviewed by community members. This helps us keep the exchange balanced and trustworthy.
           </p>
 
-          ${reviewMessage}
+          <div style="background: var(--color-bg-muted); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-6); text-align: left;">
+            <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin: 0;">
+              <strong>Member ID:</strong> ${member.member_id}<br>
+              <strong>Primary category:</strong> ${getCategoryLabel(member.primary_category)}<br>
+              <strong>Skills:</strong> ${(member.skill_tags || []).join(', ')}
+            </p>
+          </div>
 
-          <a href="join.html#token=${invite.token}" class="btn btn-ghost btn-lg btn-block">Update my profile</a>
+          <a href="join.html" class="btn btn-ghost btn-lg btn-block">Update my profile</a>
 
-          <footer class="status-footer">
-            <a href="charter.html" class="footer-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-              </svg>
-              Governance
-            </a>
-            <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">·</span>
-            <a href="terms.html" class="footer-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-              </svg>
-              Terms
-            </a>
-            <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">·</span>
-            <a href="privacy.html" class="footer-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              Privacy
-            </a>
-          </footer>
+          ${renderFooter()}
         </div>
       `;
     }
@@ -360,27 +336,24 @@
     // ON HOLD
     // =====================================================
 
-    function renderHold(container, invite) {
-      // Get shortage categories
-      const shortages = getShortageCategories();
-      const overcrowded = getOvercrowdedCategories();
+    async function renderHold(container, member) {
+      // Get shortage categories from ecosystem health
+      let shortageHtml = '<span style="color: var(--color-text-muted); font-size: var(--font-size-sm);">No current shortages</span>';
+      try {
+        const health = await getEcosystemHealthData();
+        const shortages = getShortageCategories(health);
+        if (shortages.length > 0) {
+          shortageHtml = shortages.map(catId => {
+            const cat = getCategoryById(catId);
+            return `<span class="shortage-tag">${cat.emoji} ${cat.label}</span>`;
+          }).join('');
+        }
+      } catch (e) {
+        console.error('Could not load ecosystem health:', e);
+      }
 
-      // Find primary category name
-      const primaryCat = invite.profile ? getCategoryById(invite.profile.primaryCategory) : null;
+      const primaryCat = getCategoryById(member.primary_category);
       const primaryLabel = primaryCat ? primaryCat.label : 'your primary category';
-
-      // Build shortage tags
-      const shortageTagsHtml = shortages.length > 0
-        ? shortages.map(cat => `<span class="shortage-tag">${cat.emoji} ${cat.label}</span>`).join('')
-        : '<span class="text-muted text-sm">No current shortages</span>';
-
-      // Hold reason if provided
-      const holdReason = invite.holdReason
-        ? `<div class="hold-reason">
-             <div class="hold-reason-label">Reason</div>
-             <div class="hold-reason-text">${invite.holdReason}</div>
-           </div>`
-        : '';
 
       container.innerHTML = `
         <div class="status-card hold">
@@ -390,46 +363,59 @@
             Right now the community has many people offering ${primaryLabel}. To keep exchanges balanced, we're pausing new members in this area.
           </p>
 
-          ${holdReason}
-
           <div class="guidance-box">
-            <div class="guidance-title">💡 Want to speed up acceptance?</div>
+            <div class="guidance-title">Want to speed up acceptance?</div>
             <p class="guidance-text">
               If you can also offer any of these categories where we're short on help, update your profile to highlight them:
             </p>
             <div class="shortage-list">
-              ${shortageTagsHtml}
+              ${shortageHtml}
             </div>
           </div>
 
-          <a href="join.html#token=${invite.token}" class="btn btn-primary btn-lg btn-block">Update my profile</a>
-          <a href="index.html" class="btn btn-ghost btn-lg btn-block mt-4">Back to home</a>
+          <a href="join.html" class="btn btn-primary btn-lg btn-block">Update my profile</a>
+          <button class="btn btn-ghost btn-lg btn-block" style="margin-top: var(--space-3);" onclick="handleSignOut()">Sign out</button>
 
-          <footer class="status-footer">
-            <a href="charter.html" class="footer-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-              </svg>
-              Governance
-            </a>
-            <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">·</span>
-            <a href="terms.html" class="footer-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-              </svg>
-              Terms
-            </a>
-            <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">·</span>
-            <a href="privacy.html" class="footer-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-              Privacy
-            </a>
-          </footer>
+          ${renderFooter()}
         </div>
+      `;
+    }
+
+    // =====================================================
+    // HELPERS
+    // =====================================================
+
+    function getCategoryLabel(categoryId) {
+      const cat = getCategoryById(categoryId);
+      return cat ? `${cat.emoji} ${cat.label}` : categoryId || 'Not set';
+    }
+
+    function renderFooter() {
+      return `
+        <footer class="status-footer">
+          <a href="charter.html" class="footer-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+            Governance
+          </a>
+          <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">&middot;</span>
+          <a href="terms.html" class="footer-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Terms
+          </a>
+          <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">&middot;</span>
+          <a href="privacy.html" class="footer-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Privacy
+          </a>
+        </footer>
       `;
     }
 

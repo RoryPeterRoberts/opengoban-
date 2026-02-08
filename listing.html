@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Listing — Community Connect</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    /* Page Container */
+    .listing-container {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-5);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+
+    .back-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    .back-link:hover {
+      background: var(--color-bg-muted);
+      color: var(--color-primary);
+    }
+
+    .back-link svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .page-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+
+    /* Loading */
+    .loading-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-5);
+    }
+
+    .loading-spinner-lg {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto var(--space-4);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Type Badge */
+    .listing-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .listing-type-badge.offer {
+      background: var(--color-status-accepted-bg);
+      color: var(--color-status-accepted);
+    }
+
+    .listing-type-badge.need {
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+    }
+
+    /* Detail Card */
+    .detail-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow-card);
+    }
+
+    .detail-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    .detail-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+      line-height: var(--line-height-snug);
+    }
+
+    .detail-category {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-4);
+    }
+
+    .detail-description {
+      font-size: var(--font-size-base);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin-bottom: var(--space-5);
+      white-space: pre-line;
+    }
+
+    /* Tags */
+    .detail-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-bottom: var(--space-5);
+    }
+
+    .detail-tag {
+      display: inline-flex;
+      align-items: center;
+      background: var(--color-bg-muted);
+      color: var(--color-text-muted);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+    }
+
+    /* Meta row */
+    .detail-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+      padding: var(--space-4) 0;
+      border-top: 1px solid var(--color-border-light);
+      border-bottom: 1px solid var(--color-border-light);
+      margin-bottom: var(--space-5);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+    }
+
+    .meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .meta-item svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Author Card */
+    .author-card {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-lg);
+    }
+
+    .author-avatar {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-accent-bg) 100%);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-family-heading);
+      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-lg);
+      color: var(--color-primary);
+      flex-shrink: 0;
+    }
+
+    .author-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .author-name {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-size: var(--font-size-base);
+    }
+
+    .author-member-id {
+      font-family: var(--font-family-mono, monospace);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .author-trust {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-top: var(--space-2);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .reliability-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .reliability-badge.low { background: var(--color-bg-muted); color: var(--color-text-muted); }
+    .reliability-badge.medium { background: var(--color-status-review-bg); color: var(--color-status-review); }
+    .reliability-badge.high { background: var(--color-status-accepted-bg); color: var(--color-status-accepted); }
+
+    /* Own Listing Notice */
+    .own-listing-notice {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      background: var(--color-primary-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-5);
+    }
+
+    .own-listing-notice svg {
+      width: 20px;
+      height: 20px;
+      color: var(--color-primary);
+      flex-shrink: 0;
+    }
+
+    /* Exchange Form */
+    .exchange-form-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow-card);
+    }
+
+    .exchange-form-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+
+    .exchange-form-subtitle {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-5);
+      line-height: var(--line-height-relaxed);
+    }
+
+    /* Credit cost */
+    .credit-cost {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-5);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+    }
+
+    .credit-cost svg {
+      width: 18px;
+      height: 18px;
+      color: var(--color-primary);
+    }
+
+    .credit-cost strong {
+      color: var(--color-primary);
+    }
+
+    /* Proposals Section */
+    .proposals-section {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow-card);
+    }
+
+    .proposals-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .proposals-count {
+      background: var(--color-primary);
+      color: white;
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-bold);
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-full);
+      font-family: var(--font-family);
+    }
+
+    .proposal-item {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-3);
+      border: 1px solid var(--color-border-light);
+    }
+
+    .proposal-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .proposal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .proposal-from {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+    }
+
+    .proposal-from-id {
+      font-family: var(--font-family-mono, monospace);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .proposal-status {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .proposal-status.proposed {
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+    }
+
+    .proposal-status.accepted {
+      background: var(--color-status-accepted-bg);
+      color: var(--color-status-accepted);
+    }
+
+    .proposal-status.cancelled {
+      background: var(--color-bg-muted);
+      color: var(--color-text-muted);
+    }
+
+    .proposal-status.completed {
+      background: var(--color-status-accepted-bg);
+      color: var(--color-status-accepted);
+    }
+
+    .proposal-desc {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .proposal-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .no-proposals {
+      text-align: center;
+      padding: var(--space-6);
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+    }
+
+    /* Error state */
+    .error-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-5);
+    }
+
+    .error-state-icon {
+      font-size: 3rem;
+      margin-bottom: var(--space-4);
+    }
+
+    .error-state-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+
+    .error-state-text {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-6);
+    }
+
+    /* Degrees badge */
+    .degrees-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: var(--font-weight-semibold);
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+    }
+
+    .degrees-badge svg {
+      width: 12px;
+      height: 12px;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="js/auth.js"></script>
+
+  <div class="listing-container" id="main-container">
+    <div class="loading-state">
+      <div class="loading-spinner-lg"></div>
+      <p style="color: var(--color-text-muted);">Loading listing...</p>
+    </div>
+  </div>
+
+  <script>
+    // =====================================================
+    // STATE
+    // =====================================================
+    let currentMember = null;
+    let listing = null;
+    let exchanges = [];
+    let listingId = null;
+    let allMembers = [];
+
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+    async function init() {
+      try {
+        // Auth check
+        const session = await getAuthSession();
+        if (!session) {
+          window.location.href = 'access.html';
+          return;
+        }
+
+        currentMember = await getCurrentMember();
+        if (!currentMember) {
+          window.location.href = 'access.html';
+          return;
+        }
+
+        if (currentMember.status === 'PENDING_PROFILE') {
+          window.location.href = 'join.html';
+          return;
+        }
+
+        // Get listing ID from URL
+        const params = new URLSearchParams(window.location.search);
+        listingId = params.get('id');
+
+        if (!listingId) {
+          renderError('No listing specified', 'Please go back and select a listing from the community board.');
+          return;
+        }
+
+        // Load listing data
+        try {
+          listing = await getListingById(listingId);
+        } catch (e) {
+          console.error('Listing fetch error:', e);
+          renderError('Listing not found', 'This listing may have been removed or the link is invalid.');
+          return;
+        }
+
+        if (!listing) {
+          renderError('Listing not found', 'This listing may have been removed or the link is invalid.');
+          return;
+        }
+
+        // Load exchanges for this listing
+        try {
+          exchanges = await getExchangesForListing(listingId);
+        } catch (e) {
+          console.error('Exchanges fetch error:', e);
+          exchanges = [];
+        }
+
+        // Load all members for degrees calculation
+        allMembers = await getAcceptedMembers();
+
+        renderListing();
+      } catch (e) {
+        console.error('Init error:', e);
+        document.getElementById('main-container').innerHTML = `
+          <div style="text-align:center;padding:40px;">
+            <p>Something went wrong.</p>
+            <a href="access.html" style="color:var(--color-primary);">Sign in again</a>
+          </div>
+        `;
+      }
+    }
+
+    // =====================================================
+    // RENDER
+    // =====================================================
+    function renderListing() {
+      const container = document.getElementById('main-container');
+      const author = listing.author || {};
+      const cat = getCategoryById(listing.category);
+      const band = calculateReliabilityBand(author.exchanges_completed || 0, author.disputes_count || 0);
+      const isOwner = currentMember.id === listing.author_id;
+      const areaLabel = getAreaLabel(listing.area);
+      const isOffer = listing.type === 'offer';
+
+      // Update page title
+      document.title = `${escapeHtml(listing.title)} — Community Connect`;
+
+      let html = `
+        <header class="page-header">
+          <a href="index.html" class="back-link" aria-label="Back to community board">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </a>
+          <h1 class="page-title">Listing</h1>
+        </header>
+
+        <!-- Listing Detail -->
+        <div class="detail-card">
+          <div class="detail-card-header">
+            <h2 class="detail-title">${escapeHtml(listing.title)}</h2>
+            <span class="listing-type-badge ${listing.type}">${isOffer ? 'Offer' : 'Need'}</span>
+          </div>
+
+          <div class="detail-category">${cat.emoji} ${cat.label}</div>
+
+          ${listing.description ? `<div class="detail-description">${escapeHtml(listing.description)}</div>` : ''}
+
+          ${renderTags(listing.tags)}
+
+          <div class="detail-meta">
+            <span class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${areaLabel}
+            </span>
+            <span class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ${escapeHtml(listing.urgency || 'This week')}
+            </span>
+            <span class="meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              ${formatRelativeTime(listing.created_at)}
+            </span>
+          </div>
+
+          <!-- Author Info -->
+          <div class="author-card">
+            <div class="author-avatar">${getInitials(author.display_name)}</div>
+            <div class="author-details">
+              <div class="author-name">${escapeHtml(author.display_name || 'Unknown')}</div>
+              <div class="author-member-id">${author.member_id || ''}</div>
+              <div class="author-trust">
+                <span>${author.exchanges_completed || 0} exchange${(author.exchanges_completed || 0) !== 1 ? 's' : ''}</span>
+                <span class="reliability-badge ${band.toLowerCase()}">${band}</span>
+                ${renderDegreesBadge(author.id)}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Owner view: show proposals
+      if (isOwner) {
+        html += `
+          <div class="own-listing-notice">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>This is your listing. Exchange proposals from other members will appear below.</span>
+          </div>
+        `;
+        html += renderProposalsSection();
+      } else {
+        // Non-owner: show propose exchange form (only if listing is active)
+        if (listing.status === 'active') {
+          // Check if current user already has a pending/accepted proposal
+          const existingProposal = exchanges.find(ex =>
+            ex.proposed_by === currentMember.id &&
+            (ex.status === 'proposed' || ex.status === 'accepted')
+          );
+
+          if (existingProposal) {
+            html += renderExistingProposal(existingProposal);
+          } else {
+            html += renderExchangeForm();
+          }
+        } else {
+          html += `
+            <div class="own-listing-notice">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span>This listing is no longer active.</span>
+            </div>
+          `;
+        }
+      }
+
+      container.innerHTML = html;
+    }
+
+    function renderTags(tags) {
+      if (!tags || !tags.length) return '';
+      return `
+        <div class="detail-tags">
+          ${tags.map(t => `<span class="detail-tag">${escapeHtml(t)}</span>`).join('')}
+        </div>
+      `;
+    }
+
+    function renderExchangeForm() {
+      const isOffer = listing.type === 'offer';
+      const actionLabel = isOffer ? 'accept this offer' : 'offer your help';
+      const roleNote = isOffer
+        ? 'You will receive help from the listing author.'
+        : 'You will provide help to the listing author.';
+
+      return `
+        <div class="exchange-form-card">
+          <h3 class="exchange-form-title">Propose Exchange</h3>
+          <p class="exchange-form-subtitle">Interested? Describe what you'd like to ${actionLabel} and propose a credit amount.</p>
+
+          <div class="credit-cost">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span>${roleNote}</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="exchange-desc">Your message <span style="color: var(--color-status-hold);">*</span></label>
+            <textarea class="textarea" id="exchange-desc" placeholder="e.g., I can help on Saturday afternoon. I live nearby so can get there easily." rows="3"></textarea>
+            <p class="form-hint">Tell the other member how you'd like to arrange the exchange.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="exchange-credits">Credits <span style="color: var(--color-status-hold);">*</span></label>
+            <input type="number" class="input" id="exchange-credits" value="1" min="1" max="10" step="1">
+            <p class="form-hint">Number of community credits for this exchange (1-10).</p>
+          </div>
+
+          <button class="btn btn-primary btn-lg btn-block" id="propose-btn" onclick="submitProposal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            Propose Exchange
+          </button>
+        </div>
+      `;
+    }
+
+    function renderExistingProposal(proposal) {
+      const statusLabel = proposal.status.charAt(0).toUpperCase() + proposal.status.slice(1);
+      return `
+        <div class="exchange-form-card">
+          <h3 class="exchange-form-title">Your Proposal</h3>
+          <p class="exchange-form-subtitle">You've already submitted a proposal for this listing.</p>
+
+          <div class="proposal-item" style="margin-top: var(--space-4);">
+            <div class="proposal-header">
+              <div>
+                <div class="proposal-from">Your proposal</div>
+              </div>
+              <span class="proposal-status ${proposal.status}">${statusLabel}</span>
+            </div>
+            ${proposal.description ? `<div class="proposal-desc">${escapeHtml(proposal.description)}</div>` : ''}
+            <div class="proposal-meta">
+              <span>${proposal.credits || 1} credit${(proposal.credits || 1) !== 1 ? 's' : ''}</span>
+              <span>Proposed ${formatRelativeTime(proposal.proposed_at || proposal.created_at)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderProposalsSection() {
+      const activeExchanges = exchanges.filter(ex => ex.status !== 'cancelled');
+
+      let html = `
+        <div class="proposals-section">
+          <h3 class="proposals-title">
+            Exchange Proposals
+            ${activeExchanges.length > 0 ? `<span class="proposals-count">${activeExchanges.length}</span>` : ''}
+          </h3>
+      `;
+
+      if (exchanges.length === 0) {
+        html += `
+          <div class="no-proposals">
+            <p>No proposals yet.</p>
+            <p style="margin-top: var(--space-2);">When a neighbour is interested, their proposal will appear here.</p>
+          </div>
+        `;
+      } else {
+        html += exchanges.map(ex => {
+          const proposer = getProposerInfo(ex);
+          const statusLabel = ex.status.charAt(0).toUpperCase() + ex.status.slice(1);
+
+          return `
+            <div class="proposal-item">
+              <div class="proposal-header">
+                <div>
+                  <div class="proposal-from">${escapeHtml(proposer.name)}</div>
+                  <div class="proposal-from-id">${proposer.memberId}</div>
+                </div>
+                <span class="proposal-status ${ex.status}">${statusLabel}</span>
+              </div>
+              ${ex.description ? `<div class="proposal-desc">${escapeHtml(ex.description)}</div>` : ''}
+              <div class="proposal-meta">
+                <span>${ex.credits || 1} credit${(ex.credits || 1) !== 1 ? 's' : ''}</span>
+                <span>Proposed ${formatRelativeTime(ex.proposed_at || ex.created_at)}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      html += `</div>`;
+      return html;
+    }
+
+    function renderError(title, message) {
+      document.getElementById('main-container').innerHTML = `
+        <header class="page-header">
+          <a href="index.html" class="back-link" aria-label="Back to community board">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+          </a>
+          <h1 class="page-title">Listing</h1>
+        </header>
+        <div class="error-state">
+          <div class="error-state-icon">🍂</div>
+          <div class="error-state-title">${escapeHtml(title)}</div>
+          <p class="error-state-text">${escapeHtml(message)}</p>
+          <a href="index.html" class="btn btn-primary">Back to community board</a>
+        </div>
+      `;
+    }
+
+    // =====================================================
+    // PROPOSE EXCHANGE
+    // =====================================================
+    async function submitProposal() {
+      const descEl = document.getElementById('exchange-desc');
+      const creditsEl = document.getElementById('exchange-credits');
+      const btn = document.getElementById('propose-btn');
+
+      const description = descEl.value.trim();
+      const credits = parseInt(creditsEl.value, 10);
+
+      if (!description) {
+        showToast('Please describe your proposal');
+        descEl.focus();
+        return;
+      }
+
+      if (!credits || credits < 1 || credits > 10) {
+        showToast('Credits must be between 1 and 10');
+        creditsEl.focus();
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        const isOffer = listing.type === 'offer';
+
+        const exchangeData = {
+          listing_id: listing.id,
+          provider_id: isOffer ? listing.author_id : currentMember.id,
+          receiver_id: isOffer ? currentMember.id : listing.author_id,
+          credits: credits,
+          description: description,
+          category: listing.category,
+          proposed_by: currentMember.id,
+          status: 'proposed'
+        };
+
+        await proposeExchange(exchangeData);
+
+        showToast('Proposal submitted! The listing author will be notified.');
+
+        // Reload exchanges and re-render
+        exchanges = await getExchangesForListing(listingId);
+        renderListing();
+      } catch (e) {
+        console.error('Proposal error:', e);
+        showToast('Failed to submit proposal. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Propose Exchange
+        `;
+      }
+    }
+
+    // =====================================================
+    // HELPERS
+    // =====================================================
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function getInitials(name) {
+      if (!name) return '?';
+      const parts = name.trim().split(/\s+/);
+      if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+
+    function getAreaLabel(area) {
+      switch (area) {
+        case 'neighbourhood': return 'Neighbourhood';
+        case 'village': return 'Village';
+        case 'nearby': return 'Nearby';
+        default: return area || 'Village';
+      }
+    }
+
+    function renderDegreesBadge(authorId) {
+      if (!currentMember || !allMembers.length || !authorId) return '';
+      if (authorId === currentMember.id) return '';
+      const degrees = getDegreesFromUser(allMembers, currentMember.id, authorId);
+      if (degrees < 0) return '';
+      const label = degrees === 1 ? '1 step' : degrees + ' steps';
+      return `
+        <span class="degrees-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+          ${label}
+        </span>
+      `;
+    }
+
+    function getProposerInfo(exchange) {
+      // The proposer is the person who is NOT the listing author
+      // (or more precisely, the person identified by proposed_by)
+      const isProvider = exchange.provider && exchange.provider.id !== listing.author_id;
+      const isReceiver = exchange.receiver && exchange.receiver.id !== listing.author_id;
+
+      if (exchange.proposed_by === exchange.provider?.id && exchange.provider) {
+        return { name: exchange.provider.display_name || 'Unknown', memberId: exchange.provider.member_id || '' };
+      }
+      if (exchange.proposed_by === exchange.receiver?.id && exchange.receiver) {
+        return { name: exchange.receiver.display_name || 'Unknown', memberId: exchange.receiver.member_id || '' };
+      }
+
+      // Fallback: return whichever side is not the author
+      if (isProvider) {
+        return { name: exchange.provider.display_name || 'Unknown', memberId: exchange.provider.member_id || '' };
+      }
+      if (isReceiver) {
+        return { name: exchange.receiver.display_name || 'Unknown', memberId: exchange.receiver.member_id || '' };
+      }
+
+      return { name: 'Unknown', memberId: '' };
+    }
+
+    // =====================================================
+    // INIT
+    // =====================================================
+    init();
+  </script>
+</body>
+</html>

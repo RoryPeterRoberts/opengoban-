@@ -81,46 +81,29 @@
       margin-bottom: var(--space-6);
     }
 
-    .token-form {
+    .auth-form {
       text-align: left;
     }
 
-    .token-input {
-      width: 100%;
-      padding: var(--space-4);
-      font-size: var(--font-size-base);
-      font-family: var(--font-family-mono);
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-md);
-      background: var(--color-bg-warm);
-      transition: all var(--transition-fast);
-    }
-
-    .token-input:focus {
-      outline: none;
-      border-color: var(--color-primary);
-      background: var(--color-bg-card);
-    }
-
-    .token-input::placeholder {
-      color: var(--color-text-muted);
-      font-family: var(--font-family);
-    }
-
-    .token-error {
+    .auth-error {
       color: var(--color-status-hold);
       font-size: var(--font-size-sm);
       margin-top: var(--space-2);
       display: none;
     }
 
-    .token-error.visible {
+    .auth-error.visible {
       display: block;
     }
 
-    .access-btn {
+    .auth-btn {
       width: 100%;
       margin-top: var(--space-4);
+    }
+
+    .auth-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .access-divider {
@@ -188,10 +171,87 @@
     .access-footer a:hover {
       text-decoration: underline;
     }
+
+    /* Magic link sent state */
+    .magic-link-sent {
+      display: none;
+      text-align: center;
+      padding: var(--space-6) 0;
+    }
+
+    .magic-link-sent.visible {
+      display: block;
+    }
+
+    .magic-link-icon {
+      width: 64px;
+      height: 64px;
+      background: var(--color-status-accepted-bg);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto var(--space-4);
+      color: var(--color-status-accepted);
+    }
+
+    .magic-link-icon svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .magic-link-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+
+    .magic-link-text {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .magic-link-email {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+
+    .loading-spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    .loading-spinner.visible { display: inline-block; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .invite-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      margin-bottom: var(--space-4);
+    }
   </style>
 </head>
 <body>
-  <script src="shared.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
   <script src="js/auth.js"></script>
 
   <div class="access-page">
@@ -215,27 +275,56 @@
         Private Pilot
       </span>
 
-      <div class="token-form">
+      <!-- Invite badge (shown when arriving via invite link) -->
+      <div id="invite-badge" class="invite-badge" style="display: none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        <span id="invite-badge-text">Valid invite</span>
+      </div>
+
+      <!-- Email auth form -->
+      <div id="auth-form" class="auth-form">
         <div class="form-group">
-          <label class="form-label">Enter your invite token</label>
+          <label class="form-label">Your email address</label>
           <input
-            type="text"
-            class="token-input"
-            id="token-input"
-            placeholder="INV_..."
-            autocomplete="off"
-            spellcheck="false"
+            type="email"
+            class="input"
+            id="email-input"
+            placeholder="you@example.com"
+            autocomplete="email"
           >
-          <p class="token-error" id="token-error">Invalid or expired token. Please check your invite link.</p>
+          <p class="auth-error" id="auth-error"></p>
         </div>
 
-        <button class="btn btn-primary btn-lg access-btn" onclick="validateToken()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-            <polyline points="10 17 15 12 10 7"/>
-            <line x1="15" y1="12" x2="3" y2="12"/>
+        <button class="btn btn-primary btn-lg auth-btn" id="auth-btn" onclick="handleSignIn()">
+          <span id="btn-text">Sign in with email</span>
+          <span class="loading-spinner" id="btn-spinner"></span>
+        </button>
+
+        <p style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: var(--space-3); text-align: center;">
+          We'll send you a sign-in link. No password needed.
+        </p>
+      </div>
+
+      <!-- Magic link sent confirmation -->
+      <div id="magic-link-sent" class="magic-link-sent">
+        <div class="magic-link-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
           </svg>
-          Enter Community Connect
+        </div>
+        <h2 class="magic-link-title">Check your email</h2>
+        <p class="magic-link-text">
+          We've sent a sign-in link to<br>
+          <span class="magic-link-email" id="sent-email"></span>
+        </p>
+        <p class="magic-link-text" style="margin-top: var(--space-4);">
+          Click the link in the email to sign in. It may take a minute to arrive.
+        </p>
+        <button class="btn btn-ghost" style="margin-top: var(--space-4);" onclick="resetForm()">
+          Use a different email
         </button>
       </div>
 
@@ -267,78 +356,207 @@
       </div>
 
       <div class="access-footer">
-        <p>Don't have an invite? <a href="mailto:hello@communityconnect.ie">Request access</a></p>
+        <p>Don't have an invite? Ask a neighbour who's already a member.</p>
       </div>
     </div>
   </div>
 
   <script>
-    // Check if already has valid session
-    if (hasValidSession()) {
-      window.location.href = 'index.html';
+    let pendingInviteToken = null;
+
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+    async function init() {
+      // Check for invite token in URL
+      const urlToken = getInviteTokenFromURL();
+      if (urlToken) {
+        storeInviteToken(urlToken);
+        pendingInviteToken = urlToken;
+
+        // Validate invite exists
+        try {
+          const invite = await getInviteByToken(urlToken);
+          if (invite && invite.status === 'pending') {
+            document.getElementById('invite-badge').style.display = 'inline-flex';
+            document.getElementById('invite-badge-text').textContent = 'Valid invite from ' + (invite.invitee_name || 'a neighbour');
+          }
+        } catch (e) {
+          // Invite might not exist yet in DB, that's ok for now
+        }
+      } else {
+        pendingInviteToken = retrieveInviteToken();
+      }
+
+      // Handle PKCE auth callback (Supabase v2 magic link redirects with ?code=)
+      const urlParams = new URLSearchParams(window.location.search);
+      const authCode = urlParams.get('code');
+      if (authCode) {
+        try {
+          const sb = getSupabase();
+          const { data, error } = await sb.auth.exchangeCodeForSession(authCode);
+          if (error) throw error;
+          if (data.session) {
+            // Clean the URL
+            window.history.replaceState({}, '', window.location.pathname);
+            await handlePostSignIn(data.session);
+            return;
+          }
+        } catch (e) {
+          console.error('Code exchange error:', e);
+        }
+      }
+
+      // Check if already authenticated (handles hash-based tokens)
+      try {
+        const session = await getAuthSession();
+        if (session) {
+          // Already logged in — check member status
+          const member = await getCurrentMember();
+          if (member) {
+            if (member.status === 'PENDING_PROFILE') {
+              window.location.href = 'join.html';
+            } else {
+              window.location.href = 'index.html';
+            }
+            return;
+          }
+          // Logged in but no member record — try to create one if we have an invite
+          if (pendingInviteToken) {
+            await handlePostSignIn(session);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Init error:', e);
+      }
+
+      // Listen for auth state changes (handles implicit flow redirect)
+      onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          await handlePostSignIn(session);
+        }
+      });
     }
 
-    // Check for token in URL (from invite link) - supports both hash and query params
-    let urlToken = null;
-    if (window.location.hash && window.location.hash.includes('token=')) {
-      urlToken = new URLSearchParams(window.location.hash.slice(1)).get('token');
-    } else if (window.location.search) {
-      urlToken = new URLSearchParams(window.location.search).get('token');
+    // =====================================================
+    // SIGN IN
+    // =====================================================
+    async function handleSignIn() {
+      const emailInput = document.getElementById('email-input');
+      const error = document.getElementById('auth-error');
+      const btn = document.getElementById('auth-btn');
+      const btnText = document.getElementById('btn-text');
+      const spinner = document.getElementById('btn-spinner');
+
+      const email = emailInput.value.trim();
+
+      // Validate
+      error.classList.remove('visible');
+      if (!email || !email.includes('@')) {
+        error.textContent = 'Please enter a valid email address';
+        error.classList.add('visible');
+        return;
+      }
+
+      // Check if user has an invite (either from URL or existing member)
+      const existingMember = await getMemberByEmail(email).catch(() => null);
+      if (!existingMember && !pendingInviteToken) {
+        error.textContent = 'You need an invite to join. Ask a neighbour who\'s already a member.';
+        error.classList.add('visible');
+        return;
+      }
+
+      // Send magic link
+      btn.disabled = true;
+      btnText.textContent = 'Sending...';
+      spinner.classList.add('visible');
+
+      try {
+        await signInWithEmail(email);
+
+        // Show success message
+        document.getElementById('auth-form').style.display = 'none';
+        document.getElementById('magic-link-sent').classList.add('visible');
+        document.getElementById('sent-email').textContent = email;
+      } catch (e) {
+        error.textContent = 'Failed to send sign-in link. Please try again.';
+        error.classList.add('visible');
+        console.error('Sign in error:', e);
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Sign in with email';
+        spinner.classList.remove('visible');
+      }
     }
-    if (urlToken) {
-      document.getElementById('token-input').value = urlToken;
-      // Auto-validate if token is in URL
-      setTimeout(validateToken, 100);
+
+    // =====================================================
+    // POST SIGN-IN ROUTING
+    // =====================================================
+    async function handlePostSignIn(session) {
+      const user = session.user;
+      if (!user) return;
+
+      // Check if member exists
+      let member = await getMemberByAuthId(user.id).catch(() => null);
+
+      if (member) {
+        // Existing member — route based on status
+        if (member.status === 'PENDING_PROFILE') {
+          window.location.href = 'join.html';
+        } else {
+          window.location.href = 'index.html';
+        }
+        return;
+      }
+
+      // New user — check for invite
+      const inviteToken = retrieveInviteToken();
+      if (inviteToken) {
+        // Redeem invite and create member stub
+        try {
+          const memberId = await generateNextMemberId();
+
+          // Look up invite to record who invited this member
+          const invite = await getInviteByToken(inviteToken).catch(() => null);
+
+          member = await createMember({
+            auth_id: user.id,
+            email: user.email,
+            display_name: user.email.split('@')[0],
+            member_id: memberId,
+            status: 'PENDING_PROFILE',
+            invited_by: invite?.created_by || null
+          });
+
+          // Mark invite as redeemed
+          await redeemInvite(inviteToken, member.id).catch(() => {});
+
+          window.location.href = 'join.html';
+        } catch (e) {
+          console.error('Member creation error:', e);
+          showToast('Something went wrong. Please try again.');
+        }
+      } else {
+        // No invite — shouldn't happen (we check before sending magic link)
+        showToast('You need an invite to join.');
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('auth-form').style.display = 'block';
+      document.getElementById('magic-link-sent').classList.remove('visible');
+      document.getElementById('email-input').value = '';
+      document.getElementById('email-input').focus();
     }
 
     // Handle Enter key
-    document.getElementById('token-input').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        validateToken();
-      }
+    document.getElementById('email-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSignIn();
     });
 
-    function validateToken() {
-      const input = document.getElementById('token-input');
-      const error = document.getElementById('token-error');
-      const token = input.value.trim();
-
-      // Hide error
-      error.classList.remove('visible');
-
-      if (!token) {
-        error.textContent = 'Please enter your invite token';
-        error.classList.add('visible');
-        return;
-      }
-
-      // Check if invite exists
-      const invite = getInviteByToken(token);
-
-      if (!invite) {
-        error.textContent = 'Invalid or expired token. Please check your invite link.';
-        error.classList.add('visible');
-        return;
-      }
-
-      // Check invite status
-      if (invite.status === 'PENDING_PROFILE') {
-        // Needs to complete profile first - use hash to preserve token with clean URLs
-        window.location.href = `join.html#token=${token}`;
-        return;
-      }
-
-      // Create session and redirect
-      createSession(token);
-
-      // Redirect based on status
-      if (invite.status === 'ACCEPTED' || invite.status === 'AUTO_ACCEPT') {
-        window.location.href = 'index.html';
-      } else {
-        // REVIEW or HOLD status - show status page - use hash to preserve token
-        window.location.href = `join-status.html#token=${token}`;
-      }
-    }
+    // Initialize
+    init();
   </script>
 </body>
 </html>

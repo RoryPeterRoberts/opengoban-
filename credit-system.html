@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How Credits Work — Community Connect</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .credits-page {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4) var(--space-10);
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      font-size: var(--font-size-sm);
+      margin-bottom: var(--space-6);
+    }
+    .back-link:hover { color: var(--color-primary); }
+    .back-link svg { width: 16px; height: 16px; }
+
+    .page-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+    .page-subtitle {
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-base);
+      margin-bottom: var(--space-8);
+    }
+
+    .card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+    }
+
+    .card-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-3);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .card p, .card li {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+    }
+    .card ul { padding-left: var(--space-5); margin: var(--space-3) 0 0; }
+    .card li { margin-bottom: var(--space-2); }
+
+    .rule-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-3);
+      margin-top: var(--space-4);
+    }
+    @media (max-width: 480px) { .rule-grid { grid-template-columns: 1fr; } }
+
+    .rule-box {
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      text-align: center;
+    }
+    .rule-value {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-primary);
+    }
+    .rule-label {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+      margin-top: var(--space-1);
+    }
+
+    .example-box {
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      margin-top: var(--space-3);
+      font-size: var(--font-size-sm);
+    }
+    .example-label {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+    .example-row {
+      display: flex;
+      justify-content: space-between;
+      padding: var(--space-1) 0;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+    .example-row:last-child { border-bottom: none; }
+    .example-name { color: var(--color-text); }
+    .example-val { font-weight: var(--font-weight-semibold); font-family: var(--font-family-mono, monospace); }
+    .example-pos { color: var(--color-status-accepted); }
+    .example-neg { color: var(--color-status-hold); }
+    .example-total {
+      display: flex;
+      justify-content: space-between;
+      padding-top: var(--space-2);
+      margin-top: var(--space-2);
+      border-top: 2px solid var(--color-border);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+
+    .step-list {
+      list-style: none;
+      padding: 0;
+      margin: var(--space-4) 0 0;
+      counter-reset: steps;
+    }
+    .step-list li {
+      counter-increment: steps;
+      display: flex;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+      align-items: flex-start;
+    }
+    .step-list li::before {
+      content: counter(steps);
+      min-width: 28px;
+      height: 28px;
+      background: var(--color-primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-bold);
+      flex-shrink: 0;
+    }
+
+    details {
+      margin-top: var(--space-8);
+    }
+    summary {
+      cursor: pointer;
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-primary);
+      padding: var(--space-4);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: '+ '; }
+    details[open] summary::before { content: '- '; }
+    details[open] summary {
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      border-bottom: none;
+    }
+
+    .maths-body {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-top: none;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      padding: var(--space-6);
+    }
+    .maths-body h3 {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin: var(--space-5) 0 var(--space-2);
+    }
+    .maths-body h3:first-child { margin-top: 0; }
+    .maths-body p, .maths-body li {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .formula {
+      background: var(--color-bg-warm);
+      border-left: 3px solid var(--color-primary);
+      padding: var(--space-3) var(--space-4);
+      margin: var(--space-3) 0;
+      font-family: var(--font-family-mono, 'Courier New', monospace);
+      font-size: var(--font-size-sm);
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .page-footer {
+      text-align: center;
+      margin-top: var(--space-8);
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--color-border-light);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+    .page-footer a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    @media print {
+      .back-link, details summary { display: none; }
+      .maths-body { display: block !important; border: none; padding: 0; }
+      .card { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="credits-page">
+
+    <a href="index.html" class="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to community
+    </a>
+
+    <h1 class="page-title">How Credits Work</h1>
+    <p class="page-subtitle">A fair, transparent way to keep giving and receiving in balance.</p>
+
+    <!-- ============================================= -->
+    <!-- PLAIN ENGLISH SECTION -->
+    <!-- ============================================= -->
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-icon" style="background: var(--color-primary-bg); color: var(--color-primary);">&#9878;</div>
+        The big idea
+      </div>
+      <p>
+        Credits are <strong>not money</strong>. They're a simple way to keep track of who's
+        been helping and who's been helped. When you help a neighbour, you earn credits.
+        When a neighbour helps you, you spend them. That's it.
+      </p>
+      <p style="margin-top: var(--space-3);">
+        The total credits in the system always stay the same &mdash; every credit earned
+        by one person is spent by another. Nobody can create credits out of thin air,
+        and they can never be exchanged for real money.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-icon" style="background: var(--color-status-accepted-bg); color: var(--color-status-accepted);">&#9881;</div>
+        The rules
+      </div>
+      <div class="rule-grid">
+        <div class="rule-box">
+          <div class="rule-value">+5</div>
+          <div class="rule-label">Starting balance<br>Every new member gets 5 credits so they can ask for help straight away.</div>
+        </div>
+        <div class="rule-box">
+          <div class="rule-value">&minus;10</div>
+          <div class="rule-label">Lowest you can go<br>You can owe up to 10. After that, help others first before asking again.</div>
+        </div>
+        <div class="rule-box">
+          <div class="rule-value">+50</div>
+          <div class="rule-label">Highest you can reach<br>Stops hoarding. If you're near 50, it's time to ask for some help!</div>
+        </div>
+        <div class="rule-box">
+          <div class="rule-value">1+</div>
+          <div class="rule-label">Per exchange<br>Every exchange is worth at least 1 credit. Agree the amount together.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-icon" style="background: #e8f0fe; color: #1a56db;">&#8644;</div>
+        How an exchange works
+      </div>
+      <ol class="step-list">
+        <li><div><strong>Someone posts an offer or need</strong><br>e.g. "I can help with gardening" or "Need a lift to town"</div></li>
+        <li><div><strong>A neighbour responds</strong><br>They propose an exchange and suggest a credit amount.</div></li>
+        <li><div><strong>Both confirm</strong><br>The helper confirms they did the work. The person helped confirms they received it. Both sides must agree &mdash; nobody can move credits on their own.</div></li>
+        <li><div><strong>Credits transfer automatically</strong><br>The helper's balance goes up, the helped person's goes down, by the same amount. Done.</div></li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-icon" style="background: #fef3e2; color: #b45309;">&#128161;</div>
+        A quick example
+      </div>
+      <p>Imagine a small community of 5 neighbours. Everyone starts with 5 credits. After a few weeks of helping each other:</p>
+      <div class="example-box">
+        <div class="example-label">Community snapshot</div>
+        <div class="example-row">
+          <span class="example-name">Alice <span style="color:var(--color-text-muted); font-size: 12px;">(helped with painting &amp; gardening)</span></span>
+          <span class="example-val example-pos">12</span>
+        </div>
+        <div class="example-row">
+          <span class="example-name">Bob</span>
+          <span class="example-val">3</span>
+        </div>
+        <div class="example-row">
+          <span class="example-name">Carol <span style="color:var(--color-text-muted); font-size: 12px;">(received quite a bit of help)</span></span>
+          <span class="example-val example-neg">&minus;2</span>
+        </div>
+        <div class="example-row">
+          <span class="example-name">Dave</span>
+          <span class="example-val example-pos">8</span>
+        </div>
+        <div class="example-row">
+          <span class="example-name">Eve</span>
+          <span class="example-val">4</span>
+        </div>
+        <div class="example-total">
+          <span>Community total</span>
+          <span>25 &nbsp;(= 5 people &times; 5 starting credits)</span>
+        </div>
+      </div>
+      <p style="margin-top: var(--space-3);">
+        The total is always <strong>25</strong> &mdash; no matter how many exchanges happen.
+        Credits just move between people. Carol's &minus;2 means she's received more help than
+        she's given so far, and that's fine. The floor of &minus;10 is there so nobody drifts
+        too far out of balance.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-icon" style="background: var(--color-status-review-bg); color: var(--color-status-review);">&#128274;</div>
+        Safety &amp; fairness
+      </div>
+      <ul>
+        <li><strong>Both sides confirm.</strong> Credits only move when both the helper and the person helped agree the exchange happened.</li>
+        <li><strong>Everything is logged.</strong> Every credit movement is recorded with who, what, when, and why. You can see your own history any time.</li>
+        <li><strong>No one can game it.</strong> You can't create credits, transfer them to yourself, or go past the limits.</li>
+        <li><strong>Limits keep things fair.</strong> The floor (&minus;10) stops unlimited taking. The ceiling (+50) stops hoarding.</li>
+        <li><strong>Not money.</strong> Credits have no cash value and can't leave the community. They're bookkeeping only.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-icon" style="background: #f0f7f0; color: #2d5016;">&#9734;</div>
+        Reliability bands
+      </div>
+      <p>As you complete more exchanges, your profile shows how active you've been:</p>
+      <div class="example-box">
+        <div class="example-row"><span>0 exchanges</span><span class="example-val">New</span></div>
+        <div class="example-row"><span>1&ndash;4 exchanges</span><span class="example-val">Getting Started</span></div>
+        <div class="example-row"><span>5&ndash;14 exchanges</span><span class="example-val">Active</span></div>
+        <div class="example-row"><span>15+ exchanges</span><span class="example-val">Established</span></div>
+      </div>
+      <p style="margin-top: var(--space-3);">This helps neighbours see at a glance who's been an active part of the community.</p>
+    </div>
+
+    <!-- ============================================= -->
+    <!-- DETAILED MATHS (collapsible) -->
+    <!-- ============================================= -->
+
+    <details>
+      <summary>See the full maths</summary>
+      <div class="maths-body">
+
+        <h3>Core invariant</h3>
+        <p>At any point in time, the sum of all member balances equals the sum of all welcome bonuses issued:</p>
+        <div class="formula">
+          &Sigma; balance(m) = N &times; W<br>
+          where N = number of members, W = 5 (welcome bonus)
+        </div>
+
+        <h3>Transfer function</h3>
+        <p>When an exchange completes for <em>c</em> credits:</p>
+        <div class="formula">
+          balance(provider) &larr; balance(provider) + c<br>
+          balance(receiver) &larr; balance(receiver) &minus; c<br>
+          where c &gt; 0
+        </div>
+
+        <h3>Pre-conditions</h3>
+        <div class="formula">
+          balance(receiver) &minus; c &ge; &minus;10 &nbsp;&nbsp;(debt floor)<br>
+          balance(provider) + c &le; 50 &nbsp;&nbsp;&nbsp;(credit ceiling)<br>
+          Both parties confirmed = true<br>
+          Exchange status = 'active'
+        </div>
+        <p>If any condition fails, the transaction is rejected atomically.</p>
+
+        <h3>Maximum transferable amount</h3>
+        <div class="formula">
+          max = min(balance(receiver) + 10, 50 &minus; balance(provider))
+        </div>
+
+        <h3>Balance bounds</h3>
+        <div class="formula">
+          &minus;10 &le; balance(m) &le; 50 &nbsp;&nbsp;&forall; m
+        </div>
+        <p>Effective range: 60 credits per member.</p>
+
+        <h3>Zero-sum proof</h3>
+        <p>For every exchange: &Delta;provider + &Delta;receiver = (+c) + (&minus;c) = 0. The welcome bonus is the only source of new credits (W per member). Therefore total system credits = N &times; W at all times.</p>
+
+        <h3>Atomicity</h3>
+        <p>Transfers execute as a single database transaction. If any step fails (insufficient balance, ceiling exceeded, missing confirmation), the entire exchange rolls back. No partial transfers can occur.</p>
+
+      </div>
+    </details>
+
+    <div class="page-footer">
+      <p>Community Connect &mdash; Pilot 2026</p>
+      <p style="margin-top: var(--space-2);">
+        <a href="index.html">Community board</a> &middot;
+        <a href="charter.html">Charter</a> &middot;
+        <a href="terms.html">Terms</a> &middot;
+        <a href="safety.html">Safety</a>
+      </p>
+    </div>
+
+  </div>
+</body>
+</html>

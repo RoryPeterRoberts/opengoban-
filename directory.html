@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Member Directory - Community Connect</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    /* Directory Page Layout */
+    .directory-container {
+      max-width: var(--max-width-lg);
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-5);
+      min-height: 100vh;
+    }
+
+    /* Header */
+    .directory-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+
+    .back-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    .back-link:hover {
+      background: var(--color-bg-muted);
+      color: var(--color-primary);
+    }
+
+    .back-link svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .directory-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+    }
+
+    .directory-count {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      font-weight: var(--font-weight-normal);
+      font-family: var(--font-family);
+    }
+
+    /* Search Bar */
+    .search-wrapper {
+      position: relative;
+      margin-bottom: var(--space-4);
+    }
+
+    .search-wrapper svg {
+      position: absolute;
+      left: var(--space-4);
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      color: var(--color-text-muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      min-height: var(--touch-target-min);
+      padding: var(--space-3) var(--space-5) var(--space-3) calc(var(--space-4) + 20px + var(--space-3));
+      font-family: var(--font-family);
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+      -webkit-appearance: none;
+    }
+
+    .search-input:hover {
+      border-color: var(--color-secondary);
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 4px var(--color-primary-bg);
+    }
+
+    .search-input::placeholder {
+      color: var(--color-text-light);
+    }
+
+    /* Category Filter Pills */
+    .filter-pills {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-6);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: var(--space-2);
+    }
+
+    .filter-pills::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      border: 1px solid var(--color-border);
+      background: var(--color-bg-card);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-height: 36px;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .filter-pill:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .filter-pill.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+
+    /* Member Cards List */
+    .member-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    /* Member Card */
+    .member-card {
+      display: block;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      box-shadow: var(--shadow-sm);
+      transition: all var(--transition-base);
+      text-decoration: none;
+      color: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .member-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--color-border);
+      transform: translateY(-1px);
+    }
+
+    .member-card:active {
+      transform: scale(0.99);
+    }
+
+    /* Card top row: name + reliability */
+    .member-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+
+    .member-name {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      line-height: var(--line-height-tight);
+    }
+
+    .member-id {
+      font-family: var(--font-family-mono, monospace);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+
+    /* Primary category row */
+    .member-category {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-3);
+    }
+
+    .member-category-emoji {
+      font-size: var(--font-size-lg);
+    }
+
+    /* Skill tags */
+    .member-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-bottom: var(--space-3);
+    }
+
+    .skill-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px var(--space-3);
+      background: linear-gradient(135deg, var(--color-secondary-bg) 0%, var(--color-primary-bg) 100%);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+    }
+
+    .skill-tag-more {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px var(--space-3);
+      background: var(--color-bg-muted);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    /* Card footer: area + member since */
+    .member-card-footer {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--color-border-light);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .member-meta-item {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .member-meta-item svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Reliability Badge (reuse from index.html) */
+    .reliability-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      flex-shrink: 0;
+    }
+
+    .reliability-badge.low {
+      background: var(--color-bg-muted);
+      color: var(--color-text-muted);
+    }
+
+    .reliability-badge.medium {
+      background: var(--color-status-review-bg);
+      color: var(--color-status-review);
+    }
+
+    .reliability-badge.high {
+      background: var(--color-status-accepted-bg);
+      color: var(--color-status-accepted);
+    }
+
+    /* Loading State */
+    .loading-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-5);
+    }
+
+    .loading-spinner-lg {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto var(--space-4);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-5);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: var(--space-4);
+    }
+
+    .empty-state-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+
+    .empty-state-text {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      line-height: var(--line-height-relaxed);
+    }
+
+    /* Footer */
+    .directory-footer {
+      padding: var(--space-8) var(--space-5);
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+    }
+
+    .directory-footer-text {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+    }
+
+    .directory-footer-text svg {
+      width: 18px;
+      height: 18px;
+      color: var(--color-secondary);
+    }
+
+    /* Invited-by line on cards */
+    .member-invited-by {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .member-invited-by svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* View toggle */
+    .view-toggle {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+
+    .view-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      border: 1px solid var(--color-border);
+      background: var(--color-bg-card);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .view-toggle-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .view-toggle-btn.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+
+    .view-toggle-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Invite tree */
+    .invite-tree {
+      padding: var(--space-2) 0;
+    }
+
+    .tree-node {
+      padding: var(--space-2) 0;
+    }
+
+    .tree-node-content {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      text-decoration: none;
+      color: inherit;
+      transition: all var(--transition-fast);
+    }
+
+    .tree-node-content:hover {
+      border-color: var(--color-border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .tree-node-name {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+    }
+
+    .tree-node-id {
+      font-family: var(--font-family-mono, monospace);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .tree-node-label {
+      font-size: var(--font-size-xs);
+      color: var(--color-primary);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .tree-children {
+      margin-left: var(--space-6);
+      padding-left: var(--space-4);
+      border-left: 2px solid var(--color-border-light);
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="js/auth.js"></script>
+
+  <div class="directory-container">
+    <!-- Header -->
+    <header class="directory-header">
+      <a href="index.html" class="back-link" aria-label="Back to home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </a>
+      <div>
+        <h1 class="directory-title">Member Directory</h1>
+        <span class="directory-count" id="member-count"></span>
+      </div>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="search-wrapper">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="text"
+        class="search-input"
+        id="search-input"
+        placeholder="Search members by name..."
+        autocomplete="off"
+        spellcheck="false"
+      >
+    </div>
+
+    <!-- Category Filter Pills -->
+    <div class="filter-pills" id="filter-pills">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- View Toggle -->
+    <div class="view-toggle" id="view-toggle" style="display:none;">
+      <button class="view-toggle-btn active" id="btn-grid-view" onclick="setView('grid')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Cards
+      </button>
+      <button class="view-toggle-btn" id="btn-tree-view" onclick="setView('tree')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Invite Tree
+      </button>
+    </div>
+
+    <!-- Member List -->
+    <div id="member-list">
+      <div class="loading-state">
+        <div class="loading-spinner-lg"></div>
+        <p style="color: var(--color-text-muted);">Loading members...</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="directory-footer">
+      <div class="directory-footer-text">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        Neighbours helping neighbours.
+      </div>
+    </footer>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    // =====================================================
+    // STATE
+    // =====================================================
+    let allMembers = [];
+    let filteredMembers = [];
+    let activeCategory = 'all';
+    let searchQuery = '';
+    let memberLookup = {};
+    let currentView = 'grid';
+
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+    async function init() {
+      try {
+        // Auth check
+        const session = await getAuthSession();
+        if (!session) {
+          window.location.href = 'access.html';
+          return;
+        }
+
+        const currentMember = await getCurrentMember();
+        if (!currentMember) {
+          window.location.href = 'access.html';
+          return;
+        }
+
+        // Load members
+        allMembers = await getAcceptedMembers();
+        filteredMembers = allMembers;
+
+        // Build lookup map for "Invited by" names
+        memberLookup = {};
+        allMembers.forEach(m => { memberLookup[m.id] = m; });
+
+        // Show view toggle
+        document.getElementById('view-toggle').style.display = 'flex';
+
+        // Render UI
+        renderFilterPills();
+        renderMemberList();
+        updateMemberCount();
+
+        // Wire up search
+        const searchInput = document.getElementById('search-input');
+        searchInput.addEventListener('input', handleSearch);
+
+      } catch (e) {
+        console.error('Directory init error:', e);
+        document.getElementById('member-list').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">&#9888;</div>
+            <div class="empty-state-title">Something went wrong</div>
+            <p class="empty-state-text">Could not load the member directory. Please try again.</p>
+          </div>
+        `;
+      }
+    }
+
+    // =====================================================
+    // FILTER PILLS
+    // =====================================================
+    function renderFilterPills() {
+      const container = document.getElementById('filter-pills');
+      let html = '<button class="filter-pill active" data-category="all" onclick="filterByCategory(\'all\', this)">All</button>';
+
+      CATEGORIES.forEach(cat => {
+        html += `<button class="filter-pill" data-category="${cat.id}" onclick="filterByCategory('${cat.id}', this)">${cat.emoji} ${cat.label}</button>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function filterByCategory(categoryId, btn) {
+      activeCategory = categoryId;
+
+      // Update active pill styling
+      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      applyFilters();
+    }
+
+    // =====================================================
+    // SEARCH
+    // =====================================================
+    function handleSearch(e) {
+      searchQuery = e.target.value.trim().toLowerCase();
+      applyFilters();
+    }
+
+    // =====================================================
+    // APPLY FILTERS
+    // =====================================================
+    function applyFilters() {
+      filteredMembers = allMembers.filter(member => {
+        // Category filter
+        if (activeCategory !== 'all') {
+          const matchesPrimary = member.primary_category === activeCategory;
+          const matchesSecondary = Array.isArray(member.secondary_categories) && member.secondary_categories.includes(activeCategory);
+          if (!matchesPrimary && !matchesSecondary) return false;
+        }
+
+        // Search filter
+        if (searchQuery) {
+          const name = (member.display_name || '').toLowerCase();
+          if (!name.includes(searchQuery)) return false;
+        }
+
+        return true;
+      });
+
+      // Filters switch to grid view (tree shows all members)
+      if (currentView === 'tree' && (activeCategory !== 'all' || searchQuery)) {
+        setView('grid');
+      } else if (currentView === 'tree') {
+        renderInviteTree();
+      } else {
+        renderMemberList();
+      }
+      updateMemberCount();
+    }
+
+    // =====================================================
+    // RENDER MEMBER LIST
+    // =====================================================
+    function renderMemberList() {
+      const container = document.getElementById('member-list');
+
+      if (filteredMembers.length === 0) {
+        const hasFilters = activeCategory !== 'all' || searchQuery;
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">${hasFilters ? '&#128269;' : '&#127793;'}</div>
+            <div class="empty-state-title">${hasFilters ? 'No members found' : 'No members yet'}</div>
+            <p class="empty-state-text">${hasFilters ? 'Try adjusting your search or category filter.' : 'The community is just getting started.'}</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '<div class="member-list">' + filteredMembers.map(renderMemberCard).join('') + '</div>';
+    }
+
+    function renderMemberCard(member) {
+      const cat = getCategoryById(member.primary_category);
+      const band = calculateReliabilityBand(member.exchanges_completed || 0, member.disputes_count || 0);
+      const bandClass = band.toLowerCase();
+
+      // Skill tags: show first 5
+      const tags = Array.isArray(member.skill_tags) ? member.skill_tags : [];
+      const visibleTags = tags.slice(0, 5);
+      const extraCount = tags.length - visibleTags.length;
+
+      let tagsHtml = '';
+      if (visibleTags.length > 0) {
+        tagsHtml = '<div class="member-tags">';
+        tagsHtml += visibleTags.map(t => `<span class="skill-tag">${escapeHtml(t)}</span>`).join('');
+        if (extraCount > 0) {
+          tagsHtml += `<span class="skill-tag-more">+${extraCount} more</span>`;
+        }
+        tagsHtml += '</div>';
+      }
+
+      // Area label
+      const areaLabel = getAreaLabel(member.area);
+
+      // Member since date
+      const memberSince = formatDate(member.accepted_at || member.created_at);
+
+      return `
+        <a href="profile.html?id=${member.id}" class="member-card">
+          <div class="member-card-header">
+            <div>
+              <div class="member-name">${escapeHtml(member.display_name)}</div>
+              <div class="member-id">${escapeHtml(member.member_id || '')}</div>
+            </div>
+            <span class="reliability-badge ${bandClass}">${band}</span>
+          </div>
+          <div class="member-category">
+            <span class="member-category-emoji">${cat.emoji}</span>
+            <span>${cat.label}</span>
+          </div>
+          ${tagsHtml}
+          <div class="member-card-footer">
+            <span class="member-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              ${areaLabel}
+            </span>
+            <span class="member-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              Member since ${memberSince}
+            </span>
+            ${getInvitedByHtml(member)}
+          </div>
+        </a>
+      `;
+    }
+
+    // =====================================================
+    // UPDATE COUNT
+    // =====================================================
+    function updateMemberCount() {
+      const countEl = document.getElementById('member-count');
+      const total = allMembers.length;
+      const showing = filteredMembers.length;
+      const cap = COMMUNITY_SETTINGS.MEMBER_CAP;
+
+      if (showing === total) {
+        countEl.textContent = `${total} of ${cap} members`;
+      } else {
+        countEl.textContent = `Showing ${showing} of ${total} members (${cap} max)`;
+      }
+    }
+
+    // =====================================================
+    // HELPERS
+    // =====================================================
+    function getAreaLabel(area) {
+      if (!area) return 'Not set';
+      const option = AREA_OPTIONS.find(a => a.id === area);
+      return option ? option.label : area;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function getInvitedByHtml(member) {
+      if (member.invited_by && memberLookup[member.invited_by]) {
+        const inviter = memberLookup[member.invited_by];
+        return `
+          <span class="member-invited-by">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>
+            </svg>
+            Invited by ${escapeHtml(inviter.display_name)}
+          </span>
+        `;
+      }
+      if (!member.invited_by) {
+        return `
+          <span class="member-invited-by">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Founding member
+          </span>
+        `;
+      }
+      return '';
+    }
+
+    // =====================================================
+    // VIEW TOGGLE
+    // =====================================================
+    function setView(view) {
+      currentView = view;
+      document.getElementById('btn-grid-view').classList.toggle('active', view === 'grid');
+      document.getElementById('btn-tree-view').classList.toggle('active', view === 'tree');
+
+      if (view === 'tree') {
+        renderInviteTree();
+      } else {
+        renderMemberList();
+      }
+    }
+
+    function renderInviteTree() {
+      const container = document.getElementById('member-list');
+      const roots = buildInviteTree(allMembers);
+
+      if (roots.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">&#127793;</div>
+            <div class="empty-state-title">No members yet</div>
+            <p class="empty-state-text">The community is just getting started.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '<div class="invite-tree">' + roots.map(node => renderTreeNode(node)).join('') + '</div>';
+    }
+
+    function renderTreeNode(node) {
+      const m = node.member;
+      const isFounder = !m.invited_by;
+      const label = isFounder ? '<span class="tree-node-label">Founder</span>' : '';
+
+      let html = `
+        <div class="tree-node">
+          <a href="profile.html?id=${m.id}" class="tree-node-content">
+            <div>
+              <span class="tree-node-name">${escapeHtml(m.display_name)}</span>
+              <span class="tree-node-id">${escapeHtml(m.member_id || '')}</span>
+            </div>
+            ${label}
+          </a>
+      `;
+
+      if (node.children.length > 0) {
+        html += '<div class="tree-children">';
+        html += node.children.map(child => renderTreeNode(child)).join('');
+        html += '</div>';
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    // =====================================================
+    // INIT
+    // =====================================================
+    init();
+  </script>
+</body>
+</html>

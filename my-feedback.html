@@ -282,28 +282,35 @@
   </style>
 </head>
 <body>
-  <script src="shared.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
   <script src="js/auth.js"></script>
-  <script>
-    // Require valid session
-    if (!requireAuth()) {
-      document.body.style.display = 'none';
-    }
-  </script>
 
   <div class="feedback-container" id="main-container">
     <!-- Content rendered by JS -->
   </div>
 
   <script>
-    function init() {
-      const token = getSessionToken();
-      if (!token) {
-        renderError();
-        return;
-      }
+    async function init() {
+      try {
+        const session = await getAuthSession();
+        if (!session) {
+          renderError();
+          return;
+        }
 
-      renderFeedbackPage(token);
+        const member = await getCurrentMember();
+        if (!member) {
+          renderError();
+          return;
+        }
+
+        const feedback = await getMyFeedback(member.id);
+        renderFeedbackPage(feedback);
+      } catch (e) {
+        console.error('Init error:', e);
+        renderError();
+      }
     }
 
     function renderError() {
@@ -317,11 +324,9 @@
       `;
     }
 
-    function renderFeedbackPage(token) {
-      const feedback = getFeedbackByToken(token);
+    function renderFeedbackPage(feedback) {
       const container = document.getElementById('main-container');
 
-      // Calculate stats
       const stats = {
         total: feedback.length,
         actioned: feedback.filter(f => f.status === 'actioned').length,
@@ -388,45 +393,13 @@
     }
 
     function renderFeedbackItem(item) {
-      const typeEmoji = {
-        bug: '🐛',
-        idea: '💡',
-        question: '❓',
-        other: '💬'
-      };
+      const typeEmoji = { bug: '🐛', idea: '💡', question: '❓', other: '💬' };
+      const statusLabels = { new: 'New', triaged: 'Reviewed', actioned: 'Actioned', declined: 'Declined' };
 
-      const statusLabel = {
-        new: 'New',
-        triaged: 'Reviewed',
-        actioned: 'Actioned',
-        declined: 'Declined'
-      };
-
-      // Format date
-      const date = new Date(item.submittedAt);
+      const date = new Date(item.created_at);
       const formattedDate = date.toLocaleDateString('en-IE', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric'
+        day: 'numeric', month: 'short', year: 'numeric'
       });
-
-      // Triage info
-      let triageHtml = '';
-      if (item.aiTriage) {
-        triageHtml = `
-          <div class="feedback-triage">
-            <div class="feedback-triage-title">Triage Assessment</div>
-            <div class="feedback-triage-info">
-              <span class="feedback-triage-item">
-                Priority: <span class="priority-badge ${item.aiTriage.priority}">${item.aiTriage.priority}</span>
-              </span>
-              <span class="feedback-triage-item">
-                Category: ${item.aiTriage.category}
-              </span>
-            </div>
-          </div>
-        `;
-      }
 
       return `
         <div class="feedback-item">
@@ -435,19 +408,19 @@
               ${typeEmoji[item.type] || '💬'} ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}
             </span>
             <span class="feedback-status-badge ${item.status}">
-              ${statusLabel[item.status] || item.status}
+              ${statusLabels[item.status] || item.status}
             </span>
           </div>
           <p class="feedback-message">${escapeHtml(item.message)}</p>
           <div class="feedback-meta">
             Submitted ${formattedDate}
           </div>
-          ${triageHtml}
         </div>
       `;
     }
 
     function escapeHtml(text) {
+      if (!text) return '';
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;

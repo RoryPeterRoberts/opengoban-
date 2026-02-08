@@ -351,6 +351,61 @@
     }
 
     /* Dev Panel */
+    /* Invite Chain Section */
+    .invite-chain-section {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow-card);
+    }
+
+    .chain-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-2);
+      text-decoration: none;
+      color: inherit;
+      transition: all var(--transition-fast);
+    }
+
+    .chain-item:hover {
+      background: var(--color-primary-bg);
+    }
+
+    .chain-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .chain-item-name {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+    }
+
+    .chain-item-id {
+      font-family: var(--font-family-mono, monospace);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .chain-label {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-3);
+    }
+
+    .chain-empty {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
     .dev-panel {
       position: fixed;
       bottom: var(--space-4);
@@ -414,14 +469,9 @@
   </style>
 </head>
 <body>
-  <script src="shared.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
   <script src="js/auth.js"></script>
-  <script>
-    // Require valid session to access profile
-    if (!requireAuth()) {
-      document.body.style.display = 'none';
-    }
-  </script>
 
   <div class="profile-container" id="main-container">
     <!-- Content rendered by JS -->
@@ -431,19 +481,36 @@
     // =====================================================
     // STATE
     // =====================================================
-    let user = null;
-    let trustSignals = null;
+    let member = null;
     let balance = null;
+    let allMembers = [];
+    let memberLookup = {};
 
     // =====================================================
     // INITIALIZATION
     // =====================================================
-    function init() {
-      user = getCurrentUser();
-      trustSignals = getUserTrustSignals(user);
-      balance = getUserBalance();
-      renderProfile();
-      renderDevPanel();
+    async function init() {
+      try {
+        const session = await getAuthSession();
+        if (!session) { window.location.href = 'access.html'; return; }
+
+        member = await getCurrentMember();
+        if (!member) { window.location.href = 'access.html'; return; }
+
+        if (member.status === 'PENDING_PROFILE') { window.location.href = 'join.html'; return; }
+
+        balance = await getBalance(member.id);
+
+        // Load all members for invite chain display
+        allMembers = await getAcceptedMembers();
+        memberLookup = {};
+        allMembers.forEach(m => { memberLookup[m.id] = m; });
+
+        renderProfile();
+      } catch (e) {
+        console.error('Init error:', e);
+        document.getElementById('main-container').innerHTML = '<div style="text-align:center;padding:40px;"><p>Something went wrong.</p><a href="access.html" style="color:var(--color-primary);">Sign in again</a></div>';
+      }
     }
 
     // =====================================================
@@ -451,6 +518,8 @@
     // =====================================================
     function renderProfile() {
       const container = document.getElementById('main-container');
+      const band = calculateReliabilityBand(member.exchanges_completed || 0, member.disputes_count || 0);
+      const memberSince = member.accepted_at || member.created_at;
 
       container.innerHTML = `
         <header class="profile-header">
@@ -466,11 +535,11 @@
         <!-- Identity Card -->
         <div class="identity-card">
           <div class="identity-avatar">
-            ${getInitials(user.name)}
+            ${getInitials(member.display_name)}
           </div>
-          <h2 class="identity-name">${escapeHtml(user.name)}</h2>
+          <h2 class="identity-name">${escapeHtml(member.display_name)}</h2>
           <div class="identity-member-id">
-            <span class="member-id-badge">${user.memberId}</span>
+            <span class="member-id-badge">${member.member_id}</span>
             <button class="copy-btn" onclick="copyMemberId()" aria-label="Copy Member ID" title="Copy Member ID">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
@@ -478,13 +547,16 @@
               </svg>
             </button>
           </div>
-          <p class="identity-meta">Member since ${formatMemberSince(trustSignals.memberSince)}</p>
+          <p class="identity-meta">Member since ${formatMemberSince(memberSince)}</p>
 
           <div class="balance-section">
             <span class="balance-label">Community Balance</span>
             <span class="balance-value">${balance.credits} credits</span>
           </div>
         </div>
+
+        <!-- Invite Chain -->
+        ${renderInviteChain()}
 
         <!-- Trust Signals -->
         <div class="trust-section">
@@ -497,31 +569,35 @@
 
           <div class="trust-grid">
             <div class="trust-item">
-              <div class="trust-item-value">${trustSignals.exchangesCompleted}</div>
+              <div class="trust-item-value">${member.exchanges_completed || 0}</div>
               <div class="trust-item-label">Exchanges</div>
             </div>
             <div class="trust-item">
-              <div class="trust-item-value">${trustSignals.disputesCount}</div>
+              <div class="trust-item-value">${member.disputes_count || 0}</div>
               <div class="trust-item-label">Disputes</div>
             </div>
           </div>
 
           <div class="reliability-section">
             <div class="reliability-label">Reliability</div>
-            <span class="reliability-badge ${trustSignals.reliabilityBand.toLowerCase()}">${trustSignals.reliabilityBand}</span>
+            <span class="reliability-badge ${band.toLowerCase()}">${band}</span>
           </div>
         </div>
 
-        <!-- Privacy Note -->
-        <div class="privacy-note">
-          <svg class="privacy-note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="16" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12.01" y2="8"/>
-          </svg>
-          <p class="privacy-note-text">
-            Your Member ID helps with disputes and record-keeping inside this community. It is not shared publicly and is only visible to you and community moderators.
-          </p>
+        <!-- Profile Details -->
+        <div class="edit-section">
+          <div class="section-header">
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+            <h3 class="section-title">Profile Details</h3>
+          </div>
+
+          ${member.primary_category ? `<div style="margin-bottom:var(--space-3);"><span style="font-size:var(--font-size-sm);color:var(--color-text-muted);">Primary category:</span> <span style="font-size:var(--font-size-sm);">${getCategoryLabel(member.primary_category)}</span></div>` : ''}
+          ${member.skill_tags && member.skill_tags.length ? `<div style="margin-bottom:var(--space-3);"><span style="font-size:var(--font-size-sm);color:var(--color-text-muted);">Skills:</span> <span style="font-size:var(--font-size-sm);">${member.skill_tags.join(', ')}</span></div>` : ''}
+          ${member.availability ? `<div style="margin-bottom:var(--space-3);"><span style="font-size:var(--font-size-sm);color:var(--color-text-muted);">Availability:</span> <span style="font-size:var(--font-size-sm);">${member.availability}</span></div>` : ''}
+          ${member.bio ? `<div style="margin-bottom:var(--space-3);"><span style="font-size:var(--font-size-sm);color:var(--color-text-muted);">Bio:</span> <span style="font-size:var(--font-size-sm);">${escapeHtml(member.bio)}</span></div>` : ''}
         </div>
 
         <!-- Edit Profile -->
@@ -536,33 +612,31 @@
 
           <div class="form-group">
             <label class="form-label" for="display-name">Display Name</label>
-            <input type="text" class="input" id="display-name" value="${escapeHtml(user.name)}" placeholder="Your name">
+            <input type="text" class="input" id="display-name" value="${escapeHtml(member.display_name)}" placeholder="Your name">
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="email">Email</label>
-            <input type="email" class="input" id="email" value="${escapeHtml(user.email)}" placeholder="your@email.com">
+            <label class="form-label" for="bio-input">Bio</label>
+            <textarea class="input" id="bio-input" placeholder="A short bio..." rows="3" style="resize:vertical;">${escapeHtml(member.bio || '')}</textarea>
           </div>
 
           <button class="btn btn-primary btn-block" onclick="saveProfile()">Save Changes</button>
         </div>
 
+        <!-- Sign Out -->
+        <div style="margin: var(--space-5) 0; text-align: center;">
+          <button class="btn btn-ghost" onclick="doSignOut()" style="color: var(--color-status-hold);">Sign out</button>
+        </div>
+
         <!-- Footer -->
         <footer class="profile-footer">
-          <a href="terms.html" class="footer-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-            </svg>
-            Terms & Conditions
-          </a>
+          <a href="directory.html" class="footer-link">Directory</a>
           <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">·</span>
-          <a href="privacy.html" class="footer-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            Privacy
-          </a>
+          <a href="exchanges.html" class="footer-link">My Exchanges</a>
+          <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">·</span>
+          <a href="terms.html" class="footer-link">Terms</a>
+          <span style="margin: 0 var(--space-2); color: var(--color-text-muted);">·</span>
+          <a href="privacy.html" class="footer-link">Privacy</a>
         </footer>
       `;
     }
@@ -573,93 +647,103 @@
     function getInitials(name) {
       if (!name) return '?';
       const parts = name.trim().split(/\s+/);
-      if (parts.length === 1) {
-        return parts[0].charAt(0).toUpperCase();
-      }
+      if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
       return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
     }
 
     function escapeHtml(text) {
+      if (!text) return '';
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
     }
 
-    function copyMemberId() {
-      copyToClipboard(user.memberId);
-      showToast('Member ID copied!');
+    function getCategoryLabel(categoryId) {
+      const cat = getCategoryById(categoryId);
+      return cat ? `${cat.emoji} ${cat.label}` : categoryId || 'Not set';
     }
 
-    function saveProfile() {
-      const name = document.getElementById('display-name').value.trim();
-      const email = document.getElementById('email').value.trim();
+    function formatMemberSince(isoDate) {
+      if (!isoDate) return '';
+      const date = new Date(isoDate);
+      return date.toLocaleDateString('en-IE', { month: 'short', year: 'numeric' });
+    }
 
-      if (!name) {
-        showToast('Please enter a display name');
-        return;
+    function copyMemberId() {
+      navigator.clipboard.writeText(member.member_id).then(() => showToast('Member ID copied!'));
+    }
+
+    async function saveProfile() {
+      const name = document.getElementById('display-name').value.trim();
+      const bio = document.getElementById('bio-input').value.trim();
+
+      if (!name) { showToast('Please enter a display name'); return; }
+
+      try {
+        await updateMember(member.id, { display_name: name, bio: bio || null });
+        clearMemberCache();
+        member = await getCurrentMember();
+        showToast('Profile saved!');
+        renderProfile();
+      } catch (e) {
+        console.error('Save error:', e);
+        showToast('Failed to save. Please try again.');
+      }
+    }
+
+    function renderInviteChain() {
+      // Who invited this member
+      let inviterHtml = '';
+      if (member.invited_by && memberLookup[member.invited_by]) {
+        const inviter = memberLookup[member.invited_by];
+        inviterHtml = `
+          <div class="chain-label">Invited by</div>
+          <a href="profile.html?id=${inviter.id}" class="chain-item">
+            <div>
+              <span class="chain-item-name">${escapeHtml(inviter.display_name)}</span>
+              <span class="chain-item-id">${escapeHtml(inviter.member_id || '')}</span>
+            </div>
+          </a>
+        `;
+      } else if (!member.invited_by) {
+        inviterHtml = '<div class="chain-label">Founding member — no inviter</div>';
       }
 
-      updateCurrentUser({ name, email });
-      user = getCurrentUser();
-      showToast('Profile saved!');
-      renderProfile();
-    }
+      // Who this member has invited
+      const invitees = allMembers.filter(m => m.invited_by === member.id);
+      let inviteesHtml = '';
+      if (invitees.length > 0) {
+        inviteesHtml = `
+          <div class="chain-label" style="margin-top: var(--space-4);">Invited ${invitees.length} member${invitees.length !== 1 ? 's' : ''}</div>
+          ${invitees.map(m => `
+            <a href="profile.html?id=${m.id}" class="chain-item">
+              <div>
+                <span class="chain-item-name">${escapeHtml(m.display_name)}</span>
+                <span class="chain-item-id">${escapeHtml(m.member_id || '')}</span>
+              </div>
+            </a>
+          `).join('')}
+        `;
+      } else {
+        inviteesHtml = `<div class="chain-label" style="margin-top: var(--space-4);">No members invited yet</div>`;
+      }
 
-    // =====================================================
-    // DEV PANEL
-    // =====================================================
-    function isDevMode() {
-      return new URLSearchParams(window.location.search).get('dev') === '1';
-    }
-
-    function renderDevPanel() {
-      if (!isDevMode()) return;
-
-      const existing = document.getElementById('dev-panel');
-      if (existing) existing.remove();
-
-      const panel = document.createElement('div');
-      panel.id = 'dev-panel';
-      panel.className = 'dev-panel';
-      panel.innerHTML = `
-        <div class="dev-panel-header">
-          <span class="dev-panel-title">🔧 Dev Tools</span>
-          <button class="dev-panel-close" onclick="document.getElementById('dev-panel').remove()">&times;</button>
-        </div>
-        <div class="dev-panel-buttons">
-          <button class="dev-btn" onclick="devAddExchange()">+1 Completed Exchange</button>
-          <button class="dev-btn" onclick="devAddDispute()">+1 Dispute</button>
-          <button class="dev-btn" onclick="devResetSignals()">Reset Trust Signals</button>
+      return `
+        <div class="invite-chain-section">
+          <div class="section-header">
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/>
+            </svg>
+            <h3 class="section-title">Invite Chain</h3>
+          </div>
+          ${inviterHtml}
+          ${inviteesHtml}
         </div>
       `;
-      document.body.appendChild(panel);
     }
 
-    function devAddExchange() {
-      incrementExchangesCompleted();
-      user = getCurrentUser();
-      trustSignals = getUserTrustSignals(user);
-      renderProfile();
-      renderDevPanel();
-      showToast('Exchange added!');
-    }
-
-    function devAddDispute() {
-      incrementDisputesCount();
-      user = getCurrentUser();
-      trustSignals = getUserTrustSignals(user);
-      renderProfile();
-      renderDevPanel();
-      showToast('Dispute added!');
-    }
-
-    function devResetSignals() {
-      debugResetTrustSignals();
-      user = getCurrentUser();
-      trustSignals = getUserTrustSignals(user);
-      renderProfile();
-      renderDevPanel();
-      showToast('Trust signals reset!');
+    async function doSignOut() {
+      await handleSignOut();
     }
 
     // =====================================================
