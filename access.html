@@ -421,9 +421,9 @@
             }
             return;
           }
-          // Logged in but no member record — they need to complete profile
+          // Logged in but no member record — try to create one if we have an invite
           if (pendingInviteToken) {
-            window.location.href = 'join.html';
+            await handlePostSignIn(session);
             return;
           }
         }

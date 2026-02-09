@@ -551,7 +551,23 @@
     // FORM RENDERING
     // =====================================================
 
+    // Capture live form values into state before re-rendering
+    function captureFormState() {
+      const displayName = document.getElementById('display-name');
+      if (displayName) currentMember.display_name = displayName.value;
+
+      const bioInput = document.getElementById('bio-input');
+      if (bioInput) profile.bio = bioInput.value;
+
+      const areaSelect = document.getElementById('area-select');
+      if (areaSelect) currentMember.area = areaSelect.value;
+
+      const availSelect = document.getElementById('availability');
+      if (availSelect && availSelect.value) profile.availability = availSelect.value;
+    }
+
     function renderForm() {
+      captureFormState();
       const container = document.getElementById('main-container');
       const alreadyAcceptedTerms = currentMember.terms_accepted_at && currentMember.terms_version === CURRENT_TERMS_VERSION;
 

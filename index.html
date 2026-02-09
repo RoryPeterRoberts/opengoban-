@@ -663,7 +663,16 @@
 
         currentMember = await getCurrentMember();
         if (!currentMember) {
-          window.location.href = 'access.html';
+          // No member record — check if invite flow is pending
+          const inviteToken = localStorage.getItem('cc_pending_invite_token');
+          if (inviteToken) {
+            // Has invite, needs to complete join flow
+            window.location.href = 'join.html';
+          } else {
+            // No member and no invite — clear stale session to prevent loop
+            await signOut().catch(() => {});
+            window.location.href = 'access.html';
+          }
           return;
         }
 
