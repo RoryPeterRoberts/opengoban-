@@ -462,8 +462,32 @@
         // Get current member record
         currentMember = await getCurrentMember();
         if (!currentMember) {
-          window.location.href = 'access.html';
-          return;
+          // Try to create member if we have an invite token (prevents redirect loop)
+          const inviteToken = localStorage.getItem('cc_pending_invite_token');
+          if (inviteToken && session.user) {
+            try {
+              const memberId = await generateNextMemberId();
+              const invite = await getInviteByToken(inviteToken).catch(() => null);
+              currentMember = await createMember({
+                auth_id: session.user.id,
+                email: session.user.email,
+                display_name: session.user.email.split('@')[0],
+                member_id: memberId,
+                status: 'PENDING_PROFILE',
+                invited_by: invite?.created_by || null
+              });
+              await redeemInvite(inviteToken, currentMember.id).catch(() => {});
+            } catch (createErr) {
+              console.error('Member creation error in join.html:', createErr);
+              renderError('Could not create your account. Please try signing in again or contact a community member.');
+              return;
+            }
+          } else {
+            // No invite token and no member — sign out and redirect to prevent loop
+            await signOut().catch(() => {});
+            window.location.href = 'access.html';
+            return;
+          }
         }
 
         // If already accepted, go to main app
@@ -656,14 +680,16 @@
           <div class="form-group">
             <label class="form-label">Skill tags <span class="required">*</span></label>
             <div class="chips-container" id="skill-chips" onclick="document.getElementById('skill-input').focus()">
-              ${profile.skillTags.map(tag => `
-                <span class="chip">${escapeHtml(tag)}<button class="chip-remove" onclick="removeSkillTag('${escapeHtml(tag)}')">&times;</button></span>
+              ${profile.skillTags.map((tag, i) => `
+                <span class="chip">${escapeHtml(tag)}<button class="chip-remove" onclick="removeSkillTag(${i})">&times;</button></span>
               `).join('')}
               <input type="text"
                 class="chips-input"
                 id="skill-input"
-                placeholder="${profile.skillTags.length === 0 ? 'e.g., painting, gardening...' : ''}"
-                onkeydown="handleSkillInput(event)">
+                placeholder="${profile.skillTags.length === 0 ? 'Type a skill then press comma or Enter' : 'Add another...'}"
+                onkeydown="handleSkillInput(event)"
+                oninput="handleSkillComma(event)"
+                onpaste="handleSkillPaste(event)">
             </div>
             <p class="chips-count ${profile.skillTags.length < 3 ? 'error' : ''}" id="skill-count">
               ${profile.skillTags.length}/10 tags (minimum 3)
@@ -799,19 +825,70 @@
     }
 
     // Skill tags
+    function addSkillTag(raw) {
+      const tag = raw.trim().replace(/,+$/, '').trim();
+      if (!tag) return false;
+      if (profile.skillTags.length >= 10) return false;
+      if (profile.skillTags.some(t => t.toLowerCase() === tag.toLowerCase())) return false;
+      profile.skillTags.push(tag);
+      return true;
+    }
+
     function handleSkillInput(event) {
       if (event.key === 'Enter' && event.target.value.trim()) {
         event.preventDefault();
-        const tag = event.target.value.trim();
-        if (profile.skillTags.length < 10 && !profile.skillTags.includes(tag)) {
-          profile.skillTags.push(tag);
+        if (addSkillTag(event.target.value)) {
           renderForm();
         }
       }
     }
 
-    function removeSkillTag(tag) {
-      profile.skillTags = profile.skillTags.filter(t => t !== tag);
+    function handleSkillComma(event) {
+      const val = event.target.value;
+      if (val.includes(',')) {
+        const parts = val.split(',');
+        let added = false;
+        parts.forEach((part, i) => {
+          // Don't add the last segment — user is still typing it
+          if (i < parts.length - 1) {
+            if (addSkillTag(part)) added = true;
+          }
+        });
+        if (added) {
+          // Keep the text after the last comma (user may still be typing)
+          const remainder = parts[parts.length - 1];
+          renderForm();
+          // Restore focus and any remaining text
+          const input = document.getElementById('skill-input');
+          if (input) {
+            input.value = remainder;
+            input.focus();
+          }
+        }
+      }
+    }
+
+    function handleSkillPaste(event) {
+      // Brief delay so the pasted text is in the input
+      setTimeout(() => {
+        const input = document.getElementById('skill-input');
+        if (!input) return;
+        const val = input.value;
+        if (val.includes(',')) {
+          const parts = val.split(',');
+          let added = false;
+          parts.forEach(part => {
+            if (addSkillTag(part)) added = true;
+          });
+          if (added) {
+            renderForm();
+          }
+        }
+      }, 0);
+    }
+
+    function removeSkillTag(index) {
+      profile.skillTags.splice(index, 1);
       renderForm();
     }
 
