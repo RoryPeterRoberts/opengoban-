@@ -340,6 +340,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           Invite a neighbour
         </button>
+        <div id="my-invites-list" style="margin-top: var(--space-4);"></div>
         <details style="margin-top: var(--space-4);">
           <summary style="font-size: var(--font-size-sm); color: var(--color-text-muted); cursor: pointer;">Why are invites limited?</summary>
           <div class="balance-explanation" style="margin-top: var(--space-3);">
@@ -1134,6 +1135,24 @@
         } else {
           statusEl.textContent = `${allowance.remaining} invite${allowance.remaining !== 1 ? 's' : ''} remaining · ${capMembers.length}/${COMMUNITY_SETTINGS.MEMBER_CAP} members`;
           btnEl.disabled = false;
+        }
+
+        // Render invite list
+        const listEl = document.getElementById('my-invites-list');
+        if (listEl && myInvites.length > 0) {
+          listEl.innerHTML = `
+            <p style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-muted); margin-bottom: var(--space-2);">Your invites</p>
+            ${myInvites.map(inv => {
+              const name = escapeHtml(inv.invitee_name || 'Unnamed');
+              const status = inv.status === 'redeemed'
+                ? '<span style="color: var(--color-status-active);">Joined</span>'
+                : '<span style="color: var(--color-text-muted);">Pending</span>';
+              return `<div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border-light);">
+                <span style="font-size: var(--font-size-sm);">${name}</span>
+                <span style="font-size: var(--font-size-xs);">${status}</span>
+              </div>`;
+            }).join('')}
+          `;
         }
       } catch (e) {
         console.error('Invite status error:', e);
