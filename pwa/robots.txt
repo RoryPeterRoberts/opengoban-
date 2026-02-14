@@ -1,5 +1,0 @@
-# Community Connect - Private Pilot
-# Block all search engine crawlers
-
-User-agent: *
-Disallow: /
