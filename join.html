@@ -462,6 +462,11 @@
         // Get current member record
         currentMember = await getCurrentMember();
         if (!currentMember) {
+          // Retry once in case of transient network/RLS failure
+          await new Promise(r => setTimeout(r, 1000));
+          currentMember = await getCurrentMember().catch(() => null);
+        }
+        if (!currentMember) {
           // Try to create member if we have an invite token (prevents redirect loop)
           const inviteToken = localStorage.getItem('cc_pending_invite_token');
           if (inviteToken && session.user) {
@@ -483,8 +488,7 @@
               return;
             }
           } else {
-            // No invite token and no member — sign out and redirect to prevent loop
-            await signOut().catch(() => {});
+            // No invite token and no member — redirect without destroying session
             window.location.href = 'access.html';
             return;
           }

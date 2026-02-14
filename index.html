@@ -663,14 +663,18 @@
 
         currentMember = await getCurrentMember();
         if (!currentMember) {
+          // Retry once in case of transient network/RLS failure
+          await new Promise(r => setTimeout(r, 1000));
+          currentMember = await getCurrentMember().catch(() => null);
+        }
+        if (!currentMember) {
           // No member record — check if invite flow is pending
           const inviteToken = localStorage.getItem('cc_pending_invite_token');
           if (inviteToken) {
             // Has invite, needs to complete join flow
             window.location.href = 'join.html';
           } else {
-            // No member and no invite — clear stale session to prevent loop
-            await signOut().catch(() => {});
+            // No member and no invite — redirect without destroying session
             window.location.href = 'access.html';
           }
           return;
