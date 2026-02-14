@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="robots" content="noindex, nofollow">
-  <title>Community Connect — Neighbours helping neighbours</title>
+  <title>Connect Again — Neighbours helping neighbours</title>
   <link rel="stylesheet" href="theme.css">
   <style>
     /* Balance Chip */
@@ -256,7 +256,7 @@
   <div id="app">
     <div class="loading-state" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
       <div class="loading-spinner-lg"></div>
-      <p style="color: var(--color-text-muted);">Loading Community Connect...</p>
+      <p style="color: var(--color-text-muted);">Loading Connect Again...</p>
     </div>
   </div>
 
@@ -273,7 +273,7 @@
               <polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
           </div>
-          <span class="app-logo-text">Community Connect</span>
+          <span class="app-logo-text">Connect Again</span>
         </div>
         <p class="app-tagline">Neighbours helping neighbours.</p>
         <div class="user-identity-section">
@@ -400,7 +400,7 @@
           </button>
           <div class="app-logo">
             <div class="app-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-            <span class="app-logo-text">Community Connect</span>
+            <span class="app-logo-text">Connect Again</span>
           </div>
         </div>
       </header>
@@ -424,7 +424,7 @@
           </button>
           <div class="app-logo">
             <div class="app-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-            <span class="app-logo-text">Community Connect</span>
+            <span class="app-logo-text">Connect Again</span>
           </div>
         </div>
       </header>
@@ -487,10 +487,10 @@
             <svg class="safety-warning-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             <span class="safety-warning-title">Safety notice</span>
           </div>
-          <p class="safety-warning-text">Some help can carry risk. Agree details directly with your neighbour. Community Connect is a noticeboard — we don't provide insurance or supervision.</p>
+          <p class="safety-warning-text">Some help can carry risk. Agree details directly with your neighbour. Connect Again is a noticeboard — we don't provide insurance or supervision.</p>
           <label class="safety-checkbox">
             <input type="checkbox" id="safety-confirmed">
-            <span class="safety-checkbox-label">I understand Community Connect is a noticeboard and I'm responsible for assessing safety.</span>
+            <span class="safety-checkbox-label">I understand Connect Again is a noticeboard and I'm responsible for assessing safety.</span>
           </label>
         </div>
 
@@ -609,7 +609,7 @@
     <div class="modal">
       <div class="modal-header">
         <h2 class="modal-title">Send Feedback</h2>
-        <p class="modal-subtitle">Help us improve Community Connect.</p>
+        <p class="modal-subtitle">Help us improve Connect Again.</p>
       </div>
       <div class="modal-body">
         <div class="form-group">
@@ -1106,7 +1106,7 @@
     function shareInviteLink() {
       const name = document.getElementById('invite-success-name').textContent;
       if (navigator.share) {
-        navigator.share({ title: 'Join Community Connect', text: `Hi ${name}! Join our community exchange:`, url: currentInviteLink });
+        navigator.share({ title: 'Join Connect Again', text: `Hi ${name}! Join our community exchange:`, url: currentInviteLink });
       } else {
         copyInviteLinkToClipboard();
         showToast('Link copied - paste it in your message');

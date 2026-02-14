@@ -1,5 +1,5 @@
 // =====================================================
-// COMMUNITY CONNECT - SHARED UTILITIES
+// CONNECT AGAIN - SHARED UTILITIES
 // =====================================================
 // Pure utility functions and constants shared across pages.
 // All data operations use supabase.js — no localStorage here.

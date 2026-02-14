@@ -1,5 +1,5 @@
 -- =====================================================
--- COMMUNITY CONNECT — SUPABASE DATABASE SCHEMA
+-- CONNECT AGAIN — SUPABASE DATABASE SCHEMA
 -- =====================================================
 -- Run this in Supabase SQL Editor to set up the database.
 -- =====================================================
@@ -274,7 +274,7 @@ BEGIN
     ON CONFLICT (member_id) DO NOTHING;
 
     INSERT INTO balance_history (member_id, amount, reason, type, balance_after)
-    VALUES (NEW.id, 5, 'Welcome bonus for joining Community Connect', 'welcome_bonus', 5);
+    VALUES (NEW.id, 5, 'Welcome bonus for joining Connect Again', 'welcome_bonus', 5);
 
     INSERT INTO audit_log (action, actor_id, actor_name, description)
     VALUES ('member_accepted', NEW.id, NEW.display_name, 'New member accepted: ' || NEW.display_name || ' (' || NEW.member_id || ')');

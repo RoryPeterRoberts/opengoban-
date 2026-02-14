@@ -1,5 +1,5 @@
 // =====================================================
-// COMMUNITY CONNECT - AUTHENTICATION & ACCESS CONTROL
+// CONNECT AGAIN - AUTHENTICATION & ACCESS CONTROL
 // =====================================================
 // Uses Supabase Auth with magic links (email-based, no passwords)
 // Requires supabase.js to be loaded first.

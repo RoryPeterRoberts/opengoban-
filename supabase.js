@@ -1,5 +1,5 @@
 // =====================================================
-// COMMUNITY CONNECT — SUPABASE CLIENT MODULE
+// CONNECT AGAIN — SUPABASE CLIENT MODULE
 // =====================================================
 // All data access goes through this module.
 // Replace SUPABASE_URL and SUPABASE_ANON_KEY with your project values.

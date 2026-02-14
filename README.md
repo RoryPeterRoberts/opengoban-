@@ -1,4 +1,4 @@
-# Community Connect - Private Pilot
+# Connect Again - Private Pilot
 
 A local community exchange platform. Neighbours helping neighbours.
 

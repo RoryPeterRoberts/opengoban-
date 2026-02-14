@@ -1,4 +1,4 @@
-# Community Connect - Private Pilot
+# Connect Again - Private Pilot
 # Block all search engine crawlers
 
 User-agent: *
