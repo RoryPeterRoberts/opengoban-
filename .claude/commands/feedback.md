@@ -11,10 +11,12 @@ Read the Supabase credentials from your memory file:
 
 ## Step 2: Pull open feedback
 
-Query all feedback that isn't resolved:
+Valid feedback statuses are: `new`, `triaged`, `actioned`, `declined`.
+
+Query all feedback that hasn't been actioned or declined:
 
 ```
-curl -s 'https://xqvzpjesgxojsdivupfl.supabase.co/rest/v1/feedback?status=neq.resolved&select=*&order=created_at.asc' \
+curl -s 'https://xqvzpjesgxojsdivupfl.supabase.co/rest/v1/feedback?status=in.(new,triaged)&select=*&order=created_at.asc' \
   -H "apikey: SERVICE_ROLE_KEY" \
   -H "Authorization: Bearer SERVICE_ROLE_KEY"
 ```
@@ -57,7 +59,7 @@ curl -s -X PATCH 'https://xqvzpjesgxojsdivupfl.supabase.co/rest/v1/feedback?id=e
   -H "apikey: SERVICE_ROLE_KEY" \
   -H "Authorization: Bearer SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"status": "resolved", "admin_notes": "Fixed in commit XXXXX"}'
+  -d '{"status": "actioned", "admin_notes": "Fixed in commit XXXXX"}'
 ```
 
 ## Step 6: Report
