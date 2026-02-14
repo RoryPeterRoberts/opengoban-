@@ -481,7 +481,13 @@
                 status: 'PENDING_PROFILE',
                 invited_by: invite?.created_by || null
               });
-              await redeemInvite(inviteToken, currentMember.id).catch(() => {});
+              try {
+                await redeemInvite(inviteToken, currentMember.id);
+                console.log('Redeemed invite in join.html:', inviteToken);
+              } catch (redeemErr) {
+                console.error('Failed to redeem invite in join.html:', redeemErr);
+              }
+              clearInviteToken();
             } catch (createErr) {
               console.error('Member creation error in join.html:', createErr);
               renderError('Could not create your account. Please try signing in again or contact a community member.');

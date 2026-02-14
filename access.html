@@ -497,6 +497,25 @@
       const user = session.user;
       if (!user) return;
 
+      // Always try to redeem any pending invite token, even for existing members
+      const inviteToken = retrieveInviteToken();
+      if (inviteToken) {
+        try {
+          const invite = await getInviteByToken(inviteToken).catch(() => null);
+          if (invite && invite.status === 'pending') {
+            // Check if member exists to get their ID for redemption
+            const existingMember = await getMemberByAuthId(user.id).catch(() => null);
+            if (existingMember) {
+              await redeemInvite(inviteToken, existingMember.id);
+              console.log('Redeemed invite:', inviteToken);
+            }
+          }
+        } catch (e) {
+          console.error('Invite redemption error:', e);
+        }
+        clearInviteToken();
+      }
+
       // Check if member exists
       let member = await getMemberByAuthId(user.id).catch(() => null);
 
@@ -510,15 +529,15 @@
         return;
       }
 
-      // New user — check for invite
-      const inviteToken = retrieveInviteToken();
-      if (inviteToken) {
-        // Redeem invite and create member stub
+      // New user — check for invite (re-read from URL in case localStorage was cleared)
+      const newUserToken = inviteToken || getInviteTokenFromURL();
+      if (newUserToken) {
+        // Create member and redeem invite
         try {
           const memberId = await generateNextMemberId();
 
           // Look up invite to record who invited this member
-          const invite = await getInviteByToken(inviteToken).catch(() => null);
+          const invite = await getInviteByToken(newUserToken).catch(() => null);
 
           member = await createMember({
             auth_id: user.id,
@@ -530,8 +549,14 @@
           });
 
           // Mark invite as redeemed
-          await redeemInvite(inviteToken, member.id).catch(() => {});
+          try {
+            await redeemInvite(newUserToken, member.id);
+            console.log('Redeemed invite for new member:', newUserToken);
+          } catch (redeemErr) {
+            console.error('Failed to redeem invite:', redeemErr);
+          }
 
+          clearInviteToken();
           window.location.href = 'join.html';
         } catch (e) {
           console.error('Member creation error:', e);
