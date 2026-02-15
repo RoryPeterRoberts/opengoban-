@@ -482,6 +482,8 @@
     // STATE
     // =====================================================
     let member = null;
+    let currentUser = null;
+    let isOwnProfile = true;
     let balance = null;
     let allMembers = [];
     let memberLookup = {};
@@ -494,10 +496,27 @@
         const session = await getAuthSession();
         if (!session) { window.location.href = 'access.html'; return; }
 
-        member = await getCurrentMember();
-        if (!member) { window.location.href = 'access.html'; return; }
+        currentUser = await getCurrentMember();
+        if (!currentUser) { window.location.href = 'access.html'; return; }
 
-        if (member.status === 'PENDING_PROFILE') { window.location.href = 'join.html'; return; }
+        if (currentUser.status === 'PENDING_PROFILE') { window.location.href = 'join.html'; return; }
+
+        // Check if viewing another member's profile
+        const params = new URLSearchParams(window.location.search);
+        const viewId = params.get('id');
+
+        if (viewId && viewId !== currentUser.id) {
+          // Viewing someone else's profile
+          member = await getMemberById(viewId);
+          if (!member) {
+            document.getElementById('main-container').innerHTML = '<div style="text-align:center;padding:40px;"><p>Member not found.</p><a href="directory.html" style="color:var(--color-primary);">Back to directory</a></div>';
+            return;
+          }
+          isOwnProfile = false;
+        } else {
+          member = currentUser;
+          isOwnProfile = true;
+        }
 
         balance = await getBalance(member.id);
 
@@ -506,6 +525,7 @@
         memberLookup = {};
         allMembers.forEach(m => { memberLookup[m.id] = m; });
 
+        document.title = isOwnProfile ? 'My Profile - Connect Again' : `${member.display_name} - Connect Again`;
         renderProfile();
       } catch (e) {
         console.error('Init error:', e);
@@ -521,15 +541,18 @@
       const band = calculateReliabilityBand(member.exchanges_completed || 0, member.disputes_count || 0);
       const memberSince = member.accepted_at || member.created_at;
 
+      const backHref = isOwnProfile ? 'index.html' : 'javascript:history.back()';
+      const pageTitle = isOwnProfile ? 'My Profile' : escapeHtml(member.display_name);
+
       container.innerHTML = `
         <header class="profile-header">
-          <a href="index.html" class="back-link" aria-label="Back to home">
+          <a href="${backHref}" class="back-link" aria-label="Go back">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="19" y1="12" x2="5" y2="12"/>
               <polyline points="12 19 5 12 12 5"/>
             </svg>
           </a>
-          <h1 class="profile-title">My Profile</h1>
+          <h1 class="profile-title">${pageTitle}</h1>
         </header>
 
         <!-- Identity Card -->
@@ -600,6 +623,7 @@
           ${member.bio ? `<div style="margin-bottom:var(--space-3);"><span style="font-size:var(--font-size-sm);color:var(--color-text-muted);">Bio:</span> <span style="font-size:var(--font-size-sm);">${escapeHtml(member.bio)}</span></div>` : ''}
         </div>
 
+        ${isOwnProfile ? `
         <!-- Edit Profile -->
         <div class="edit-section">
           <div class="section-header">
@@ -627,6 +651,7 @@
         <div style="margin: var(--space-5) 0; text-align: center;">
           <button class="btn btn-ghost" onclick="doSignOut()" style="color: var(--color-status-hold);">Sign out</button>
         </div>
+        ` : ''}
 
         <!-- Footer -->
         <footer class="profile-footer">
