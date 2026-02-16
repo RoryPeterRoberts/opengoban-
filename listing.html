@@ -1333,7 +1333,9 @@
 
     function renderExchangeForm() {
       const isOffer = listing.type === 'offer';
-      const actionLabel = isOffer ? 'accept this offer' : 'offer your help';
+      const subtitle = isOffer
+        ? "Interested? Describe why you'd like this and propose a credit amount."
+        : "Interested? Describe what help you'd like to offer and propose a credit amount.";
       const roleNote = isOffer
         ? 'You will receive help from the listing author.'
         : 'You will provide help to the listing author.';
@@ -1341,7 +1343,7 @@
       return `
         <div class="exchange-form-card">
           <h3 class="exchange-form-title">Propose Exchange</h3>
-          <p class="exchange-form-subtitle">Interested? Describe what you'd like to ${actionLabel} and propose a credit amount.</p>
+          <p class="exchange-form-subtitle">${subtitle}</p>
 
           <div class="credit-cost">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>

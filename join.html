@@ -873,7 +873,9 @@
     function handleSkillInput(event) {
       if (event.key === 'Enter' && event.target.value.trim()) {
         event.preventDefault();
-        if (addSkillTag(event.target.value)) {
+        const val = event.target.value;
+        event.target.value = '';
+        if (addSkillTag(val)) {
           renderForm();
         }
       }

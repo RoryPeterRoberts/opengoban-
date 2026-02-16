@@ -201,10 +201,10 @@ body::before {
   z-index: -1;
 }
 
-/* Selection color */
+/* Selection color — high contrast for accessibility */
 ::selection {
-  background: var(--color-accent-bg);
-  color: var(--color-text);
+  background: var(--color-primary);
+  color: #FFFFFF;
 }
 
 /* ============================================================

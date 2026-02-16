@@ -936,8 +936,9 @@
     function handleSkillInput(e) {
       if (e.key === 'Enter' || e.key === ',') {
         e.preventDefault();
-        addSkillTag(e.target.value);
+        const val = e.target.value;
         e.target.value = '';
+        addSkillTag(val);
       } else if (e.key === 'Backspace' && e.target.value === '' && editSkillTags.length > 0) {
         removeSkillTag(editSkillTags.length - 1);
       }
