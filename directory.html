@@ -590,8 +590,9 @@
           return;
         }
 
-        // Load members
-        allMembers = await getAcceptedMembers();
+        // Load members (exclude System account)
+        const rawMembers = await getAcceptedMembers();
+        allMembers = rawMembers.filter(m => m.email !== 'bootstrap@system');
         filteredMembers = allMembers;
 
         // Build lookup map for "Invited by" names
