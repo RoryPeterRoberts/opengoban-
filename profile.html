@@ -894,9 +894,9 @@
     }
 
     function addSkillTag(text) {
-      const tag = text.trim().toLowerCase();
+      const tag = text.trim();
       if (!tag) return;
-      if (editSkillTags.includes(tag)) { showToast('Skill already added'); return; }
+      if (editSkillTags.some(t => t.toLowerCase() === tag.toLowerCase())) { showToast('Skill already added'); return; }
       if (editSkillTags.length >= 10) { showToast('Maximum 10 skills'); return; }
       editSkillTags.push(tag);
       renderSkillChips();
