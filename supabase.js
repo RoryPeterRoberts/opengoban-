@@ -184,6 +184,7 @@ async function getActiveListings(filters = {}) {
       )
     `)
     .eq('status', 'active')
+    .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false });
 
   if (filters.type) query = query.eq('type', filters.type);
