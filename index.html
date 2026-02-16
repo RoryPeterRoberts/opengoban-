@@ -63,18 +63,45 @@
       max-width: 280px;
     }
 
-    .user-identity-strip {
-      display: flex;
+    .profile-chip {
+      display: inline-flex;
       align-items: center;
       gap: var(--space-2);
+      padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1);
+      background: var(--color-bg-card);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-full);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+      min-height: 36px;
+    }
+    .profile-chip:hover {
+      border-color: var(--color-primary);
+      background: var(--color-primary-bg);
+    }
+    .profile-chip-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: var(--font-weight-bold);
+      flex-shrink: 0;
+    }
+    .profile-chip-name {
       font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-secondary);
+    }
+    .profile-chip-id {
+      font-family: var(--font-family-mono, monospace);
+      font-size: 10px;
       color: var(--color-text-muted);
     }
-
-    .user-identity-strip a { color: var(--color-text-muted); text-decoration: none; }
-    .user-identity-strip a:hover { color: var(--color-primary); }
-    .user-name { font-weight: var(--font-weight-medium); color: var(--color-text-secondary); }
-    .member-id { font-family: var(--font-family-mono, monospace); color: var(--color-text-muted); font-size: var(--font-size-xs); }
 
     /* Reliability Badge */
     .reliability-badge {
@@ -622,11 +649,13 @@
         </div>
         <p class="app-tagline">Neighbours helping neighbours.</p>
         <div class="user-identity-section">
-          <div class="user-identity-strip">
-            <a href="profile.html" class="user-name" id="header-user-name">You</a>
-            <span>&middot;</span>
-            <span class="member-id" id="header-member-id">CC-0001</span>
-          </div>
+          <a href="profile.html" class="profile-chip" id="profile-chip" aria-label="View your profile">
+            <span class="profile-chip-avatar" id="profile-chip-avatar">?</span>
+            <span>
+              <span class="profile-chip-name" id="header-user-name">You</span>
+              <span class="profile-chip-id" id="header-member-id">CC-0001</span>
+            </span>
+          </a>
           <button class="balance-chip" onclick="openBalanceModal()" aria-label="View balance">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/>
@@ -1283,8 +1312,11 @@
     // USER IDENTITY
     // =====================================================
     function updateUserIdentity() {
-      document.getElementById('header-user-name').textContent = currentMember.display_name || 'You';
+      const name = currentMember.display_name || 'You';
+      document.getElementById('header-user-name').textContent = name;
       document.getElementById('header-member-id').textContent = currentMember.member_id || '';
+      const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      document.getElementById('profile-chip-avatar').textContent = initials || '?';
     }
 
     // =====================================================
