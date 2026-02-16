@@ -748,17 +748,19 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Chat Platform <span style="font-weight:normal;color:var(--color-text-muted);">(optional — for direct reach-outs)</span></label>
-            <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2);">
-              <select class="select" id="chat-platform" style="flex:0 0 140px;" onchange="updateChatPlaceholder()">
-                <option value="">None</option>
-                <option value="whatsapp" ${member.chat_platform === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
-                <option value="telegram" ${member.chat_platform === 'telegram' ? 'selected' : ''}>Telegram</option>
-                <option value="signal" ${member.chat_platform === 'signal' ? 'selected' : ''}>Signal</option>
-              </select>
-              <input type="text" class="input" id="chat-handle" value="${escapeHtml(member.chat_handle || '')}" placeholder="${member.chat_platform === 'telegram' ? '@username' : '+353 87 123 4567'}" style="flex:1;">
+            <label class="form-label">Direct messaging</label>
+            <p style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-3);line-height:var(--line-height-relaxed);">Members can send you a reach-out request from the <a href="directory.html" style="color:var(--color-primary);">Directory</a>. If you accept, they'll be able to open a chat with you on your chosen platform. Your details are <strong>never shared until you accept</strong>.</p>
+            <label class="form-label" for="chat-platform" style="font-size:var(--font-size-xs);">Chat platform</label>
+            <select class="select" id="chat-platform" onchange="updateChatPlaceholder()" style="margin-bottom:var(--space-2);">
+              <option value="">Choose a platform...</option>
+              <option value="whatsapp" ${member.chat_platform === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
+              <option value="telegram" ${member.chat_platform === 'telegram' ? 'selected' : ''}>Telegram</option>
+              <option value="signal" ${member.chat_platform === 'signal' ? 'selected' : ''}>Signal</option>
+            </select>
+            <div id="chat-handle-group" style="display:${member.chat_platform ? 'block' : 'none'};">
+              <label class="form-label" for="chat-handle" style="font-size:var(--font-size-xs);" id="chat-handle-label">${member.chat_platform === 'telegram' ? 'Telegram username' : member.chat_platform === 'signal' ? 'Signal phone number' : 'WhatsApp phone number'}</label>
+              <input type="text" class="input" id="chat-handle" value="${escapeHtml(member.chat_handle || '')}" placeholder="${member.chat_platform === 'telegram' ? '@username' : '+353 87 123 4567'}">
             </div>
-            <p style="font-size:var(--font-size-xs);color:var(--color-text-muted);">Only shared when you accept a reach-out request from another member.</p>
           </div>
 
           <div class="form-group">
@@ -855,8 +857,18 @@
     function updateChatPlaceholder() {
       const platform = document.getElementById('chat-platform').value;
       const input = document.getElementById('chat-handle');
+      const group = document.getElementById('chat-handle-group');
+      const label = document.getElementById('chat-handle-label');
       const placeholders = { whatsapp: '+353 87 123 4567', telegram: '@username', signal: '+353 87 123 4567' };
-      input.placeholder = placeholders[platform] || 'Select a platform first';
+      const labels = { whatsapp: 'WhatsApp phone number', telegram: 'Telegram username', signal: 'Signal phone number' };
+      if (platform) {
+        group.style.display = 'block';
+        input.placeholder = placeholders[platform] || '';
+        label.textContent = labels[platform] || 'Handle / number';
+      } else {
+        group.style.display = 'none';
+        input.value = '';
+      }
     }
 
     function getCategoryLabel(categoryId) {
