@@ -325,6 +325,96 @@
       box-shadow: 0 0 0 4px var(--color-primary-bg);
     }
 
+    /* Chips input for skill tags */
+    .chips-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding: var(--space-3);
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      cursor: text;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .chips-container:focus-within {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 4px var(--color-primary-bg);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: 4px var(--space-3);
+      background: linear-gradient(135deg, var(--color-secondary-bg) 0%, var(--color-primary-bg) 100%);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+    }
+
+    .chip-remove {
+      background: none;
+      border: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      font-size: var(--font-size-sm);
+      padding: 0;
+      line-height: 1;
+      margin-left: 2px;
+    }
+
+    .chip-remove:hover {
+      color: var(--color-status-hold);
+    }
+
+    .chips-input {
+      flex: 1;
+      min-width: 120px;
+      border: none;
+      outline: none;
+      font-family: var(--font-family);
+      font-size: var(--font-size-sm);
+      background: transparent;
+      color: var(--color-text);
+      padding: 4px 0;
+    }
+
+    .chips-count {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+    }
+
+    .chips-count.error {
+      color: var(--color-status-hold);
+    }
+
+    .select {
+      width: 100%;
+      padding: var(--space-4);
+      font-family: var(--font-family);
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    .select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 4px var(--color-primary-bg);
+    }
+
     /* Footer */
     .profile-footer {
       text-align: center;
@@ -470,6 +560,7 @@
 </head>
 <body>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared.js"></script>
   <script src="supabase.js"></script>
   <script src="js/auth.js"></script>
 
@@ -526,6 +617,7 @@
         allMembers.forEach(m => { memberLookup[m.id] = m; });
 
         document.title = isOwnProfile ? 'My Profile - Connect Again' : `${member.display_name} - Connect Again`;
+        if (isOwnProfile) initEditSkillTags();
         renderProfile();
       } catch (e) {
         console.error('Init error:', e);
@@ -649,6 +741,58 @@
             <textarea class="input" id="bio-input" placeholder="A short bio..." rows="3" style="resize:vertical;">${escapeHtml(member.bio || '')}</textarea>
           </div>
 
+          <div class="form-group">
+            <label class="form-label" for="primary-category">Primary Category</label>
+            <select class="select" id="primary-category">
+              <option value="">Select a category...</option>
+              ${CATEGORIES.map(cat => `
+                <option value="${cat.id}" ${member.primary_category === cat.id ? 'selected' : ''}>
+                  ${cat.emoji} ${cat.label}
+                </option>
+              `).join('')}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Skill Tags</label>
+            <div class="chips-container" id="skill-chips" onclick="document.getElementById('skill-input').focus()">
+              ${(member.skill_tags || []).map((tag, i) => `
+                <span class="chip">${escapeHtml(tag)}<button class="chip-remove" onclick="removeSkillTag(${i})">&times;</button></span>
+              `).join('')}
+              <input type="text"
+                class="chips-input"
+                id="skill-input"
+                placeholder="${(member.skill_tags || []).length === 0 ? 'Type a skill then press comma or Enter' : 'Add another...'}"
+                onkeydown="handleSkillInput(event)"
+                oninput="handleSkillComma(event)">
+            </div>
+            <p class="chips-count ${(editSkillTags || []).length < 3 ? 'error' : ''}" id="skill-count">
+              ${(editSkillTags || []).length}/10 tags (minimum 3)
+            </p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="availability-select">Availability</label>
+            <select class="select" id="availability-select">
+              <option value="">Select availability...</option>
+              <option value="weekdays" ${member.availability === 'weekdays' ? 'selected' : ''}>Weekdays</option>
+              <option value="weekends" ${member.availability === 'weekends' ? 'selected' : ''}>Weekends</option>
+              <option value="evenings" ${member.availability === 'evenings' ? 'selected' : ''}>Evenings</option>
+              <option value="flexible" ${member.availability === 'flexible' ? 'selected' : ''}>Flexible</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="area-select">Area</label>
+            <select class="select" id="area-select">
+              ${AREA_OPTIONS.map(opt => `
+                <option value="${opt.id}" ${(member.area || 'village') === opt.id ? 'selected' : ''}>
+                  ${opt.label} — ${opt.description}
+                </option>
+              `).join('')}
+            </select>
+          </div>
+
           <button class="btn btn-primary btn-block" onclick="saveProfile()">Save Changes</button>
         </div>
 
@@ -703,16 +847,93 @@
       navigator.clipboard.writeText(member.member_id).then(() => showToast('Member ID copied!'));
     }
 
+    // Editable skill tags (mutable copy of member.skill_tags)
+    let editSkillTags = [];
+
+    function initEditSkillTags() {
+      editSkillTags = [...(member.skill_tags || [])];
+    }
+
+    function addSkillTag(text) {
+      const tag = text.trim().toLowerCase();
+      if (!tag) return;
+      if (editSkillTags.includes(tag)) { showToast('Skill already added'); return; }
+      if (editSkillTags.length >= 10) { showToast('Maximum 10 skills'); return; }
+      editSkillTags.push(tag);
+      renderSkillChips();
+    }
+
+    function removeSkillTag(index) {
+      editSkillTags.splice(index, 1);
+      renderSkillChips();
+    }
+
+    function renderSkillChips() {
+      const container = document.getElementById('skill-chips');
+      const countEl = document.getElementById('skill-count');
+      if (!container) return;
+
+      const input = document.getElementById('skill-input');
+      const inputValue = input ? input.value : '';
+
+      container.innerHTML = editSkillTags.map((tag, i) =>
+        `<span class="chip">${escapeHtml(tag)}<button class="chip-remove" onclick="removeSkillTag(${i})">&times;</button></span>`
+      ).join('') +
+        `<input type="text" class="chips-input" id="skill-input"
+          placeholder="${editSkillTags.length === 0 ? 'Type a skill then press comma or Enter' : 'Add another...'}"
+          onkeydown="handleSkillInput(event)" oninput="handleSkillComma(event)"
+          value="${escapeHtml(inputValue)}">`;
+
+      if (countEl) {
+        countEl.textContent = `${editSkillTags.length}/10 tags (minimum 3)`;
+        countEl.className = 'chips-count' + (editSkillTags.length < 3 ? ' error' : '');
+      }
+
+      // Re-focus input
+      const newInput = document.getElementById('skill-input');
+      if (newInput) newInput.focus();
+    }
+
+    function handleSkillInput(e) {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addSkillTag(e.target.value);
+        e.target.value = '';
+      } else if (e.key === 'Backspace' && e.target.value === '' && editSkillTags.length > 0) {
+        removeSkillTag(editSkillTags.length - 1);
+      }
+    }
+
+    function handleSkillComma(e) {
+      const val = e.target.value;
+      if (val.includes(',')) {
+        const parts = val.split(',');
+        parts.forEach(p => addSkillTag(p));
+        e.target.value = '';
+      }
+    }
+
     async function saveProfile() {
       const name = document.getElementById('display-name').value.trim();
       const bio = document.getElementById('bio-input').value.trim();
+      const primaryCategory = document.getElementById('primary-category').value;
+      const availability = document.getElementById('availability-select').value;
+      const area = document.getElementById('area-select').value;
 
       if (!name) { showToast('Please enter a display name'); return; }
 
       try {
-        await updateMember(member.id, { display_name: name, bio: bio || null });
+        await updateMember(member.id, {
+          display_name: name,
+          bio: bio || null,
+          primary_category: primaryCategory || null,
+          skill_tags: editSkillTags,
+          availability: availability || null,
+          area: area || null
+        });
         clearMemberCache();
         member = await getCurrentMember();
+        initEditSkillTags();
         showToast('Profile saved!');
         renderProfile();
       } catch (e) {
