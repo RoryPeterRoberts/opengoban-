@@ -218,6 +218,101 @@
     .pilot-note { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: var(--space-2); }
 
     /* Tab filters */
+    .feed-search {
+      position: relative;
+      margin-bottom: var(--space-4);
+    }
+
+    .feed-search svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      color: var(--color-text-muted);
+      pointer-events: none;
+    }
+
+    .feed-search-input {
+      width: 100%;
+      padding: var(--space-3) var(--space-3) var(--space-3) 42px;
+      font-family: var(--font-family);
+      font-size: var(--font-size-sm);
+      color: var(--color-text);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .feed-search-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 4px var(--color-primary-bg);
+    }
+
+    .member-result {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-bg-warm);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-3);
+      text-decoration: none;
+      color: inherit;
+      transition: border-color var(--transition-fast);
+    }
+
+    .member-result:hover {
+      border-color: var(--color-primary);
+    }
+
+    .member-result-avatar {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-accent-bg) 100%);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-family-heading);
+      font-weight: var(--font-weight-bold);
+      font-size: var(--font-size-sm);
+      color: var(--color-primary);
+      flex-shrink: 0;
+    }
+
+    .member-result-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .member-result-name {
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-sm);
+    }
+
+    .member-result-skills {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .member-results-header {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: var(--font-weight-semibold);
+      margin-bottom: var(--space-2);
+    }
+
     .feed-tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
     .feed-tab { padding: var(--space-2) var(--space-4); border-radius: var(--radius-full); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); border: 1px solid var(--color-border); background: var(--color-bg-card); color: var(--color-text-secondary); cursor: pointer; transition: all var(--transition-fast); }
     .feed-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
@@ -323,6 +418,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           Community board
         </h3>
+        <div class="feed-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="feed-search-input" id="feed-search-input" placeholder="Search listings and members..." autocomplete="off" spellcheck="false" oninput="handleFeedSearch(this.value)">
+        </div>
+        <div id="member-search-results"></div>
         <div class="feed-tabs">
           <button class="feed-tab active" onclick="filterFeed('all')">All</button>
           <button class="feed-tab" onclick="filterFeed('offer')">Offers</button>
@@ -655,6 +755,7 @@
     let allListings = [];
     let allMembers = [];
     let currentFilter = 'all';
+    let feedSearchQuery = '';
 
     const postState = {
       mode: null,
@@ -850,7 +951,18 @@
       const container = document.getElementById('feed-list');
       let filtered = allListings;
       if (currentFilter !== 'all') {
-        filtered = allListings.filter(l => l.type === currentFilter);
+        filtered = filtered.filter(l => l.type === currentFilter);
+      }
+      if (feedSearchQuery) {
+        filtered = filtered.filter(l => {
+          const fields = [
+            l.title || '',
+            l.description || '',
+            ...(l.tags || []),
+            (l.author || {}).display_name || ''
+          ].join(' ').toLowerCase();
+          return fields.includes(feedSearchQuery);
+        });
       }
 
       if (filtered.length === 0) {
@@ -904,6 +1016,66 @@
           </a>
         `;
       }).join('');
+    }
+
+    // =====================================================
+    // FEED SEARCH
+    // =====================================================
+    function handleFeedSearch(value) {
+      feedSearchQuery = value.trim().toLowerCase();
+      renderFeed();
+      renderMemberSearchResults();
+    }
+
+    function renderMemberSearchResults() {
+      const container = document.getElementById('member-search-results');
+      if (!feedSearchQuery || feedSearchQuery.length < 2) {
+        container.innerHTML = '';
+        return;
+      }
+
+      // Exclude system account and current member
+      const matches = allMembers.filter(m => {
+        if (m.email === 'bootstrap@system') return false;
+        if (m.id === currentMember.id) return false;
+        const fields = [
+          m.display_name || '',
+          ...(Array.isArray(m.skill_tags) ? m.skill_tags : []),
+          m.bio || '',
+          m.area || ''
+        ].join(' ').toLowerCase();
+        return fields.includes(feedSearchQuery);
+      });
+
+      if (matches.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const getInitials = (name) => {
+        if (!name) return '?';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+        return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+      };
+
+      container.innerHTML = `
+        <div class="member-results-header">Members matching "${escapeHtml(feedSearchQuery)}"</div>
+        ${matches.slice(0, 3).map(m => {
+          const skills = (m.skill_tags || []).slice(0, 4).join(', ');
+          return `
+            <a href="profile.html?id=${m.id}" class="member-result">
+              <div class="member-result-avatar">${getInitials(m.display_name)}</div>
+              <div class="member-result-info">
+                <div class="member-result-name">${escapeHtml(m.display_name)}</div>
+                ${skills ? `<div class="member-result-skills">${escapeHtml(skills)}</div>` : ''}
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </a>
+          `;
+        }).join('')}
+        ${matches.length > 3 ? `<a href="directory.html" style="display:block;text-align:center;font-size:var(--font-size-xs);color:var(--color-primary);padding:var(--space-2);text-decoration:none;">View all ${matches.length} in directory</a>` : ''}
+      `;
     }
 
     // =====================================================
