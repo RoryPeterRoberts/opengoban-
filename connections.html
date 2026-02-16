@@ -228,6 +228,61 @@
     }
     .empty-text { font-size: var(--font-size-sm); color: var(--color-text-muted); }
 
+    /* How it works */
+    .how-it-works {
+      background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-accent-bg) 100%);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-5);
+      overflow: hidden;
+    }
+    .how-it-works summary {
+      padding: var(--space-4);
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-primary);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .how-it-works summary::-webkit-details-marker { display: none; }
+    .how-it-works summary svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .how-it-works[open] summary { border-bottom: 1px solid var(--color-border-light); }
+    .how-it-works-body {
+      padding: var(--space-4);
+    }
+    .how-it-works-body p {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin-bottom: var(--space-3);
+    }
+    .how-it-works-body p:last-child { margin-bottom: 0; }
+    .how-step {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+    .how-step:last-child { margin-bottom: 0; }
+    .how-step-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary);
+      color: white;
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-bold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .how-step p { margin-bottom: 0; }
+
     /* Setup prompt */
     .setup-banner {
       background: var(--color-status-review-bg);
@@ -308,6 +363,33 @@
             <h1 class="page-title">Connections</h1>
           </div>
         </header>
+
+        <details class="how-it-works">
+          <summary>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            How does this work?
+          </summary>
+          <div class="how-it-works-body">
+            <p>Connections let you have a private conversation with another member &mdash; outside the exchange system. Handy when you want to discuss something informally or arrange something between yourselves.</p>
+            <div class="how-step">
+              <span class="how-step-num">1</span>
+              <p>Browse the <a href="directory.html" style="color:var(--color-primary);font-weight:500;">Directory</a> and tap <strong>Reach out</strong> on someone's card. Write a short note explaining why.</p>
+            </div>
+            <div class="how-step">
+              <span class="how-step-num">2</span>
+              <p>They'll get a notification and see your request here under <strong>Received</strong>. They can accept or decline.</p>
+            </div>
+            <div class="how-step">
+              <span class="how-step-num">3</span>
+              <p>Once accepted, a chat link appears so you can continue the conversation on <strong>WhatsApp</strong>, <strong>Telegram</strong>, or <strong>Signal</strong> &mdash; whichever the other person has set up in their profile.</p>
+            </div>
+            <p style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:var(--space-2);">Tip: Make sure you've set your own chat platform in your <a href="profile.html" style="color:var(--color-primary);">profile</a> so people can reach you back.</p>
+          </div>
+        </details>
 
         ${!hasChatSetup ? `
           <div class="setup-banner">
