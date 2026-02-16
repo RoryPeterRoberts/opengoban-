@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>The Cell Protocol - Connect Again</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .cell-container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4);
+      min-height: 100vh;
+    }
+
+    .cell-header {
+      margin-bottom: var(--space-8);
+    }
+
+    .cell-back {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      text-decoration: none;
+      font-size: var(--font-size-sm);
+      margin-bottom: var(--space-5);
+    }
+
+    .cell-back:hover { color: var(--color-primary); }
+    .cell-back svg { width: 16px; height: 16px; }
+
+    .cell-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+      margin-bottom: var(--space-3);
+      line-height: var(--line-height-snug);
+    }
+
+    .cell-subtitle {
+      font-size: var(--font-size-base);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+    }
+
+    /* Download card */
+    .download-card {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-5);
+      background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-accent-bg) 100%);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      margin-bottom: var(--space-8);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+
+    .download-card:hover {
+      border-color: var(--color-primary);
+      box-shadow: var(--shadow-md);
+    }
+
+    .download-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .download-icon svg {
+      width: 24px;
+      height: 24px;
+      color: var(--color-primary);
+    }
+
+    .download-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .download-title {
+      font-family: var(--font-family-heading);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-size: var(--font-size-base);
+      margin-bottom: 2px;
+    }
+
+    .download-meta {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .download-arrow {
+      width: 20px;
+      height: 20px;
+      color: var(--color-primary);
+      flex-shrink: 0;
+    }
+
+    /* Principles section */
+    .principles-intro {
+      font-size: var(--font-size-base);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin-bottom: var(--space-6);
+    }
+
+    .section-divider {
+      width: 40px;
+      height: 3px;
+      background: var(--color-primary);
+      border-radius: var(--radius-full);
+      margin-bottom: var(--space-6);
+    }
+
+    .principle-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5) var(--space-5) var(--space-5) var(--space-5);
+      margin-bottom: var(--space-4);
+      box-shadow: var(--shadow-card);
+    }
+
+    .principle-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--color-primary);
+      color: white;
+      border-radius: var(--radius-full);
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-bold);
+      margin-bottom: var(--space-3);
+    }
+
+    .principle-name {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+      line-height: var(--line-height-snug);
+    }
+
+    .principle-what {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin-bottom: var(--space-3);
+    }
+
+    .principle-why {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      line-height: var(--line-height-relaxed);
+      padding: var(--space-3);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--color-primary);
+    }
+
+    .principle-why strong {
+      color: var(--color-text-secondary);
+    }
+
+    /* Where this is going */
+    .direction-section {
+      margin-top: var(--space-8);
+      padding-top: var(--space-6);
+      border-top: 1px solid var(--color-border-light);
+    }
+
+    .direction-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-4);
+    }
+
+    .direction-text {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin-bottom: var(--space-4);
+    }
+
+    .stage-row {
+      display: flex;
+      gap: var(--space-3);
+      align-items: flex-start;
+      margin-bottom: var(--space-4);
+    }
+
+    .stage-marker {
+      width: 10px;
+      height: 10px;
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+
+    .stage-marker.done { background: var(--color-status-accepted); }
+    .stage-marker.now { background: var(--color-primary); }
+    .stage-marker.next { background: var(--color-border); }
+
+    .stage-content {
+      flex: 1;
+    }
+
+    .stage-label {
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-sm);
+      color: var(--color-text);
+      margin-bottom: 2px;
+    }
+
+    .stage-desc {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .cell-footer {
+      text-align: center;
+      padding: var(--space-8) 0 var(--space-6);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .cell-footer a {
+      color: var(--color-text-muted);
+      text-decoration: none;
+    }
+
+    .cell-footer a:hover { color: var(--color-primary); }
+  </style>
+</head>
+<body>
+
+  <div class="cell-container">
+
+    <header class="cell-header">
+      <a href="index.html" class="cell-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        Back to community
+      </a>
+      <h1 class="cell-title">The Cell Protocol</h1>
+      <p class="cell-subtitle">The formal rules behind how our community exchange works &mdash; and where it's going.</p>
+    </header>
+
+    <!-- Download -->
+    <a href="cell_protocol_corrections.pdf" class="download-card" download>
+      <div class="download-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/>
+          <polyline points="9 15 12 18 15 15"/>
+        </svg>
+      </div>
+      <div class="download-info">
+        <div class="download-title">Formal Paper (PDF)</div>
+        <div class="download-meta">Full proofs, corrections, and implementation plan &middot; 17 pages</div>
+      </div>
+      <svg class="download-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </a>
+
+    <!-- Principles in plain language -->
+    <div class="section-divider"></div>
+
+    <p class="principles-intro">
+      The paper above is maths. Below is what it means &mdash; the principles
+      that hold this community together, written so anyone can follow them
+      and think about whether they're right.
+    </p>
+
+    <!-- Principle 1 -->
+    <div class="principle-card">
+      <div class="principle-number">1</div>
+      <div class="principle-name">Nothing is created from nothing</div>
+      <div class="principle-what">
+        Every credit that one person spends, another person earns. The total
+        across the whole community is always exactly zero. There is no pot
+        of money. There is no inflation. Nobody can print credits.
+      </div>
+      <div class="principle-why">
+        <strong>Why this matters:</strong> Most money systems fail because
+        someone &mdash; a bank, a government, an algorithm &mdash; can create
+        money from thin air. That dilutes what everyone else holds. In our
+        system, credits only move. They never appear or disappear. If your
+        balance goes up by 3, someone else's went down by 3. This can be
+        verified at any time by anyone: add up every balance in the community.
+        The answer is zero. Always.
+      </div>
+    </div>
+
+    <!-- Principle 2 -->
+    <div class="principle-card">
+      <div class="principle-number">2</div>
+      <div class="principle-name">Everyone has a floor</div>
+      <div class="principle-what">
+        You can go into debt &mdash; but only so far. There's a limit to how
+        negative your balance can go. This means someone can take from the
+        community, but the damage is capped and known in advance.
+      </div>
+      <div class="principle-why">
+        <strong>Why this matters:</strong> New members need to be able to
+        receive help before they've given any &mdash; that's the whole point.
+        But without a floor, one bad actor could take endlessly. The floor
+        means the worst anyone can do is bounded. We know the maximum cost
+        of trusting someone, and we've decided it's a cost worth paying to
+        keep the community open.
+      </div>
+    </div>
+
+    <!-- Principle 3 -->
+    <div class="principle-card">
+      <div class="principle-number">3</div>
+      <div class="principle-name">Shared funds have rules too</div>
+      <div class="principle-what">
+        When the community pools credits for something &mdash; a shared meal
+        fund, a repair budget, a tool library &mdash; those pots follow the
+        same rules as personal balances. They have floors and ceilings. They
+        can't create credit. Every movement in or out has a matching movement
+        somewhere else.
+      </div>
+      <div class="principle-why">
+        <strong>Why this matters:</strong> Shared pots are where corruption
+        usually starts. A committee controls a fund, and slowly the fund
+        becomes a way to move value to friends. By giving community funds
+        hard limits and requiring every transfer to have a counterparty, we
+        make this kind of capture visible and bounded. Even if someone takes
+        over governance and tries to drain a fund, they hit the floor.
+      </div>
+    </div>
+
+    <!-- Principle 4 -->
+    <div class="principle-card">
+      <div class="principle-number">4</div>
+      <div class="principle-name">Trust is earned slowly</div>
+      <div class="principle-what">
+        New members start with a low credit limit. It grows over time based
+        on participation &mdash; but slowly. There's a maximum speed at which
+        your limit can increase, no matter what.
+      </div>
+      <div class="principle-why">
+        <strong>Why this matters:</strong> The most dangerous attack on a
+        community like this is patience. Someone creates a few fake
+        identities, behaves well for months, then takes everything at once.
+        Slow trust-building is the defence. Even with three fake identities
+        running for six months, the maximum damage is about three weeks of
+        one person's labour. That's survivable. And it required six months of
+        actually helping people &mdash; at which point, were they really faking?
+      </div>
+    </div>
+
+    <!-- Principle 5 -->
+    <div class="principle-card">
+      <div class="principle-number">5</div>
+      <div class="principle-name">Connections between communities are limited</div>
+      <div class="principle-what">
+        If our community trades with a neighbouring one, there's a cap on
+        how much we can be owed or owe at any time. If that connection
+        breaks, we lose at most a small, known fraction of our total
+        capacity.
+      </div>
+      <div class="principle-why">
+        <strong>Why this matters:</strong> This is how financial crises
+        spread &mdash; one failure cascades through connections. We prevent
+        that by limiting exposure per link and in total. Even if every
+        external connection failed at once, the damage is bounded.
+        Communities can trade without risking their survival on each
+        other's stability.
+      </div>
+    </div>
+
+    <!-- Principle 6 -->
+    <div class="principle-card">
+      <div class="principle-number">6</div>
+      <div class="principle-name">Bad times tighten the rules &mdash; and good times loosen them</div>
+      <div class="principle-what">
+        If the community is under stress &mdash; too many people leaving,
+        essential services failing &mdash; the system automatically tightens:
+        lower credit limits, restricted trade, essential-services-first
+        scheduling. When things improve, these restrictions lift gradually.
+      </div>
+      <div class="principle-why">
+        <strong>Why this matters:</strong> Crises make people more likely to
+        defect. If the ship looks like it's sinking, the rational move is to
+        take what you can and leave. Tighter rules during bad times reduce
+        the payoff from defecting. But we also need a way back to
+        normal &mdash; otherwise one bad week means permanently operating under
+        emergency rules. The return to normal is deliberately slow: things
+        must be good for several weeks before restrictions ease, and they
+        ease gradually. This prevents the cycle of crisis, relaxation,
+        and immediate re-crisis.
+      </div>
+    </div>
+
+    <!-- Principle 7 -->
+    <div class="principle-card">
+      <div class="principle-number">7</div>
+      <div class="principle-name">Once work is confirmed, it can't be cancelled</div>
+      <div class="principle-what">
+        When an exchange is in progress and one person has confirmed they
+        did their part, the other person can no longer cancel. If someone
+        does the work, the system protects them.
+      </div>
+      <div class="principle-why">
+        <strong>Why this matters:</strong> Real communities run on the belief
+        that effort will be recognised. If someone can do their
+        neighbour's gardening and then the neighbour just cancels, the
+        system is broken regardless of what the maths says. This rule is
+        simple: if you confirmed the work happened, you're committed.
+        Disputes go through dispute resolution, not the cancel button.
+      </div>
+    </div>
+
+    <!-- Principle 8 -->
+    <div class="principle-card">
+      <div class="principle-number">8</div>
+      <div class="principle-name">Cooperation must be worth it</div>
+      <div class="principle-what">
+        The whole system only works if being part of the community is
+        genuinely better than going it alone. We track two things: how
+        confident members are that the community will persist, and how
+        much value the community actually provides. If either falls too
+        far, the honest answer is that the community should dissolve
+        rather than pretend everything is fine.
+      </div>
+      <div class="principle-why">
+        <strong>Why this matters:</strong> Most community projects fail not
+        from fraud but from drift &mdash; slowly providing less value until
+        people stop showing up. By measuring confidence and delivery, we
+        get an early warning. And by having an honest dissolution condition,
+        we avoid the trap of communities that exist on paper long after
+        they stopped working. If we can't make this worth your time, we'd
+        rather tell you that than waste it.
+      </div>
+    </div>
+
+    <!-- Where this is going -->
+    <div class="direction-section">
+      <h2 class="direction-title">Where this is going</h2>
+      <p class="direction-text">
+        Connect Again today is the starting point &mdash; a simple exchange
+        board where neighbours help each other. The Cell Protocol is the
+        foundation we're building toward: a fully specified system for
+        communities that can provide for their members reliably, even
+        under pressure.
+      </p>
+
+      <div class="stage-row">
+        <div class="stage-marker done"></div>
+        <div class="stage-content">
+          <div class="stage-label">Now: Exchange matching</div>
+          <div class="stage-desc">
+            Neighbours post offers and needs. Propose exchanges, agree on
+            credits, confirm completion. Simple individual balances with a
+            basic debt floor.
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-row">
+        <div class="stage-marker now"></div>
+        <div class="stage-content">
+          <div class="stage-label">Next: Household accounts and shared resources</div>
+          <div class="stage-desc">
+            Families participate as households. Community meal rotas with
+            proper credit settlement. Shared repair fund and tool library.
+            The building blocks of a community that can actually provide
+            essentials.
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-row">
+        <div class="stage-marker next"></div>
+        <div class="stage-content">
+          <div class="stage-label">Then: Viability and resilience</div>
+          <div class="stage-desc">
+            Can we cover the essential roles? Do we have the skills we need?
+            What happens if things get hard? Emergency planning, dispute
+            resolution with real timelines, and the honest question: are we
+            viable?
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-row">
+        <div class="stage-marker next"></div>
+        <div class="stage-content">
+          <div class="stage-label">Later: Federation</div>
+          <div class="stage-desc">
+            Connecting with neighbouring communities for things we can't
+            provide ourselves. Trade with bounded risk. Each community
+            stays independent and self-governing.
+          </div>
+        </div>
+      </div>
+
+      <p class="direction-text" style="margin-top: var(--space-6);">
+        None of this is inevitable. Every step only happens if it's
+        genuinely useful. The protocol exists so that when we do take a
+        step, we've thought through what could go wrong &mdash; and built in
+        the protections before we need them.
+      </p>
+    </div>
+
+    <footer class="cell-footer">
+      <a href="index.html">Home</a>
+      <span style="margin: 0 var(--space-2);">&middot;</span>
+      <a href="terms.html">Terms</a>
+      <span style="margin: 0 var(--space-2);">&middot;</span>
+      <a href="profile.html">Profile</a>
+    </footer>
+
+  </div>
+
+</body>
+</html>
