@@ -476,6 +476,145 @@
       width: 12px;
       height: 12px;
     }
+
+    /* Edit Form */
+    .edit-form-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow-card);
+    }
+
+    .edit-form-card .form-group {
+      margin-bottom: var(--space-5);
+    }
+
+    .edit-form-card .form-label {
+      display: block;
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+
+    .edit-form-card .input,
+    .edit-form-card .textarea {
+      width: 100%;
+      padding: var(--space-3);
+      font-family: var(--font-family);
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      transition: border-color var(--transition-fast);
+    }
+
+    .edit-form-card .input:focus,
+    .edit-form-card .textarea:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 4px var(--color-primary-bg);
+    }
+
+    .edit-form-card .select {
+      width: 100%;
+      padding: var(--space-3);
+      font-family: var(--font-family);
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    .edit-form-card .select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 4px var(--color-primary-bg);
+    }
+
+    .edit-form-card .chips-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding: var(--space-3);
+      background: var(--color-bg-card);
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      cursor: text;
+    }
+
+    .edit-form-card .chips-container:focus-within {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 4px var(--color-primary-bg);
+    }
+
+    .edit-form-card .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: 4px var(--space-3);
+      background: linear-gradient(135deg, var(--color-secondary-bg) 0%, var(--color-primary-bg) 100%);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-full);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-secondary);
+    }
+
+    .edit-form-card .chip-remove {
+      background: none;
+      border: none;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      font-size: var(--font-size-sm);
+      padding: 0;
+      line-height: 1;
+      margin-left: 2px;
+    }
+
+    .edit-form-card .chip-remove:hover {
+      color: var(--color-status-hold);
+    }
+
+    .edit-form-card .chips-input {
+      flex: 1;
+      min-width: 120px;
+      border: none;
+      outline: none;
+      font-family: var(--font-family);
+      font-size: var(--font-size-sm);
+      background: transparent;
+      color: var(--color-text);
+      padding: 4px 0;
+    }
+
+    .edit-btn-row {
+      display: flex;
+      gap: var(--space-3);
+    }
+
+    .edit-btn-row .btn {
+      flex: 1;
+    }
+
+    .own-listing-actions {
+      display: flex;
+      gap: var(--space-3);
+      margin-top: var(--space-3);
+    }
+
+    .own-listing-actions .btn {
+      flex: 1;
+    }
   </style>
 </head>
 <body>
@@ -639,14 +778,21 @@
         </div>
       `;
 
-      // Owner view: show proposals
+      // Owner view: show edit button and proposals
       if (isOwner) {
         html += `
           <div class="own-listing-notice">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             <span>This is your listing. Exchange proposals from other members will appear below.</span>
           </div>
+          <div class="own-listing-actions">
+            <button class="btn btn-outline" onclick="showEditForm()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Edit listing
+            </button>
+          </div>
         `;
+        html += '<div id="edit-form-container"></div>';
         html += renderProposalsSection();
       } else {
         // Non-owner: show propose exchange form (only if listing is active)
@@ -866,6 +1012,175 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           Propose Exchange
         `;
+      }
+    }
+
+    // =====================================================
+    // EDIT LISTING
+    // =====================================================
+    let editTags = [];
+
+    function showEditForm() {
+      editTags = [...(listing.tags || [])];
+      const container = document.getElementById('edit-form-container');
+
+      // Build options outside the template literal
+      const categoryOptions = CATEGORIES.map(cat =>
+        '<option value="' + cat.id + '"' + (listing.category === cat.id ? ' selected' : '') + '>' +
+        cat.emoji + ' ' + cat.label + '</option>'
+      ).join('');
+
+      const areaOptions = AREA_OPTIONS.map(opt =>
+        '<option value="' + opt.id + '"' + (listing.area === opt.id ? ' selected' : '') + '>' +
+        opt.label + ' — ' + opt.description + '</option>'
+      ).join('');
+
+      container.innerHTML = `
+        <div class="edit-form-card" id="edit-form">
+          <h3 style="font-family:var(--font-family-heading);font-size:var(--font-size-lg);font-weight:var(--font-weight-semibold);margin-bottom:var(--space-5);">Edit Listing</h3>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-title">Title</label>
+            <input type="text" class="input" id="edit-title" value="${escapeHtml(listing.title)}" placeholder="Listing title">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-description">Description</label>
+            <textarea class="textarea" id="edit-description" rows="4" placeholder="Describe what you're offering or need...">${escapeHtml(listing.description || '')}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-category">Category</label>
+            <select class="select" id="edit-category">
+              ${categoryOptions}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tags</label>
+            <div class="chips-container" id="edit-tag-chips" onclick="document.getElementById('edit-tag-input').focus()">
+              ${renderEditTagChips()}
+              <input type="text" class="chips-input" id="edit-tag-input"
+                placeholder="${editTags.length === 0 ? 'Type a tag then press comma or Enter' : 'Add another...'}"
+                onkeydown="handleEditTagInput(event)"
+                oninput="handleEditTagComma(event)">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-area">Area</label>
+            <select class="select" id="edit-area">
+              ${areaOptions}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Urgency</label>
+            <select class="select" id="edit-urgency">
+              <option value="Today" ${listing.urgency === 'Today' ? 'selected' : ''}>Today</option>
+              <option value="This week" ${listing.urgency === 'This week' ? 'selected' : ''}>This week</option>
+              <option value="Flexible" ${listing.urgency === 'Flexible' ? 'selected' : ''}>Flexible</option>
+            </select>
+          </div>
+
+          <div class="edit-btn-row">
+            <button class="btn btn-ghost" onclick="cancelEdit()">Cancel</button>
+            <button class="btn btn-primary" id="save-edit-btn" onclick="saveEdit()">Save Changes</button>
+          </div>
+        </div>
+      `;
+
+      container.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderEditTagChips() {
+      return editTags.map((tag, i) =>
+        `<span class="chip">${escapeHtml(tag)}<button class="chip-remove" onclick="removeEditTag(${i})">&times;</button></span>`
+      ).join('');
+    }
+
+    function refreshEditTagChips() {
+      const container = document.getElementById('edit-tag-chips');
+      if (!container) return;
+      const input = document.getElementById('edit-tag-input');
+      const val = input ? input.value : '';
+      container.innerHTML = renderEditTagChips() +
+        `<input type="text" class="chips-input" id="edit-tag-input"
+          placeholder="${editTags.length === 0 ? 'Type a tag then press comma or Enter' : 'Add another...'}"
+          onkeydown="handleEditTagInput(event)" oninput="handleEditTagComma(event)"
+          value="${escapeHtml(val)}">`;
+      const newInput = document.getElementById('edit-tag-input');
+      if (newInput) newInput.focus();
+    }
+
+    function addEditTag(text) {
+      const tag = text.trim();
+      if (!tag) return;
+      if (editTags.includes(tag)) return;
+      editTags.push(tag);
+      refreshEditTagChips();
+    }
+
+    function removeEditTag(index) {
+      editTags.splice(index, 1);
+      refreshEditTagChips();
+    }
+
+    function handleEditTagInput(e) {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addEditTag(e.target.value);
+        e.target.value = '';
+      } else if (e.key === 'Backspace' && e.target.value === '' && editTags.length > 0) {
+        removeEditTag(editTags.length - 1);
+      }
+    }
+
+    function handleEditTagComma(e) {
+      const val = e.target.value;
+      if (val.includes(',')) {
+        val.split(',').forEach(p => addEditTag(p));
+        e.target.value = '';
+      }
+    }
+
+    function cancelEdit() {
+      document.getElementById('edit-form-container').innerHTML = '';
+    }
+
+    async function saveEdit() {
+      const title = document.getElementById('edit-title').value.trim();
+      const description = document.getElementById('edit-description').value.trim();
+      const category = document.getElementById('edit-category').value;
+      const area = document.getElementById('edit-area').value;
+      const urgency = document.getElementById('edit-urgency').value;
+
+      if (!title) { showToast('Please enter a title'); return; }
+
+      const btn = document.getElementById('save-edit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      try {
+        listing = await updateListing(listing.id, {
+          title,
+          description: description || null,
+          category,
+          tags: editTags,
+          area,
+          urgency
+        });
+
+        // Re-fetch full listing with author join
+        listing = await getListingById(listing.id);
+        cancelEdit();
+        renderListing();
+        showToast('Listing updated!');
+      } catch (e) {
+        console.error('Save listing error:', e);
+        showToast('Failed to save. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
       }
     }
 
