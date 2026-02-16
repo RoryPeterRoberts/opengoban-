@@ -754,6 +754,7 @@
     let currentBalance = { credits: 5, total_earned: 0, total_spent: 0 };
     let allListings = [];
     let allMembers = [];
+    let myExchanges = [];
     let currentFilter = 'all';
     let feedSearchQuery = '';
 
@@ -932,7 +933,12 @@
     // =====================================================
     async function loadFeed() {
       try {
-        allListings = await getActiveListings();
+        const [listings, exchanges] = await Promise.all([
+          getActiveListings(),
+          getActiveExchanges(currentMember.id).catch(() => [])
+        ]);
+        allListings = listings;
+        myExchanges = exchanges;
         renderFeed();
       } catch (e) {
         console.error('Feed load error:', e);
@@ -1013,9 +1019,22 @@
               <span class="reliability-badge ${band.toLowerCase()}">${band}</span>
               ${renderDegreesBadge(author.id)}
             </div>
+            ${renderProposalBadge(listing)}
           </a>
         `;
       }).join('');
+    }
+
+    function renderProposalBadge(listing) {
+      if (listing.author_id !== currentMember.id) return '';
+      const proposals = myExchanges.filter(ex => ex.listing_id === listing.id && ex.status === 'proposed');
+      if (proposals.length === 0) return '';
+      return `
+        <div style="margin-top:var(--space-3);padding:var(--space-2) var(--space-3);background:var(--color-status-review-bg);border-radius:var(--radius-md);display:inline-flex;align-items:center;gap:var(--space-2);font-size:var(--font-size-xs);font-weight:var(--font-weight-semibold);color:var(--color-status-review);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          ${proposals.length} proposal${proposals.length !== 1 ? 's' : ''} waiting
+        </div>
+      `;
     }
 
     // =====================================================
@@ -1184,9 +1203,9 @@
         <div style="padding:var(--space-3) 0;border-bottom:1px solid var(--color-border-light);display:flex;justify-content:space-between;"><span class="text-muted">Title</span><span style="text-align:right;max-width:60%;">${escapeHtml(listing.title)}</span></div>
         <div style="padding:var(--space-3) 0;display:flex;flex-direction:column;align-items:center;">
           <span class="balance-delta ${isOffer ? 'credit' : 'debit'}">
-            ${isOffer ? '+1' : '-1'} credit (when completed)
+            ${isOffer ? 'Earn' : 'Spend'} credits when completed
           </span>
-          <p class="balance-delta-note">${isOffer ? "You'll earn credit when someone accepts your help" : "You'll spend credit when a neighbour helps you"}</p>
+          <p class="balance-delta-note">${isOffer ? "You'll earn credits when someone accepts and completes an exchange" : "Credits are agreed when a neighbour proposes an exchange"}</p>
         </div>
       `;
     }
