@@ -308,6 +308,35 @@
       height: 14px;
     }
 
+    /* Activity indicator */
+    .activity-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .activity-dot::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .activity-dot.active-today::before {
+      background: var(--color-status-accepted);
+    }
+
+    .activity-dot.active-week::before {
+      background: var(--color-border);
+    }
+
+    .activity-dot.active-today {
+      color: var(--color-status-accepted);
+    }
+
     /* Reliability Badge (reuse from index.html) */
     .reliability-badge {
       display: inline-flex;
@@ -783,6 +812,7 @@
           ${tagsHtml}
           ${bioHtml}
           <div class="member-card-footer">
+            ${renderActivityDot(member.last_seen_at)}
             <span class="member-meta-item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -824,6 +854,20 @@
     // =====================================================
     // HELPERS
     // =====================================================
+    function renderActivityDot(lastSeenAt) {
+      if (!lastSeenAt) return '';
+      const now = new Date();
+      const seen = new Date(lastSeenAt);
+      const hoursSince = (now - seen) / (1000 * 60 * 60);
+
+      if (hoursSince < 24) {
+        return '<span class="activity-dot active-today">Active today</span>';
+      } else if (hoursSince < 168) { // 7 days
+        return '<span class="activity-dot active-week">Active this week</span>';
+      }
+      return '';
+    }
+
     function getAreaLabel(area) {
       if (!area) return 'Not set';
       const option = AREA_OPTIONS.find(a => a.id === area);
