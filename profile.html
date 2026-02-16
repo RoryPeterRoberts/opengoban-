@@ -607,20 +607,25 @@
           </div>
         </div>
 
-        <!-- Profile Details -->
+        <!-- What they offer -->
         <div class="edit-section">
           <div class="section-header">
             <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
-            <h3 class="section-title">Profile Details</h3>
+            <h3 class="section-title">${isOwnProfile ? 'What you offer' : 'What they offer'}</h3>
           </div>
 
-          ${member.primary_category ? `<div style="margin-bottom:var(--space-3);"><span style="font-size:var(--font-size-sm);color:var(--color-text-muted);">Primary category:</span> <span style="font-size:var(--font-size-sm);">${getCategoryLabel(member.primary_category)}</span></div>` : ''}
-          ${member.skill_tags && member.skill_tags.length ? `<div style="margin-bottom:var(--space-3);"><span style="font-size:var(--font-size-sm);color:var(--color-text-muted);">Skills:</span> <span style="font-size:var(--font-size-sm);">${member.skill_tags.join(', ')}</span></div>` : ''}
-          ${member.availability ? `<div style="margin-bottom:var(--space-3);"><span style="font-size:var(--font-size-sm);color:var(--color-text-muted);">Availability:</span> <span style="font-size:var(--font-size-sm);">${member.availability}</span></div>` : ''}
-          ${member.bio ? `<div style="margin-bottom:var(--space-3);"><span style="font-size:var(--font-size-sm);color:var(--color-text-muted);">Bio:</span> <span style="font-size:var(--font-size-sm);">${escapeHtml(member.bio)}</span></div>` : ''}
+          ${member.primary_category ? `<div style="margin-bottom:var(--space-4);"><div style="display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--color-secondary-bg);border-radius:var(--radius-md);font-size:var(--font-size-sm);">${getCategoryLabel(member.primary_category)}</div></div>` : ''}
+
+          ${member.skill_tags && member.skill_tags.length ? `
+          <div style="display:flex;flex-wrap:wrap;gap:var(--space-2);margin-bottom:var(--space-4);">
+            ${member.skill_tags.map(t => `<span style="display:inline-flex;align-items:center;padding:4px var(--space-3);background:linear-gradient(135deg,var(--color-secondary-bg) 0%,var(--color-primary-bg) 100%);border:1px solid var(--color-border-light);border-radius:var(--radius-full);font-size:var(--font-size-xs);color:var(--color-text-secondary);">${escapeHtml(t)}</span>`).join('')}
+          </div>` : ''}
+
+          ${member.availability ? `<div style="margin-bottom:var(--space-3);display:flex;align-items:center;gap:var(--space-2);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span style="font-size:var(--font-size-sm);color:var(--color-text-secondary);">${member.availability}</span></div>` : ''}
+
+          ${member.bio ? `<div style="margin-top:var(--space-4);padding:var(--space-4);background:var(--color-bg-warm);border-radius:var(--radius-lg);"><p style="margin:0;font-size:var(--font-size-sm);color:var(--color-text-secondary);line-height:var(--line-height-relaxed);">${escapeHtml(member.bio)}</p></div>` : ''}
         </div>
 
         ${isOwnProfile ? `
