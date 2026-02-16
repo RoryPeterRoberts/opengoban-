@@ -59,8 +59,8 @@
   /* Colors — Text */
   --color-text: #2C3E2C;
   --color-text-secondary: #4A5D4A;
-  --color-text-muted: #6B7B6B;
-  --color-text-light: #8A9A8A;
+  --color-text-muted: #5C6D5C;
+  --color-text-light: #738373;
   --color-text-inverse: #FFFFFF;
 
   /* Colors — Borders */
@@ -1518,8 +1518,8 @@ a:hover {
 
     --color-text: #E8EDE8;
     --color-text-secondary: #B8C4B8;
-    --color-text-muted: #8A9A8A;
-    --color-text-light: #6B7B6B;
+    --color-text-muted: #9AAA9A;
+    --color-text-light: #8A9A8A;
 
     --color-border: #3A453A;
     --color-border-light: #323C32;
