@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Engagement Dashboard - Admin - Connect Again</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .admin-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-5);
+      min-height: 100vh;
+    }
+
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-6);
+    }
+
+    .admin-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .back-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+    .back-link:hover { background: var(--color-bg-muted); color: var(--color-primary); }
+    .back-link svg { width: 20px; height: 20px; }
+
+    .admin-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      background: var(--color-status-hold-bg);
+      color: var(--color-status-hold);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+    }
+
+    /* Admin Nav */
+    .admin-nav {
+      display: flex;
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+      padding-bottom: var(--space-4);
+      border-bottom: 1px solid var(--color-border-light);
+      flex-wrap: wrap;
+    }
+
+    .admin-nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+    .admin-nav-link:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .admin-nav-link.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
+    .admin-nav-link svg { width: 16px; height: 16px; }
+
+    /* Tier Summary Cards */
+    .tier-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: var(--space-3);
+      margin-bottom: var(--space-6);
+    }
+
+    .tier-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .tier-card:hover { border-color: var(--color-primary); }
+    .tier-card.selected { border-color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary); }
+
+    .tier-card-value {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      line-height: 1;
+    }
+    .tier-card-value.active { color: var(--color-status-accepted); }
+    .tier-card-value.quiet { color: var(--color-status-review); }
+    .tier-card-value.dormant { color: var(--color-status-hold); }
+    .tier-card-value.inactive { color: var(--color-text-muted); }
+    .tier-card-value.new-member { color: var(--color-primary); }
+
+    .tier-card-label {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-top: var(--space-1);
+    }
+
+    /* Tier Badges */
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .tier-badge.active { background: var(--color-status-accepted-bg); color: var(--color-status-accepted); }
+    .tier-badge.quiet { background: var(--color-status-review-bg); color: var(--color-status-review); }
+    .tier-badge.dormant { background: var(--color-status-hold-bg); color: var(--color-status-hold); }
+    .tier-badge.inactive { background: var(--color-bg-muted); color: var(--color-text-muted); }
+    .tier-badge.new-member { background: var(--color-primary-bg); color: var(--color-primary); }
+
+    /* Score Bar */
+    .score-bar {
+      width: 60px;
+      height: 6px;
+      background: var(--color-bg-muted);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: var(--space-2);
+    }
+    .score-bar-fill {
+      height: 100%;
+      border-radius: var(--radius-full);
+      transition: width var(--transition-base);
+    }
+    .score-bar-fill.active { background: var(--color-status-accepted); }
+    .score-bar-fill.quiet { background: var(--color-status-review); }
+    .score-bar-fill.dormant { background: var(--color-status-hold); }
+    .score-bar-fill.inactive { background: var(--color-text-muted); }
+    .score-bar-fill.new-member { background: var(--color-primary); }
+
+    /* Member Table */
+    .member-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .member-table th {
+      text-align: left;
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      background: var(--color-bg-warm);
+      border-bottom: 1px solid var(--color-border-light);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .member-table th:hover { color: var(--color-primary); }
+    .member-table th.sorted { color: var(--color-primary); }
+    .sort-arrow { font-size: 10px; margin-left: 2px; }
+
+    .member-table td {
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--font-size-sm);
+      color: var(--color-text);
+      border-bottom: 1px solid var(--color-border-light);
+      vertical-align: middle;
+    }
+
+    .member-table tr:last-child td { border-bottom: none; }
+    .member-table tr:hover td { background: var(--color-bg-warm); }
+
+    .member-name-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .member-name { font-weight: var(--font-weight-medium); }
+    .member-id-small { font-size: var(--font-size-xs); color: var(--color-text-muted); font-family: var(--font-family-mono, monospace); }
+
+    .score-cell {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-weight: var(--font-weight-semibold);
+      font-family: var(--font-family-mono, monospace);
+    }
+
+    .last-seen-text { white-space: nowrap; }
+    .last-seen-text.stale { color: var(--color-status-hold); }
+
+    .numeric-cell { text-align: center; font-family: var(--font-family-mono, monospace); }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-5);
+      color: var(--color-text-muted);
+    }
+
+    /* Loading */
+    .loading-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-5);
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+    }
+
+    @media (max-width: 700px) {
+      .tier-summary { grid-template-columns: repeat(3, 1fr); }
+      .member-table { font-size: var(--font-size-xs); }
+      .member-table th, .member-table td { padding: var(--space-2) var(--space-3); }
+      .score-bar { width: 40px; }
+      .hide-mobile { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="js/auth.js"></script>
+
+  <div class="admin-container" id="main-container">
+    <div class="loading-state">Loading engagement data...</div>
+  </div>
+
+  <script>
+    let engagementData = [];
+    let currentTierFilter = 'all';
+    let sortField = 'score';
+    let sortAsc = true;
+
+    async function init() {
+      try {
+        const session = await getAuthSession();
+        if (!session) {
+          window.location.href = 'access.html';
+          return;
+        }
+        requireAdmin(loadAndRender);
+      } catch (e) {
+        console.error('Init error:', e);
+        document.getElementById('main-container').innerHTML = '<p style="padding:40px;text-align:center;color:var(--color-text-muted);">Something went wrong.</p>';
+      }
+    }
+
+    async function loadAndRender() {
+      try {
+        const { members, listingCounts, exchangeCounts, inviteCounts } = await getEngagementData();
+
+        engagementData = members
+          .filter(m => m.email !== 'bootstrap@system')
+          .map(m => {
+            const lc = listingCounts[m.id] || 0;
+            const ec = exchangeCounts[m.id] || 0;
+            const ic = inviteCounts[m.id] || 0;
+            const { score, tier, graceperiod } = calculateEngagementScore(m, lc, ec, ic);
+            return {
+              member: m,
+              score,
+              tier,
+              graceperiod,
+              listings: lc,
+              exchanges: ec,
+              invites: ic
+            };
+          });
+
+        // Default sort: lowest score first
+        sortField = 'score';
+        sortAsc = true;
+        sortData();
+        renderPage();
+      } catch (e) {
+        console.error('Load error:', e);
+        document.getElementById('main-container').innerHTML = '<p style="padding:40px;text-align:center;color:var(--color-text-muted);">Could not load engagement data.</p>';
+      }
+    }
+
+    function sortData() {
+      engagementData.sort((a, b) => {
+        let va, vb;
+        switch (sortField) {
+          case 'score': va = a.score; vb = b.score; break;
+          case 'name': va = a.member.display_name.toLowerCase(); vb = b.member.display_name.toLowerCase(); break;
+          case 'seen': va = a.member.last_seen_at || ''; vb = b.member.last_seen_at || ''; break;
+          case 'exchanges': va = a.member.exchanges_completed || 0; vb = b.member.exchanges_completed || 0; break;
+          case 'listings': va = a.listings; vb = b.listings; break;
+          case 'joined': va = a.member.accepted_at || a.member.created_at; vb = b.member.accepted_at || b.member.created_at; break;
+          default: va = a.score; vb = b.score;
+        }
+        if (va < vb) return sortAsc ? -1 : 1;
+        if (va > vb) return sortAsc ? 1 : -1;
+        return 0;
+      });
+    }
+
+    function handleSort(field) {
+      if (sortField === field) {
+        sortAsc = !sortAsc;
+      } else {
+        sortField = field;
+        sortAsc = field === 'score'; // score defaults asc (worst first), others desc
+      }
+      sortData();
+      renderPage();
+    }
+
+    function setTierFilter(tier) {
+      currentTierFilter = tier;
+      renderPage();
+    }
+
+    function getTierCssClass(tier) {
+      if (tier === 'New') return 'new-member';
+      return tier.toLowerCase();
+    }
+
+    function renderPage() {
+      const container = document.getElementById('main-container');
+
+      // Tier counts
+      const counts = { Active: 0, Quiet: 0, Dormant: 0, Inactive: 0, New: 0 };
+      engagementData.forEach(d => { counts[d.tier] = (counts[d.tier] || 0) + 1; });
+
+      // Filter
+      const filtered = currentTierFilter === 'all'
+        ? engagementData
+        : engagementData.filter(d => d.tier === currentTierFilter);
+
+      const sortArrow = (field) => {
+        if (sortField !== field) return '';
+        return `<span class="sort-arrow">${sortAsc ? '&#9650;' : '&#9660;'}</span>`;
+      };
+      const sortedClass = (field) => sortField === field ? 'sorted' : '';
+
+      container.innerHTML = `
+        <header class="admin-header">
+          <div class="admin-header-left">
+            <a href="index.html" class="back-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+              </svg>
+            </a>
+            <h1 class="admin-title">Engagement</h1>
+          </div>
+          <span class="admin-badge">Admin</span>
+        </header>
+
+        <nav class="admin-nav">
+          <a href="triage.html" class="admin-nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            Triage
+          </a>
+          <a href="review.html" class="admin-nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+            </svg>
+            Members
+          </a>
+          <a href="audit.html" class="admin-nav-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            Audit Log
+          </a>
+          <a href="engagement.html" class="admin-nav-link active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            Engagement
+          </a>
+        </nav>
+
+        <div class="tier-summary">
+          <div class="tier-card ${currentTierFilter === 'all' ? 'selected' : ''}" onclick="setTierFilter('all')">
+            <div class="tier-card-value" style="color:var(--color-text)">${engagementData.length}</div>
+            <div class="tier-card-label">All</div>
+          </div>
+          <div class="tier-card ${currentTierFilter === 'Active' ? 'selected' : ''}" onclick="setTierFilter('Active')">
+            <div class="tier-card-value active">${counts.Active}</div>
+            <div class="tier-card-label">Active</div>
+          </div>
+          <div class="tier-card ${currentTierFilter === 'Quiet' ? 'selected' : ''}" onclick="setTierFilter('Quiet')">
+            <div class="tier-card-value quiet">${counts.Quiet}</div>
+            <div class="tier-card-label">Quiet</div>
+          </div>
+          <div class="tier-card ${currentTierFilter === 'Dormant' ? 'selected' : ''}" onclick="setTierFilter('Dormant')">
+            <div class="tier-card-value dormant">${counts.Dormant}</div>
+            <div class="tier-card-label">Dormant</div>
+          </div>
+          <div class="tier-card ${currentTierFilter === 'Inactive' ? 'selected' : ''}" onclick="setTierFilter('Inactive')">
+            <div class="tier-card-value inactive">${counts.Inactive}</div>
+            <div class="tier-card-label">Inactive</div>
+          </div>
+          ${counts.New > 0 ? `
+          <div class="tier-card ${currentTierFilter === 'New' ? 'selected' : ''}" onclick="setTierFilter('New')">
+            <div class="tier-card-value new-member">${counts.New}</div>
+            <div class="tier-card-label">New (&lt;30d)</div>
+          </div>
+          ` : ''}
+        </div>
+
+        ${filtered.length === 0 ? `
+          <div class="empty-state">No members in this tier.</div>
+        ` : `
+          <table class="member-table">
+            <thead>
+              <tr>
+                <th class="${sortedClass('name')}" onclick="handleSort('name')">Member ${sortArrow('name')}</th>
+                <th class="${sortedClass('score')}" onclick="handleSort('score')">Score ${sortArrow('score')}</th>
+                <th>Tier</th>
+                <th class="${sortedClass('seen')}" onclick="handleSort('seen')">Last Seen ${sortArrow('seen')}</th>
+                <th class="${sortedClass('exchanges')} hide-mobile" onclick="handleSort('exchanges')">Exchanges ${sortArrow('exchanges')}</th>
+                <th class="${sortedClass('listings')} hide-mobile" onclick="handleSort('listings')">Listings ${sortArrow('listings')}</th>
+                <th class="${sortedClass('joined')} hide-mobile" onclick="handleSort('joined')">Joined ${sortArrow('joined')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtered.map(d => renderMemberRow(d)).join('')}
+            </tbody>
+          </table>
+        `}
+      `;
+    }
+
+    function renderMemberRow(d) {
+      const m = d.member;
+      const tierClass = getTierCssClass(d.tier);
+      const tierLabel = d.graceperiod ? 'New' : d.tier;
+
+      // Last seen
+      let lastSeenText = 'Never';
+      let lastSeenClass = 'stale';
+      if (m.last_seen_at) {
+        const daysSince = Math.floor((Date.now() - new Date(m.last_seen_at).getTime()) / 86400000);
+        if (daysSince === 0) { lastSeenText = 'Today'; lastSeenClass = ''; }
+        else if (daysSince === 1) { lastSeenText = 'Yesterday'; lastSeenClass = ''; }
+        else if (daysSince < 7) { lastSeenText = daysSince + 'd ago'; lastSeenClass = ''; }
+        else if (daysSince < 30) { lastSeenText = Math.floor(daysSince / 7) + 'w ago'; lastSeenClass = ''; }
+        else { lastSeenText = Math.floor(daysSince / 30) + 'mo ago'; lastSeenClass = 'stale'; }
+      }
+
+      const joined = m.accepted_at || m.created_at;
+      const joinedStr = joined ? new Date(joined).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: '2-digit' }) : '—';
+
+      return `
+        <tr>
+          <td>
+            <div class="member-name-cell">
+              <span class="member-name">${escapeHtml(m.display_name)}</span>
+              <span class="member-id-small">${escapeHtml(m.member_id || '')}</span>
+            </div>
+          </td>
+          <td>
+            <div class="score-cell">
+              <div class="score-bar"><div class="score-bar-fill ${tierClass}" style="width:${d.score}%"></div></div>
+              ${d.score}
+            </div>
+          </td>
+          <td><span class="tier-badge ${tierClass}">${tierLabel}</span></td>
+          <td><span class="last-seen-text ${lastSeenClass}">${lastSeenText}</span></td>
+          <td class="numeric-cell hide-mobile">${m.exchanges_completed || 0}</td>
+          <td class="numeric-cell hide-mobile">${d.listings}</td>
+          <td class="hide-mobile">${joinedStr}</td>
+        </tr>
+      `;
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    init();
+  </script>
+</body>
+</html>

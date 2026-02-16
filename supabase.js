@@ -650,6 +650,90 @@ function subscribeToNotifications(memberId, callback) {
 }
 
 // =====================================================
+// ENGAGEMENT SCORE
+// =====================================================
+
+async function getEngagementData() {
+  const sb = getSupabase();
+
+  // Fetch all data in parallel
+  const [members, listings, exchanges, invites] = await Promise.all([
+    getAcceptedMembers(),
+    sb.from('listings').select('id, author_id').then(r => r.data || []),
+    sb.from('exchanges').select('id, provider_id, receiver_id, proposed_by, status').then(r => r.data || []),
+    sb.from('invites').select('id, created_by, status').then(r => r.data || [])
+  ]);
+
+  // Build per-member counts
+  const listingCounts = {};
+  listings.forEach(l => {
+    listingCounts[l.author_id] = (listingCounts[l.author_id] || 0) + 1;
+  });
+
+  const exchangeCounts = {};
+  exchanges.forEach(e => {
+    [e.provider_id, e.receiver_id].forEach(id => {
+      if (id) exchangeCounts[id] = (exchangeCounts[id] || 0) + 1;
+    });
+  });
+
+  const inviteCounts = {};
+  invites.forEach(i => {
+    if (i.status === 'redeemed' && i.created_by) {
+      inviteCounts[i.created_by] = (inviteCounts[i.created_by] || 0) + 1;
+    }
+  });
+
+  return { members, listingCounts, exchangeCounts, inviteCounts };
+}
+
+function calculateEngagementScore(member, listingCount, exchangeCount, inviteCount) {
+  // Grace period: members accepted < 30 days ago get neutral score
+  const daysSinceAccepted = member.accepted_at
+    ? Math.floor((Date.now() - new Date(member.accepted_at).getTime()) / 86400000)
+    : 999;
+  if (daysSinceAccepted < 30) {
+    return { score: 50, tier: 'New', graceperiod: true };
+  }
+
+  let score = 0;
+
+  // Exchanges completed (max 30 pts)
+  const exchanges = member.exchanges_completed || 0;
+  score += Math.min(exchanges * 10, 30);
+
+  // Listings posted (max 20 pts)
+  score += Math.min(listingCount * 5, 20);
+
+  // Proposals / exchange participation (max 15 pts)
+  score += Math.min(exchangeCount * 3, 15);
+
+  // Login recency (max 20 pts)
+  if (member.last_seen_at) {
+    const daysSinceSeen = Math.floor((Date.now() - new Date(member.last_seen_at).getTime()) / 86400000);
+    if (daysSinceSeen <= 7) score += 20;
+    else if (daysSinceSeen <= 14) score += 15;
+    else if (daysSinceSeen <= 30) score += 10;
+    else if (daysSinceSeen <= 60) score += 5;
+  }
+
+  // Profile completeness (max 10 pts)
+  let profilePts = 0;
+  if (member.bio && member.bio.trim().length > 0) profilePts += 4;
+  if (member.skill_tags && member.skill_tags.length > 0) profilePts += 3;
+  if (member.area) profilePts += 3;
+  score += profilePts;
+
+  // Invites that led to active members (max 5 pts)
+  score += Math.min(inviteCount * 2, 5);
+
+  score = Math.min(score, 100);
+
+  const tier = score >= 40 ? 'Active' : score >= 20 ? 'Quiet' : score >= 1 ? 'Dormant' : 'Inactive';
+  return { score, tier, graceperiod: false };
+}
+
+// =====================================================
 // ECOSYSTEM HEALTH (computed from real data)
 // =====================================================
 
