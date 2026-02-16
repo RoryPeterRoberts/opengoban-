@@ -471,13 +471,11 @@
           const inviteToken = localStorage.getItem('cc_pending_invite_token');
           if (inviteToken && session.user) {
             try {
-              const memberId = await generateNextMemberId();
               const invite = await getInviteByToken(inviteToken).catch(() => null);
               currentMember = await createMember({
                 auth_id: session.user.id,
                 email: session.user.email,
                 display_name: session.user.email.split('@')[0],
-                member_id: memberId,
                 status: 'PENDING_PROFILE',
                 invited_by: invite?.created_by || null
               });
