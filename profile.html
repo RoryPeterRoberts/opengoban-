@@ -748,6 +748,20 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">Chat Platform <span style="font-weight:normal;color:var(--color-text-muted);">(optional — for direct reach-outs)</span></label>
+            <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2);">
+              <select class="select" id="chat-platform" style="flex:0 0 140px;" onchange="updateChatPlaceholder()">
+                <option value="">None</option>
+                <option value="whatsapp" ${member.chat_platform === 'whatsapp' ? 'selected' : ''}>WhatsApp</option>
+                <option value="telegram" ${member.chat_platform === 'telegram' ? 'selected' : ''}>Telegram</option>
+                <option value="signal" ${member.chat_platform === 'signal' ? 'selected' : ''}>Signal</option>
+              </select>
+              <input type="text" class="input" id="chat-handle" value="${escapeHtml(member.chat_handle || '')}" placeholder="${member.chat_platform === 'telegram' ? '@username' : '+353 87 123 4567'}" style="flex:1;">
+            </div>
+            <p style="font-size:var(--font-size-xs);color:var(--color-text-muted);">Only shared when you accept a reach-out request from another member.</p>
+          </div>
+
+          <div class="form-group">
             <label class="form-label" for="primary-category">Primary Category</label>
             <select class="select" id="primary-category">
               <option value="">Select a category...</option>
@@ -838,6 +852,13 @@
       return div.innerHTML;
     }
 
+    function updateChatPlaceholder() {
+      const platform = document.getElementById('chat-platform').value;
+      const input = document.getElementById('chat-handle');
+      const placeholders = { whatsapp: '+353 87 123 4567', telegram: '@username', signal: '+353 87 123 4567' };
+      input.placeholder = placeholders[platform] || 'Select a platform first';
+    }
+
     function getCategoryLabel(categoryId) {
       const cat = getCategoryById(categoryId);
       return cat ? `${cat.emoji} ${cat.label}` : categoryId || 'Not set';
@@ -923,6 +944,8 @@
       const name = document.getElementById('display-name').value.trim();
       const bio = document.getElementById('bio-input').value.trim();
       const phone = document.getElementById('phone-input').value.trim();
+      const chatPlatform = document.getElementById('chat-platform').value;
+      const chatHandle = document.getElementById('chat-handle').value.trim();
       const primaryCategory = document.getElementById('primary-category').value;
       const availability = document.getElementById('availability-select').value;
       const area = document.getElementById('area-select').value;
@@ -934,6 +957,8 @@
           display_name: name,
           bio: bio || null,
           phone: phone || null,
+          chat_platform: chatPlatform || null,
+          chat_handle: chatHandle || null,
           primary_category: primaryCategory || null,
           skill_tags: editSkillTags,
           availability: availability || null,

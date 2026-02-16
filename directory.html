@@ -565,6 +565,65 @@
       line-height: 1;
     }
     .notif-badge-sm:empty { display: none; }
+
+    /* Reach Out */
+    .reach-out-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-2);
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+      border: 1px solid var(--color-primary);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      text-decoration: none;
+      margin-top: var(--space-2);
+    }
+    .reach-out-btn:hover { background: var(--color-primary); color: white; }
+    .reach-out-btn svg { width: 14px; height: 14px; }
+
+    /* Reach Out Modal */
+    .ro-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-4);
+    }
+    .ro-modal-overlay.active { display: flex; }
+    .ro-modal {
+      background: var(--color-bg-card);
+      border-radius: var(--radius-lg);
+      padding: var(--space-6);
+      max-width: 420px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+    }
+    .ro-modal-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-1);
+    }
+    .ro-modal-sub {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-4);
+    }
+    .ro-modal-actions {
+      display: flex;
+      gap: var(--space-2);
+      justify-content: flex-end;
+      margin-top: var(--space-4);
+    }
   </style>
 </head>
 <body>
@@ -653,6 +712,21 @@
 
   <div id="toast"></div>
 
+  <!-- Reach Out Modal -->
+  <div class="ro-modal-overlay" id="ro-modal">
+    <div class="ro-modal">
+      <div class="ro-modal-title" id="ro-modal-title">Reach out</div>
+      <div class="ro-modal-sub" id="ro-modal-sub">Send a message explaining why you'd like to connect.</div>
+      <div class="form-group">
+        <textarea class="textarea" id="ro-reason" rows="3" placeholder="e.g. I'd love to chat about your proofreading listing..." style="font-size:var(--font-size-sm);"></textarea>
+      </div>
+      <div class="ro-modal-actions">
+        <button class="btn btn-ghost" onclick="closeReachOutModal()">Cancel</button>
+        <button class="btn btn-primary" id="ro-send-btn" onclick="sendReachOut()">Send</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // =====================================================
     // STATE
@@ -663,6 +737,7 @@
     let searchQuery = '';
     let memberLookup = {};
     let currentView = 'grid';
+    let currentMember = null;
 
     // =====================================================
     // INITIALIZATION
@@ -676,7 +751,7 @@
           return;
         }
 
-        const currentMember = await getCurrentMember();
+        currentMember = await getCurrentMember();
         if (!currentMember) {
           window.location.href = 'access.html';
           return;
@@ -878,6 +953,14 @@
             </span>
             ${getInvitedByHtml(member)}
           </div>
+          ${currentMember && member.id !== currentMember.id ? `
+            <button class="reach-out-btn" onclick="event.preventDefault(); event.stopPropagation(); openReachOutModal('${member.id}', '${escapeHtml(member.display_name)}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Reach out
+            </button>
+          ` : ''}
         </a>
       `;
     }
@@ -1009,6 +1092,75 @@
       html += '</div>';
       return html;
     }
+
+    // =====================================================
+    // REACH OUT
+    // =====================================================
+    let reachOutTargetId = null;
+
+    function openReachOutModal(memberId, memberName) {
+      reachOutTargetId = memberId;
+      document.getElementById('ro-modal-title').textContent = 'Reach out to ' + memberName;
+      document.getElementById('ro-reason').value = '';
+      document.getElementById('ro-modal').classList.add('active');
+      document.getElementById('ro-reason').focus();
+    }
+
+    function closeReachOutModal() {
+      document.getElementById('ro-modal').classList.remove('active');
+      reachOutTargetId = null;
+    }
+
+    async function sendReachOut() {
+      const reason = document.getElementById('ro-reason').value.trim();
+      if (!reason) {
+        showToast('Please write a short message');
+        return;
+      }
+
+      const btn = document.getElementById('ro-send-btn');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        // Check for existing pending request
+        const existing = await getPendingReachOutBetween(currentMember.id, reachOutTargetId);
+        if (existing) {
+          showToast('You already have a pending reach-out to this member.');
+          closeReachOutModal();
+          return;
+        }
+
+        await createReachOut({
+          from_id: currentMember.id,
+          to_id: reachOutTargetId,
+          reason: reason
+        });
+
+        // Notify the target member
+        createNotification({
+          member_id: reachOutTargetId,
+          type: 'reach_out_received',
+          title: currentMember.display_name + ' wants to connect',
+          body: reason.slice(0, 100),
+          link: 'connections.html'
+        }).catch(e => console.error('Notification error:', e));
+
+        showToast('Reach-out sent! They\'ll be notified.');
+        closeReachOutModal();
+      } catch (e) {
+        console.error('Reach-out error:', e);
+        showToast('Failed to send. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send';
+      }
+    }
+
+    // Close modal on outside click
+    document.getElementById('ro-modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeReachOutModal();
+    });
 
     // =====================================================
     // INIT

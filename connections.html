@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Connections — Connect Again</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .page-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-5);
+      min-height: 100vh;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-6);
+    }
+    .page-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .back-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+    .back-link:hover { background: var(--color-bg-muted); color: var(--color-primary); }
+    .back-link svg { width: 20px; height: 20px; }
+
+    .page-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: var(--space-1);
+      margin-bottom: var(--space-5);
+      background: var(--color-bg-muted);
+      border-radius: var(--radius-md);
+      padding: 3px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: var(--space-2) var(--space-3);
+      background: none;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .tab-btn.active {
+      background: var(--color-bg-card);
+      color: var(--color-text);
+      box-shadow: var(--shadow-sm);
+    }
+    .tab-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary);
+      color: white;
+      font-size: 11px;
+      font-weight: var(--font-weight-bold);
+      margin-left: var(--space-1);
+    }
+
+    /* Request Cards */
+    .request-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .request-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      box-shadow: var(--shadow-sm);
+    }
+    .request-card.pending {
+      border-left: 3px solid var(--color-primary);
+    }
+    .request-card.accepted {
+      border-left: 3px solid var(--color-status-accepted);
+    }
+    .request-card.declined {
+      border-left: 3px solid var(--color-text-muted);
+      opacity: 0.7;
+    }
+
+    .request-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-2);
+    }
+    .request-who {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .request-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-bold);
+      flex-shrink: 0;
+    }
+    .request-name {
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+    }
+    .request-id {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      font-family: var(--font-family-mono, monospace);
+    }
+    .request-direction {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+    .request-time {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    .request-reason {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      margin: var(--space-3) 0;
+      white-space: pre-wrap;
+    }
+
+    .request-actions {
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .request-status {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+    }
+    .request-status.accepted { background: var(--color-status-accepted-bg); color: var(--color-status-accepted); }
+    .request-status.declined { background: var(--color-bg-muted); color: var(--color-text-muted); }
+    .request-status.pending { background: var(--color-primary-bg); color: var(--color-primary); }
+
+    /* Chat Link */
+    .chat-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-4);
+      background: var(--color-status-accepted-bg);
+      color: var(--color-status-accepted);
+      border: 1px solid var(--color-status-accepted);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+      margin-top: var(--space-2);
+    }
+    .chat-link:hover { background: var(--color-status-accepted); color: white; }
+    .chat-link svg { width: 16px; height: 16px; }
+
+    .no-chat-hint {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+      font-style: italic;
+    }
+
+    /* Empty */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-4);
+    }
+    .empty-icon { font-size: 3rem; margin-bottom: var(--space-3); }
+    .empty-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+    .empty-text { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+
+    /* Setup prompt */
+    .setup-banner {
+      background: var(--color-status-review-bg);
+      border: 1px solid var(--color-status-review);
+      border-radius: var(--radius-md);
+      padding: var(--space-4);
+      margin-bottom: var(--space-5);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+    }
+    .setup-banner svg { width: 20px; height: 20px; color: var(--color-status-review); flex-shrink: 0; }
+    .setup-banner a { color: var(--color-primary); font-weight: var(--font-weight-medium); }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="js/auth.js"></script>
+
+  <div class="page-container" id="main-container">
+    <div style="text-align:center;padding:var(--space-12);color:var(--color-text-muted);font-size:var(--font-size-sm);">Loading...</div>
+  </div>
+
+  <script>
+    let member = null;
+    let reachOuts = [];
+    let currentTab = 'received';
+
+    async function init() {
+      try {
+        const session = await getAuthSession();
+        if (!session) { window.location.href = 'access.html'; return; }
+
+        member = await getCurrentMember();
+        if (!member) { window.location.href = 'access.html'; return; }
+
+        reachOuts = await getMyReachOuts(member.id);
+        renderPage();
+      } catch (e) {
+        console.error('Init error:', e);
+        document.getElementById('main-container').innerHTML = '<p style="padding:40px;text-align:center;">Something went wrong.</p>';
+      }
+    }
+
+    function setTab(tab) {
+      currentTab = tab;
+      renderPage();
+    }
+
+    function getReceived() {
+      return reachOuts.filter(r => r.to_id === member.id);
+    }
+
+    function getSent() {
+      return reachOuts.filter(r => r.from_id === member.id);
+    }
+
+    function renderPage() {
+      const container = document.getElementById('main-container');
+      const received = getReceived();
+      const sent = getSent();
+      const pendingCount = received.filter(r => r.status === 'pending').length;
+
+      const hasChatSetup = member.chat_platform && member.chat_handle;
+
+      container.innerHTML = `
+        <header class="page-header">
+          <div class="page-header-left">
+            <a href="index.html" class="back-link" aria-label="Back to home">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+              </svg>
+            </a>
+            <h1 class="page-title">Connections</h1>
+          </div>
+        </header>
+
+        ${!hasChatSetup ? `
+          <div class="setup-banner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>Set up your chat platform in your <a href="profile.html">profile</a> so others can message you when you accept a reach-out.</span>
+          </div>
+        ` : ''}
+
+        <div class="tabs">
+          <button class="tab-btn ${currentTab === 'received' ? 'active' : ''}" onclick="setTab('received')">
+            Received ${pendingCount > 0 ? `<span class="tab-count">${pendingCount}</span>` : ''}
+          </button>
+          <button class="tab-btn ${currentTab === 'sent' ? 'active' : ''}" onclick="setTab('sent')">
+            Sent
+          </button>
+        </div>
+
+        <div class="request-list" id="request-list">
+          ${currentTab === 'received' ? renderReceivedList(received) : renderSentList(sent)}
+        </div>
+      `;
+    }
+
+    function renderReceivedList(items) {
+      if (items.length === 0) {
+        return `
+          <div class="empty-state">
+            <div class="empty-icon">📬</div>
+            <div class="empty-title">No reach-outs yet</div>
+            <p class="empty-text">When someone wants to connect with you, it will appear here.</p>
+          </div>
+        `;
+      }
+      return items.map(r => renderRequestCard(r, 'received')).join('');
+    }
+
+    function renderSentList(items) {
+      if (items.length === 0) {
+        return `
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <div class="empty-title">No outgoing reach-outs</div>
+            <p class="empty-text">Visit the <a href="directory.html" style="color:var(--color-primary);">directory</a> to reach out to other members.</p>
+          </div>
+        `;
+      }
+      return items.map(r => renderRequestCard(r, 'sent')).join('');
+    }
+
+    function renderRequestCard(r, direction) {
+      const otherMember = direction === 'received' ? r.from_member : r.to_member;
+      const name = otherMember?.display_name || 'Member';
+      const memberId = otherMember?.member_id || '';
+      const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      const time = formatRelativeTime(r.created_at);
+
+      let statusHtml = '';
+      let actionsHtml = '';
+      let chatHtml = '';
+
+      if (r.status === 'pending') {
+        statusHtml = '<span class="request-status pending">Pending</span>';
+        if (direction === 'received') {
+          actionsHtml = `
+            <div class="request-actions">
+              <button class="btn btn-primary btn-sm" onclick="handleAcceptReachOut('${r.id}', this)">Accept</button>
+              <button class="btn btn-ghost btn-sm" onclick="handleDeclineReachOut('${r.id}', this)">Decline</button>
+            </div>
+          `;
+        }
+      } else if (r.status === 'accepted') {
+        statusHtml = '<span class="request-status accepted">Accepted</span>';
+        // Show chat link for the OTHER member's platform
+        const chatMember = otherMember;
+        if (chatMember?.chat_platform && chatMember?.chat_handle) {
+          const link = buildChatLink(chatMember.chat_platform, chatMember.chat_handle);
+          const platformLabel = { whatsapp: 'WhatsApp', telegram: 'Telegram', signal: 'Signal' }[chatMember.chat_platform] || 'Chat';
+          if (link) {
+            chatHtml = `
+              <a href="${link}" target="_blank" rel="noopener" class="chat-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Open ${platformLabel} chat
+              </a>
+            `;
+          }
+        } else {
+          chatHtml = `<div class="no-chat-hint">${name} hasn't set up a chat platform yet. You can find them in the <a href="directory.html" style="color:var(--color-primary);">directory</a>.</div>`;
+        }
+      } else if (r.status === 'declined') {
+        statusHtml = '<span class="request-status declined">Declined</span>';
+      }
+
+      return `
+        <div class="request-card ${r.status}">
+          <div class="request-header">
+            <div class="request-who">
+              <div class="request-avatar">${initials}</div>
+              <div>
+                <div class="request-name">${escapeHtml(name)}</div>
+                <div class="request-id">${escapeHtml(memberId)}</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              ${statusHtml}
+              <div class="request-time">${time}</div>
+            </div>
+          </div>
+          <div class="request-reason">${escapeHtml(r.reason)}</div>
+          ${actionsHtml}
+          ${chatHtml}
+        </div>
+      `;
+    }
+
+    async function handleAcceptReachOut(id, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Accepting...';
+
+      try {
+        await updateReachOut(id, { status: 'accepted', responded_at: new Date().toISOString() });
+
+        // Find the reach-out to notify the sender
+        const ro = reachOuts.find(r => r.id === id);
+        if (ro) {
+          createNotification({
+            member_id: ro.from_id,
+            type: 'reach_out_accepted',
+            title: member.display_name + ' accepted your reach-out',
+            body: 'You can now start a conversation',
+            link: 'connections.html'
+          }).catch(e => console.error('Notification error:', e));
+        }
+
+        reachOuts = await getMyReachOuts(member.id);
+        renderPage();
+        showToast('Accepted! Chat link is now visible.');
+      } catch (e) {
+        console.error('Accept error:', e);
+        showToast('Failed to accept. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Accept';
+      }
+    }
+
+    async function handleDeclineReachOut(id, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Declining...';
+
+      try {
+        await updateReachOut(id, { status: 'declined', responded_at: new Date().toISOString() });
+        reachOuts = await getMyReachOuts(member.id);
+        renderPage();
+        showToast('Reach-out declined.');
+      } catch (e) {
+        console.error('Decline error:', e);
+        showToast('Failed to decline. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Decline';
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    init();
+  </script>
+</body>
+</html>

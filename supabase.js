@@ -580,6 +580,78 @@ async function getAuditLog(limit = 50) {
 }
 
 // =====================================================
+// REACH OUTS
+// =====================================================
+
+async function createReachOut({ from_id, to_id, reason }) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('reach_outs')
+    .insert({ from_id, to_id, reason })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function getMyReachOuts(memberId) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('reach_outs')
+    .select(`
+      *,
+      from_member:members!reach_outs_from_id_fkey (id, display_name, member_id, chat_platform, chat_handle),
+      to_member:members!reach_outs_to_id_fkey (id, display_name, member_id, chat_platform, chat_handle)
+    `)
+    .or(`from_id.eq.${memberId},to_id.eq.${memberId}`)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function getPendingReachOutBetween(fromId, toId) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('reach_outs')
+    .select('*')
+    .eq('from_id', fromId)
+    .eq('to_id', toId)
+    .eq('status', 'pending')
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+async function updateReachOut(id, updates) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('reach_outs')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+function buildChatLink(platform, handle) {
+  if (!platform || !handle) return null;
+  const cleaned = handle.replace(/\s/g, '');
+  switch (platform) {
+    case 'whatsapp':
+      // Strip leading + if present for wa.me format
+      return 'https://wa.me/' + cleaned.replace(/^\+/, '');
+    case 'telegram':
+      // Handle with or without @
+      return 'https://t.me/' + cleaned.replace(/^@/, '');
+    case 'signal':
+      return 'https://signal.me/#p/' + cleaned;
+    default:
+      return null;
+  }
+}
+
+// =====================================================
 // LISTING COMMENTS
 // =====================================================
 
