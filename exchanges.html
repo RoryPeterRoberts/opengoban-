@@ -568,6 +568,37 @@
     .footer-link:hover {
       color: var(--color-primary);
     }
+
+    .notif-bell-link {
+      position: relative;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      padding: var(--space-1);
+      display: flex;
+      align-items: center;
+      transition: color var(--transition-fast);
+    }
+    .notif-bell-link:hover { color: var(--color-primary); }
+    .notif-bell-link svg { width: 20px; height: 20px; display: block; }
+    .notif-bell-link .notif-badge-sm {
+      position: absolute;
+      top: -2px;
+      right: -4px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary);
+      color: white;
+      font-size: 10px;
+      font-weight: var(--font-weight-bold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .notif-badge-sm:empty { display: none; }
+    .header-right { display: flex; align-items: center; gap: var(--space-2); }
   </style>
 </head>
 <body>
@@ -620,6 +651,12 @@
 
         // Render page
         renderPage();
+
+        // Load notification count
+        getUnreadNotificationCount().then(count => {
+          const badge = document.getElementById('notif-badge');
+          if (badge) badge.textContent = count > 0 ? (count > 9 ? '9+' : count) : '';
+        }).catch(() => {});
 
         // Subscribe to realtime updates
         realtimeSubscription = subscribeToExchanges(member.id, () => {
@@ -682,12 +719,21 @@
           <div class="header-content">
             <h1 class="exchanges-title">My Exchanges</h1>
           </div>
-          <div class="header-balance">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v6l4 2"/>
-            </svg>
-            <span class="header-balance-value" id="header-balance-value">${balance ? balance.credits : 0}</span>
+          <div class="header-right">
+            <a href="index.html#notifications" class="notif-bell-link" aria-label="Notifications">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              <span class="notif-badge-sm" id="notif-badge"></span>
+            </a>
+            <div class="header-balance">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              <span class="header-balance-value" id="header-balance-value">${balance ? balance.credits : 0}</span>
+            </div>
           </div>
         </header>
         <div id="exchanges-content"></div>
@@ -991,13 +1037,35 @@
     // =====================================================
     // ACTIONS
     // =====================================================
+    function getOtherPartyId(exchange) {
+      return exchange.provider_id === member.id ? exchange.receiver_id : exchange.provider_id;
+    }
+
+    function getExchangeTitle(exchange) {
+      return exchange.listing ? exchange.listing.title : 'an exchange';
+    }
+
     async function handleAccept(exchangeId) {
       const btn = event.target;
       btn.disabled = true;
       btn.textContent = 'Accepting...';
 
       try {
+        const ex = allExchanges.find(e => e.id === exchangeId);
         await acceptExchange(exchangeId);
+
+        // Notify the proposer
+        if (ex) {
+          const proposerId = ex.proposed_by || getOtherPartyId(ex);
+          createNotification({
+            member_id: proposerId,
+            type: 'proposal_accepted',
+            title: 'Your proposal on "' + getExchangeTitle(ex) + '" was accepted',
+            body: 'Contact details are now visible',
+            link: 'exchanges.html'
+          }).catch(e => console.error('Notification error:', e));
+        }
+
         showToast('Exchange accepted!');
         await loadExchanges();
         renderExchangeLists();
@@ -1015,13 +1083,41 @@
       btn.textContent = 'Confirming...';
 
       try {
+        const ex = allExchanges.find(e => e.id === exchangeId);
         const result = await confirmExchange(exchangeId, role);
         if (result.status === 'completed') {
           showToast('Exchange completed! Credits transferred.');
           await loadBalance();
           updateBalanceDisplay();
+
+          // Notify both parties
+          if (ex) {
+            [ex.provider_id, ex.receiver_id].forEach(pid => {
+              if (pid !== member.id) {
+                createNotification({
+                  member_id: pid,
+                  type: 'exchange_completed',
+                  title: 'Exchange completed: "' + getExchangeTitle(ex) + '"',
+                  body: 'Credits have been transferred',
+                  link: 'exchanges.html'
+                }).catch(e => console.error('Notification error:', e));
+              }
+            });
+          }
         } else {
           showToast('Confirmed! Waiting for the other party to confirm.');
+
+          // Notify the other party to confirm
+          if (ex) {
+            const otherId = getOtherPartyId(ex);
+            createNotification({
+              member_id: otherId,
+              type: 'exchange_confirmed',
+              title: 'Your partner confirmed "' + getExchangeTitle(ex) + '"',
+              body: 'Please confirm on your side to complete the exchange',
+              link: 'exchanges.html'
+            }).catch(e => console.error('Notification error:', e));
+          }
         }
         await loadExchanges();
         renderExchangeLists();
@@ -1040,7 +1136,20 @@
       btn.textContent = 'Cancelling...';
 
       try {
+        const ex = allExchanges.find(e => e.id === exchangeId);
         await cancelExchange(exchangeId);
+
+        // Notify the other party
+        if (ex) {
+          const otherId = getOtherPartyId(ex);
+          createNotification({
+            member_id: otherId,
+            type: 'exchange_cancelled',
+            title: 'Exchange cancelled: "' + getExchangeTitle(ex) + '"',
+            link: 'exchanges.html'
+          }).catch(e => console.error('Notification error:', e));
+        }
+
         showToast('Exchange cancelled.');
         await loadExchanges();
         renderExchangeLists();

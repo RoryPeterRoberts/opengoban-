@@ -804,6 +804,38 @@
     .own-listing-actions .btn {
       flex: 1;
     }
+
+    .page-header { justify-content: space-between; }
+    .page-header-left { display: flex; align-items: center; gap: var(--space-3); }
+    .notif-bell-link {
+      position: relative;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      padding: var(--space-1);
+      display: flex;
+      align-items: center;
+      transition: color var(--transition-fast);
+    }
+    .notif-bell-link:hover { color: var(--color-primary); }
+    .notif-bell-link svg { width: 20px; height: 20px; display: block; }
+    .notif-bell-link .notif-badge-sm {
+      position: absolute;
+      top: -2px;
+      right: -4px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary);
+      color: white;
+      font-size: 10px;
+      font-weight: var(--font-weight-bold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .notif-badge-sm:empty { display: none; }
   </style>
 </head>
 <body>
@@ -886,6 +918,12 @@
         allMembers = await getAcceptedMembers();
 
         renderListing();
+
+        // Load notification count
+        getUnreadNotificationCount().then(count => {
+          const badge = document.getElementById('notif-badge');
+          if (badge) badge.textContent = count > 0 ? (count > 9 ? '9+' : count) : '';
+        }).catch(() => {});
       } catch (e) {
         console.error('Init error:', e);
         document.getElementById('main-container').innerHTML = `
@@ -914,13 +952,22 @@
 
       let html = `
         <header class="page-header">
-          <a href="index.html" class="back-link" aria-label="Back to community board">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="19" y1="12" x2="5" y2="12"/>
-              <polyline points="12 19 5 12 12 5"/>
+          <div class="page-header-left">
+            <a href="index.html" class="back-link" aria-label="Back to community board">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+              </svg>
+            </a>
+            <h1 class="page-title">Listing</h1>
+          </div>
+          <a href="index.html#notifications" class="notif-bell-link" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
+            <span class="notif-badge-sm" id="notif-badge"></span>
           </a>
-          <h1 class="page-title">Listing</h1>
         </header>
 
         <!-- Listing Detail -->
@@ -1199,6 +1246,20 @@
 
       try {
         await acceptExchange(exchangeId);
+
+        // Notify the proposer
+        const ex = exchanges.find(e => e.id === exchangeId);
+        if (ex) {
+          const proposerId = ex.proposed_by || (ex.provider_id === listing.author_id ? ex.receiver_id : ex.provider_id);
+          createNotification({
+            member_id: proposerId,
+            type: 'proposal_accepted',
+            title: 'Your proposal on "' + listing.title + '" was accepted',
+            body: 'Contact details are now visible',
+            link: 'exchanges.html'
+          }).catch(e => console.error('Notification error:', e));
+        }
+
         showToast('Exchange accepted! Contact info is now visible.');
         exchanges = await getExchangesForListing(listingId);
         renderListing();
@@ -1330,6 +1391,19 @@
 
       try {
         await cancelExchange(exchangeId);
+
+        // Notify the proposer
+        const ex = exchanges.find(e => e.id === exchangeId);
+        if (ex) {
+          const proposerId = ex.proposed_by || (ex.provider_id === listing.author_id ? ex.receiver_id : ex.provider_id);
+          createNotification({
+            member_id: proposerId,
+            type: 'proposal_declined',
+            title: 'Your proposal on "' + listing.title + '" was declined',
+            link: 'index.html'
+          }).catch(e => console.error('Notification error:', e));
+        }
+
         showToast('Proposal declined.');
         exchanges = await getExchangesForListing(listingId);
         renderListing();
@@ -1402,6 +1476,15 @@
         };
 
         await proposeExchange(exchangeData);
+
+        // Notify listing author
+        createNotification({
+          member_id: listing.author_id,
+          type: 'proposal_received',
+          title: 'New proposal on "' + listing.title + '"',
+          body: currentMember.display_name + ' proposed an exchange',
+          link: 'listing.html?id=' + listing.id
+        }).catch(e => console.error('Notification error:', e));
 
         showToast('Proposal submitted! The listing author will be notified.');
 

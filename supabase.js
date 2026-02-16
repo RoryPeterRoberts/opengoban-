@@ -580,6 +580,76 @@ async function getAuditLog(limit = 50) {
 }
 
 // =====================================================
+// NOTIFICATIONS
+// =====================================================
+
+async function createNotification({ member_id, type, title, body, link }) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('notifications')
+    .insert({ member_id, type, title, body, link })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function getMyNotifications(limit = 20) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('notifications')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return data || [];
+}
+
+async function getUnreadNotificationCount() {
+  const sb = getSupabase();
+  const { count, error } = await sb
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .is('read_at', null);
+  if (error) throw error;
+  return count || 0;
+}
+
+async function markNotificationRead(notificationId) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .eq('id', notificationId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function markAllNotificationsRead() {
+  const sb = getSupabase();
+  const { error } = await sb
+    .from('notifications')
+    .update({ read_at: new Date().toISOString() })
+    .is('read_at', null);
+  if (error) throw error;
+}
+
+function subscribeToNotifications(memberId, callback) {
+  const sb = getSupabase();
+  return sb
+    .channel('my-notifications')
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'notifications',
+      filter: `member_id=eq.${memberId}`
+    }, callback)
+    .subscribe();
+}
+
+// =====================================================
 // ECOSYSTEM HEALTH (computed from real data)
 // =====================================================
 

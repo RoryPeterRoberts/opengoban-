@@ -533,6 +533,38 @@
       padding-left: var(--space-4);
       border-left: 2px solid var(--color-border-light);
     }
+
+    .directory-header { display: flex; align-items: center; justify-content: space-between; }
+    .directory-header-left { display: flex; align-items: center; gap: var(--space-3); }
+    .notif-bell-link {
+      position: relative;
+      color: var(--color-text-muted);
+      text-decoration: none;
+      padding: var(--space-1);
+      display: flex;
+      align-items: center;
+      transition: color var(--transition-fast);
+    }
+    .notif-bell-link:hover { color: var(--color-primary); }
+    .notif-bell-link svg { width: 20px; height: 20px; display: block; }
+    .notif-bell-link .notif-badge-sm {
+      position: absolute;
+      top: -2px;
+      right: -4px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary);
+      color: white;
+      font-size: 10px;
+      font-weight: var(--font-weight-bold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .notif-badge-sm:empty { display: none; }
   </style>
 </head>
 <body>
@@ -543,16 +575,25 @@
   <div class="directory-container">
     <!-- Header -->
     <header class="directory-header">
-      <a href="index.html" class="back-link" aria-label="Back to home">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="19" y1="12" x2="5" y2="12"></line>
-          <polyline points="12 19 5 12 12 5"></polyline>
-        </svg>
-      </a>
-      <div>
-        <h1 class="directory-title">Member Directory</h1>
-        <span class="directory-count" id="member-count"></span>
+      <div class="directory-header-left">
+        <a href="index.html" class="back-link" aria-label="Back to home">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+          </svg>
+        </a>
+        <div>
+          <h1 class="directory-title">Member Directory</h1>
+          <span class="directory-count" id="member-count"></span>
+        </div>
       </div>
+      <a href="index.html#notifications" class="notif-bell-link" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span class="notif-badge-sm" id="notif-badge"></span>
+      </a>
     </header>
 
     <!-- Search Bar -->
@@ -661,6 +702,12 @@
         // Wire up search
         const searchInput = document.getElementById('search-input');
         searchInput.addEventListener('input', handleSearch);
+
+        // Load notification count
+        getUnreadNotificationCount().then(count => {
+          const badge = document.getElementById('notif-badge');
+          if (badge) badge.textContent = count > 0 ? (count > 9 ? '9+' : count) : '';
+        }).catch(() => {});
 
       } catch (e) {
         console.error('Directory init error:', e);
