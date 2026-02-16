@@ -281,8 +281,8 @@ async function getExchangeById(id) {
     .from('exchanges')
     .select(`
       *,
-      provider:members!exchanges_provider_id_fkey (id, display_name, member_id),
-      receiver:members!exchanges_receiver_id_fkey (id, display_name, member_id),
+      provider:members!exchanges_provider_id_fkey (id, display_name, member_id, email, phone),
+      receiver:members!exchanges_receiver_id_fkey (id, display_name, member_id, email, phone),
       witness:members!exchanges_witness_id_fkey (id, display_name, member_id),
       listing:listings!exchanges_listing_id_fkey (id, title, type, category)
     `)
@@ -298,8 +298,8 @@ async function getMyExchanges(memberId) {
     .from('exchanges')
     .select(`
       *,
-      provider:members!exchanges_provider_id_fkey (id, display_name, member_id),
-      receiver:members!exchanges_receiver_id_fkey (id, display_name, member_id),
+      provider:members!exchanges_provider_id_fkey (id, display_name, member_id, email, phone),
+      receiver:members!exchanges_receiver_id_fkey (id, display_name, member_id, email, phone),
       listing:listings!exchanges_listing_id_fkey (id, title, type, category)
     `)
     .or(`provider_id.eq.${memberId},receiver_id.eq.${memberId}`)
@@ -314,8 +314,8 @@ async function getActiveExchanges(memberId) {
     .from('exchanges')
     .select(`
       *,
-      provider:members!exchanges_provider_id_fkey (id, display_name, member_id),
-      receiver:members!exchanges_receiver_id_fkey (id, display_name, member_id),
+      provider:members!exchanges_provider_id_fkey (id, display_name, member_id, email, phone),
+      receiver:members!exchanges_receiver_id_fkey (id, display_name, member_id, email, phone),
       listing:listings!exchanges_listing_id_fkey (id, title, type, category)
     `)
     .or(`provider_id.eq.${memberId},receiver_id.eq.${memberId}`)
@@ -378,8 +378,8 @@ async function getExchangesForListing(listingId) {
     .from('exchanges')
     .select(`
       *,
-      provider:members!exchanges_provider_id_fkey (id, display_name, member_id),
-      receiver:members!exchanges_receiver_id_fkey (id, display_name, member_id)
+      provider:members!exchanges_provider_id_fkey (id, display_name, member_id, email, phone),
+      receiver:members!exchanges_receiver_id_fkey (id, display_name, member_id, email, phone)
     `)
     .eq('listing_id', listingId)
     .order('proposed_at', { ascending: false });

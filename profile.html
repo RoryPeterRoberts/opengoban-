@@ -742,6 +742,12 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label" for="phone-input">Phone <span style="font-weight:normal;color:var(--color-text-muted);">(optional)</span></label>
+            <input type="tel" class="input" id="phone-input" value="${escapeHtml(member.phone || '')}" placeholder="e.g. 087 123 4567">
+            <p style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:var(--space-2);">Only shared with exchange partners after acceptance.</p>
+          </div>
+
+          <div class="form-group">
             <label class="form-label" for="primary-category">Primary Category</label>
             <select class="select" id="primary-category">
               <option value="">Select a category...</option>
@@ -916,6 +922,7 @@
     async function saveProfile() {
       const name = document.getElementById('display-name').value.trim();
       const bio = document.getElementById('bio-input').value.trim();
+      const phone = document.getElementById('phone-input').value.trim();
       const primaryCategory = document.getElementById('primary-category').value;
       const availability = document.getElementById('availability-select').value;
       const area = document.getElementById('area-select').value;
@@ -926,6 +933,7 @@
         await updateMember(member.id, {
           display_name: name,
           bio: bio || null,
+          phone: phone || null,
           primary_category: primaryCategory || null,
           skill_tags: editSkillTags,
           availability: availability || null,

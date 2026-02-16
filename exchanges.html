@@ -438,6 +438,116 @@
       line-height: var(--line-height-relaxed);
     }
 
+    /* Contact Info */
+    .contact-card {
+      padding: var(--space-4);
+      background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-accent-bg) 100%);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-3);
+    }
+
+    .contact-card-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: var(--space-3);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .contact-card-header svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .contact-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-2);
+    }
+
+    .contact-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .contact-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      font-size: var(--font-size-sm);
+      color: var(--color-primary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .contact-link:hover {
+      border-color: var(--color-primary);
+      background: var(--color-bg-card);
+    }
+
+    .contact-link svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .contact-link-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .contact-copy-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      color: var(--color-text-muted);
+      transition: all var(--transition-fast);
+      flex-shrink: 0;
+    }
+
+    .contact-copy-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .contact-copy-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .contact-privacy-note {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+    }
+
+    .contact-privacy-note svg {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+    }
+
     /* Footer */
     .exchanges-footer {
       text-align: center;
@@ -722,6 +832,11 @@
         </div>
       `;
 
+      // Contact info (only for accepted/completed exchanges)
+      if (exchange.status === 'accepted' || exchange.status === 'completed') {
+        html += renderContactCard(counterparty);
+      }
+
       // Notes (if any)
       if (exchange.notes) {
         html += `<div class="exchange-notes">"${escapeHtml(exchange.notes)}"</div>`;
@@ -815,6 +930,51 @@
       }
 
       return actions;
+    }
+
+    function renderContactCard(counterparty) {
+      if (!counterparty || !counterparty.email) return '';
+
+      const copySvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+      let html = `<div class="contact-card">`;
+      html += `<div class="contact-card-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        Contact ${escapeHtml(counterparty.display_name)}
+      </div>`;
+
+      // Email row
+      html += `<div class="contact-row">
+        <a href="mailto:${escapeHtml(counterparty.email)}" class="contact-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <span class="contact-link-text">${escapeHtml(counterparty.email)}</span>
+        </a>
+        <button class="contact-copy-btn" onclick="copyToClipboard('${escapeHtml(counterparty.email)}', 'Email copied!')" title="Copy email">${copySvg}</button>
+      </div>`;
+
+      // Phone row (only if they have one)
+      if (counterparty.phone) {
+        html += `<div class="contact-row">
+          <a href="tel:${escapeHtml(counterparty.phone)}" class="contact-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span class="contact-link-text">${escapeHtml(counterparty.phone)}</span>
+          </a>
+          <button class="contact-copy-btn" onclick="copyToClipboard('${escapeHtml(counterparty.phone)}', 'Phone copied!')" title="Copy phone">${copySvg}</button>
+        </div>`;
+      }
+
+      html += `<div class="contact-privacy-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Contact info only visible for accepted exchanges
+      </div>`;
+      html += `</div>`;
+      return html;
+    }
+
+    function copyToClipboard(text, message) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast(message || 'Copied!');
+      });
     }
 
     function formatStatus(status) {

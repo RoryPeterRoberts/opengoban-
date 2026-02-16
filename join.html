@@ -570,6 +570,9 @@
       const areaSelect = document.getElementById('area-select');
       if (areaSelect) currentMember.area = areaSelect.value;
 
+      const phoneInput = document.getElementById('phone-input');
+      if (phoneInput) currentMember.phone = phoneInput.value;
+
       const availSelect = document.getElementById('availability');
       if (availSelect && availSelect.value) profile.availability = availSelect.value;
     }
@@ -749,6 +752,15 @@
               placeholder="e.g., Retired carpenter, love gardening. Happy to help with small DIY jobs..."
               maxlength="500">${escapeHtml(profile.bio)}</textarea>
             <p class="form-hint" id="bio-count">${(profile.bio || '').length}/500</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Phone <span style="font-weight:normal;color:var(--color-text-muted);">(optional)</span></label>
+            <input type="tel" class="input"
+              id="phone-input"
+              value="${escapeHtml(currentMember.phone || '')}"
+              placeholder="e.g. 087 123 4567">
+            <p style="font-size:var(--font-size-xs);color:var(--color-text-muted);margin-top:var(--space-2);">Only shared with exchange partners after acceptance.</p>
           </div>
         </div>
 
@@ -1105,6 +1117,7 @@
 
       // Collect remaining form data
       const bio = document.getElementById('bio-input').value.trim();
+      const phone = document.getElementById('phone-input').value.trim();
       const area = document.getElementById('area-select').value;
 
       // Disable submit button
@@ -1121,6 +1134,7 @@
           skill_tags: profile.skillTags,
           availability: profile.availability,
           bio: bio || null,
+          phone: phone || null,
           area: area,
           status: 'REVIEW'
         };
