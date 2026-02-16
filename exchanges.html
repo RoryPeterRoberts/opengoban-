@@ -891,6 +891,11 @@
       // Confirmation progress (for accepted exchanges)
       if (exchange.status === 'accepted') {
         html += renderConfirmationProgress(exchange);
+        const anyConfirmed = exchange.provider_confirmed || exchange.receiver_confirmed;
+        const bothConfirmed = exchange.provider_confirmed && exchange.receiver_confirmed;
+        if (anyConfirmed && !bothConfirmed) {
+          html += `<div style="font-size: var(--font-size-xs); color: var(--color-text-muted); font-style: italic;">Cancellation unavailable once confirmation has started.</div>`;
+        }
       }
 
       // Time
@@ -966,13 +971,16 @@
       }
 
       if (exchange.status === 'accepted') {
-        // Show confirm button if I haven't confirmed yet
         const myConfirmed = myRole === 'provider' ? exchange.provider_confirmed : exchange.receiver_confirmed;
+        const anyConfirmed = exchange.provider_confirmed || exchange.receiver_confirmed;
+
         if (!myConfirmed) {
           actions.push(`<button class="btn btn-primary btn-sm" onclick="handleConfirm('${id}', '${myRole}')">Confirm Complete</button>`);
         }
-        // Can always cancel an accepted exchange
-        actions.push(`<button class="btn btn-danger btn-sm" onclick="handleCancel('${id}')">Cancel</button>`);
+
+        if (!anyConfirmed) {
+          actions.push(`<button class="btn btn-danger btn-sm" onclick="handleCancel('${id}')">Cancel</button>`);
+        }
       }
 
       return actions;
@@ -1084,6 +1092,26 @@
 
       try {
         const ex = allExchanges.find(e => e.id === exchangeId);
+
+        // Check if this confirmation would trigger completion
+        const otherConfirmed = role === 'provider' ? ex.receiver_confirmed : ex.provider_confirmed;
+        if (otherConfirmed) {
+          // Both will be confirmed — check receiver can afford it
+          try {
+            const receiverBalance = await getBalance(ex.receiver_id);
+            if (receiverBalance.credits - ex.credits < -10) {
+              const receiverName = ex.receiver ? ex.receiver.display_name : 'The receiver';
+              showToast(receiverName + ' doesn\u2019t have enough credits (balance: ' + receiverBalance.credits + ', needs: ' + ex.credits + ')');
+              btn.disabled = false;
+              btn.textContent = 'Confirm Complete';
+              return;
+            }
+          } catch (balErr) {
+            console.error('Balance check error:', balErr);
+            // If we can't check, let the RPC handle it
+          }
+        }
+
         const result = await confirmExchange(exchangeId, role);
         if (result.status === 'completed') {
           showToast('Exchange completed! Credits transferred.');

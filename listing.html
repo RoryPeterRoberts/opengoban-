@@ -979,6 +979,7 @@
     // STATE
     // =====================================================
     let currentMember = null;
+    let currentBalance = null;
     let listing = null;
     let exchanges = [];
     let comments = [];
@@ -1043,8 +1044,11 @@
           comments = [];
         }
 
-        // Load all members for degrees calculation
-        allMembers = await getAcceptedMembers();
+        // Load all members for degrees calculation and current balance
+        [allMembers, currentBalance] = await Promise.all([
+          getAcceptedMembers(),
+          getBalance(currentMember.id).catch(() => ({ credits: 5, total_earned: 0, total_spent: 0 }))
+        ]);
 
         renderListing();
 
@@ -1358,8 +1362,10 @@
 
           <div class="form-group">
             <label class="form-label" for="exchange-credits">Credits <span style="color: var(--color-status-hold);">*</span></label>
-            <input type="number" class="input" id="exchange-credits" value="1" min="1" max="10" step="1">
+            <input type="number" class="input" id="exchange-credits" value="1" min="1" max="10" step="1" oninput="checkProposalBalance()">
             <p class="form-hint">Number of community credits for this exchange (1-10).</p>
+            <p class="form-hint" style="margin-top: var(--space-1);">Your balance: <strong>${currentBalance ? currentBalance.credits : 0}</strong> credits</p>
+            <p class="form-hint" id="balance-warning" style="color: var(--color-status-hold); display: none; margin-top: var(--space-2);"></p>
           </div>
 
           <button class="btn btn-primary btn-lg btn-block" id="propose-btn" onclick="submitProposal()">
@@ -1693,6 +1699,25 @@
     // =====================================================
     // PROPOSE EXCHANGE
     // =====================================================
+    function checkProposalBalance() {
+      const warning = document.getElementById('balance-warning');
+      if (!warning || !currentBalance) return;
+
+      const credits = parseInt(document.getElementById('exchange-credits').value, 10) || 0;
+      const isOffer = listing.type === 'offer';
+
+      // If proposer is the receiver (listing is an offer), they'll spend credits
+      if (isOffer) {
+        const resultingBalance = currentBalance.credits - credits;
+        if (resultingBalance < -10) {
+          warning.textContent = 'This would put your balance at ' + resultingBalance + '. The exchange may fail at completion.';
+          warning.style.display = 'block';
+          return;
+        }
+      }
+      warning.style.display = 'none';
+    }
+
     async function submitProposal() {
       const descEl = document.getElementById('exchange-desc');
       const creditsEl = document.getElementById('exchange-credits');
