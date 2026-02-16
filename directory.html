@@ -225,9 +225,17 @@
     /* Skill tags */
     .member-tags {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: var(--space-2);
       margin-bottom: var(--space-3);
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+
+    .member-tags::-webkit-scrollbar {
+      display: none;
     }
 
     .skill-tag {
@@ -237,6 +245,8 @@
       background: linear-gradient(135deg, var(--color-secondary-bg) 0%, var(--color-primary-bg) 100%);
       border: 1px solid var(--color-border-light);
       border-radius: var(--radius-full);
+      white-space: nowrap;
+      flex-shrink: 0;
       font-size: var(--font-size-xs);
       color: var(--color-text-secondary);
     }
@@ -249,6 +259,8 @@
       border-radius: var(--radius-full);
       font-size: var(--font-size-xs);
       color: var(--color-text-muted);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     /* Card footer: area + member since */
@@ -700,18 +712,13 @@
       const band = calculateReliabilityBand(member.exchanges_completed || 0, member.disputes_count || 0);
       const bandClass = band.toLowerCase();
 
-      // Skill tags: show first 5
+      // Skill tags: show all (horizontally scrollable)
       const tags = Array.isArray(member.skill_tags) ? member.skill_tags : [];
-      const visibleTags = tags.slice(0, 5);
-      const extraCount = tags.length - visibleTags.length;
 
       let tagsHtml = '';
-      if (visibleTags.length > 0) {
+      if (tags.length > 0) {
         tagsHtml = '<div class="member-tags">';
-        tagsHtml += visibleTags.map(t => `<span class="skill-tag">${escapeHtml(t)}</span>`).join('');
-        if (extraCount > 0) {
-          tagsHtml += `<span class="skill-tag-more">+${extraCount} more</span>`;
-        }
+        tagsHtml += tags.map(t => `<span class="skill-tag">${escapeHtml(t)}</span>`).join('');
         tagsHtml += '</div>';
       }
 
