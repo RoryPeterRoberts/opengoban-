@@ -251,6 +251,28 @@
       color: var(--color-text-secondary);
     }
 
+    .skill-tag.matched {
+      background: linear-gradient(135deg, var(--color-primary-bg) 0%, var(--color-accent-bg) 100%);
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .bio-snippet {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      line-height: var(--line-height-relaxed);
+      margin-bottom: var(--space-3);
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
     .skill-tag-more {
       display: inline-flex;
       align-items: center;
@@ -514,7 +536,7 @@
         type="text"
         class="search-input"
         id="search-input"
-        placeholder="Search members by name..."
+        placeholder="Search by name, skill, or keyword..."
         autocomplete="off"
         spellcheck="false"
       >
@@ -667,10 +689,16 @@
           if (!matchesPrimary && !matchesSecondary) return false;
         }
 
-        // Search filter
+        // Search filter — matches name, skills, bio, area, member ID
         if (searchQuery) {
-          const name = (member.display_name || '').toLowerCase();
-          if (!name.includes(searchQuery)) return false;
+          const searchFields = [
+            member.display_name || '',
+            ...(Array.isArray(member.skill_tags) ? member.skill_tags : []),
+            member.bio || '',
+            member.area || '',
+            member.member_id || ''
+          ].join(' ').toLowerCase();
+          if (!searchFields.includes(searchQuery)) return false;
         }
 
         return true;
@@ -713,14 +741,24 @@
       const band = calculateReliabilityBand(member.exchanges_completed || 0, member.disputes_count || 0);
       const bandClass = band.toLowerCase();
 
-      // Skill tags: show all (horizontally scrollable)
+      // Skill tags: show all (horizontally scrollable), highlight matches
       const tags = Array.isArray(member.skill_tags) ? member.skill_tags : [];
 
       let tagsHtml = '';
       if (tags.length > 0) {
         tagsHtml = '<div class="member-tags">';
-        tagsHtml += tags.map(t => `<span class="skill-tag">${escapeHtml(t)}</span>`).join('');
+        tagsHtml += tags.map(t => {
+          const matched = searchQuery && t.toLowerCase().includes(searchQuery) ? ' matched' : '';
+          return `<span class="skill-tag${matched}">${escapeHtml(t)}</span>`;
+        }).join('');
         tagsHtml += '</div>';
+      }
+
+      // Bio snippet: show only when search matches bio content
+      let bioHtml = '';
+      if (searchQuery && member.bio && member.bio.toLowerCase().includes(searchQuery)) {
+        const snippet = member.bio.length > 120 ? member.bio.slice(0, 120) + '...' : member.bio;
+        bioHtml = `<div class="bio-snippet">${escapeHtml(snippet)}</div>`;
       }
 
       // Area label
@@ -743,6 +781,7 @@
             <span>${cat.label}</span>
           </div>
           ${tagsHtml}
+          ${bioHtml}
           <div class="member-card-footer">
             <span class="member-meta-item">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
