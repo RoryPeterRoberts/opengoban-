@@ -580,6 +580,35 @@ async function getAuditLog(limit = 50) {
 }
 
 // =====================================================
+// LISTING COMMENTS
+// =====================================================
+
+async function createListingComment(commentData) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('listing_comments')
+    .insert(commentData)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function getListingComments(listingId) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('listing_comments')
+    .select(`
+      *,
+      author:members!listing_comments_author_id_fkey (id, display_name, member_id)
+    `)
+    .eq('listing_id', listingId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+// =====================================================
 // NOTIFICATIONS
 // =====================================================
 

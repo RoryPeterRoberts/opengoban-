@@ -836,6 +836,130 @@
       line-height: 1;
     }
     .notif-badge-sm:empty { display: none; }
+
+    /* Q&A Section */
+    .qa-section {
+      margin-top: var(--space-6);
+    }
+    .qa-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .qa-title svg { width: 18px; height: 18px; color: var(--color-primary); }
+    .qa-count {
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-muted);
+    }
+
+    .qa-input-row {
+      display: flex;
+      gap: var(--space-2);
+      margin-bottom: var(--space-4);
+    }
+    .qa-input-row .textarea {
+      flex: 1;
+      min-height: 44px;
+      resize: none;
+      font-size: var(--font-size-sm);
+    }
+    .qa-send-btn {
+      align-self: flex-end;
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--transition-fast);
+      min-width: 44px;
+      height: 44px;
+    }
+    .qa-send-btn:hover { background: var(--color-primary-dark, #3d6b4f); }
+    .qa-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .qa-send-btn svg { width: 18px; height: 18px; }
+
+    .qa-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+    .qa-comment {
+      display: flex;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+    }
+    .qa-comment.is-author {
+      background: var(--color-bg-warm);
+      border-color: var(--color-border);
+    }
+    .qa-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-full);
+      background: var(--color-primary-bg);
+      color: var(--color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-bold);
+      flex-shrink: 0;
+    }
+    .qa-comment.is-author .qa-avatar {
+      background: var(--color-primary);
+      color: white;
+    }
+    .qa-body { flex: 1; min-width: 0; }
+    .qa-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-bottom: 2px;
+    }
+    .qa-name {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text);
+    }
+    .qa-author-badge {
+      font-size: 10px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-primary);
+      background: var(--color-primary-bg);
+      padding: 1px var(--space-1);
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+    }
+    .qa-time {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+    .qa-message {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .qa-empty {
+      text-align: center;
+      padding: var(--space-4);
+      color: var(--color-text-muted);
+      font-size: var(--font-size-sm);
+    }
   </style>
 </head>
 <body>
@@ -857,6 +981,7 @@
     let currentMember = null;
     let listing = null;
     let exchanges = [];
+    let comments = [];
     let listingId = null;
     let allMembers = [];
 
@@ -906,12 +1031,16 @@
           return;
         }
 
-        // Load exchanges for this listing
+        // Load exchanges and comments for this listing
         try {
-          exchanges = await getExchangesForListing(listingId);
+          [exchanges, comments] = await Promise.all([
+            getExchangesForListing(listingId),
+            getListingComments(listingId)
+          ]);
         } catch (e) {
-          console.error('Exchanges fetch error:', e);
+          console.error('Data fetch error:', e);
           exchanges = [];
+          comments = [];
         }
 
         // Load all members for degrees calculation
@@ -1063,6 +1192,9 @@
         }
       }
 
+      // Q&A section (visible on all listings)
+      html += renderQASection();
+
       // Confirm dialog container
       html += '<div id="confirm-container"></div>';
 
@@ -1076,6 +1208,127 @@
           ${tags.map(t => `<span class="detail-tag">${escapeHtml(t)}</span>`).join('')}
         </div>
       `;
+    }
+
+    // =====================================================
+    // Q&A COMMENTS
+    // =====================================================
+    function renderQASection() {
+      const commentList = comments.length > 0
+        ? comments.map(c => {
+            const isListingAuthor = c.author_id === listing.author_id;
+            const initials = (c.author?.display_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            return `
+              <div class="qa-comment ${isListingAuthor ? 'is-author' : ''}">
+                <div class="qa-avatar">${initials}</div>
+                <div class="qa-body">
+                  <div class="qa-meta">
+                    <span class="qa-name">${escapeHtml(c.author?.display_name || 'Member')}</span>
+                    ${isListingAuthor ? '<span class="qa-author-badge">Author</span>' : ''}
+                    <span class="qa-time">${formatRelativeTime(c.created_at)}</span>
+                  </div>
+                  <div class="qa-message">${escapeHtml(c.message)}</div>
+                </div>
+              </div>
+            `;
+          }).join('')
+        : '<div class="qa-empty">No questions yet. Be the first to ask!</div>';
+
+      return `
+        <div class="qa-section">
+          <h3 class="qa-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            Questions
+            ${comments.length > 0 ? `<span class="qa-count">(${comments.length})</span>` : ''}
+          </h3>
+
+          <div class="qa-input-row">
+            <textarea class="textarea" id="qa-input" placeholder="Ask a question about this listing..." rows="1" oninput="autoResizeQA(this)"></textarea>
+            <button class="qa-send-btn" id="qa-send-btn" onclick="submitComment()" aria-label="Send">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="qa-list" id="qa-list">
+            ${commentList}
+          </div>
+        </div>
+      `;
+    }
+
+    function autoResizeQA(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    async function submitComment() {
+      const input = document.getElementById('qa-input');
+      const btn = document.getElementById('qa-send-btn');
+      const message = input.value.trim();
+
+      if (!message) {
+        input.focus();
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        await createListingComment({
+          listing_id: listingId,
+          author_id: currentMember.id,
+          message: message
+        });
+
+        // Notify listing author (unless commenting on own listing)
+        if (listing.author_id !== currentMember.id) {
+          createNotification({
+            member_id: listing.author_id,
+            type: 'listing_question',
+            title: 'New question on "' + listing.title + '"',
+            body: currentMember.display_name + ': ' + message.slice(0, 80),
+            link: 'listing.html?id=' + listing.id
+          }).catch(e => console.error('Notification error:', e));
+        }
+
+        // Reload comments and re-render just the Q&A section
+        comments = await getListingComments(listingId);
+        const listEl = document.getElementById('qa-list');
+        if (listEl) {
+          listEl.innerHTML = comments.map(c => {
+            const isListingAuthor = c.author_id === listing.author_id;
+            const initials = (c.author?.display_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+            return `
+              <div class="qa-comment ${isListingAuthor ? 'is-author' : ''}">
+                <div class="qa-avatar">${initials}</div>
+                <div class="qa-body">
+                  <div class="qa-meta">
+                    <span class="qa-name">${escapeHtml(c.author?.display_name || 'Member')}</span>
+                    ${isListingAuthor ? '<span class="qa-author-badge">Author</span>' : ''}
+                    <span class="qa-time">${formatRelativeTime(c.created_at)}</span>
+                  </div>
+                  <div class="qa-message">${escapeHtml(c.message)}</div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        input.value = '';
+        input.style.height = 'auto';
+
+        // Scroll to the new comment
+        if (listEl) listEl.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (e) {
+        console.error('Comment error:', e);
+        showToast('Failed to post comment. Please try again.');
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     function renderExchangeForm() {
