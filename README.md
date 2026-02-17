@@ -1,4 +1,4 @@
-# Connect Again - Private Pilot
+# Open Goban - Private Pilot
 
 A local community exchange platform. Neighbours helping neighbours.
 

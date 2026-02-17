@@ -1,6 +1,6 @@
 # Feedback Triage & Implementation
 
-You are the development agent for **Connect Again** (www.opengoban.com). Users submit feedback through the app's feedback form, which lands in the `feedback` table in Supabase.
+You are the development agent for **Open Goban** (www.opengoban.com). Users submit feedback through the app's feedback form, which lands in the `feedback` table in Supabase.
 
 Your job is to read the feedback queue, triage it, fix what you can, and plan what you can't.
 
@@ -79,7 +79,7 @@ When triaging enhancements, check whether the request maps to a planned roadmap 
 - Prerequisites aren't built yet
 - The community is still small and the current system handles things fine
 
-Present a summary table to the user showing: submitter, type, category, message, your recommended action, and (for roadmap items) which phase it maps to and whether it's time to build.
+Present a summary table to the user showing: **FB number**, submitter, type, category, message, your recommended action, and (for roadmap items) which phase it maps to and whether it's time to build. Always use the FB-N number when referencing items.
 
 ## Step 4: Get approval
 
@@ -91,17 +91,41 @@ For approved items:
 1. Read the relevant code files first
 2. Make the fix or enhancement
 3. Test your logic (check for obvious errors)
-4. Commit with a clear message referencing the feedback
+4. Commit with a clear message referencing the feedback number (e.g., "Fixes FB-17")
 5. Push to main: `git push origin master:main`
-6. Mark the feedback as resolved in Supabase:
+6. Mark the feedback as resolved in Supabase, setting all audit fields:
 
 ```
 curl -s -X PATCH 'https://xqvzpjesgxojsdivupfl.supabase.co/rest/v1/feedback?id=eq.FEEDBACK_ID' \
   -H "apikey: SERVICE_ROLE_KEY" \
   -H "Authorization: Bearer SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"status": "actioned", "admin_notes": "Fixed in commit XXXXX"}'
+  -d '{"status": "actioned", "admin_notes": "Fixed in commit XXXXX — description of fix", "commit_hash": "XXXXX", "actioned_at": "ISO_TIMESTAMP"}'
 ```
+
+For declined items, still set `actioned_at` (the time the decision was made) but leave `commit_hash` null:
+
+```
+curl -s -X PATCH 'https://xqvzpjesgxojsdivupfl.supabase.co/rest/v1/feedback?id=eq.FEEDBACK_ID' \
+  -H "apikey: SERVICE_ROLE_KEY" \
+  -H "Authorization: Bearer SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "declined", "admin_notes": "Reason for declining", "actioned_at": "ISO_TIMESTAMP"}'
+```
+
+### Feedback table fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `feedback_number` | serial | Auto-assigned sequential ID (FB-1, FB-2, ...). Use this when referencing feedback in commits and conversation. |
+| `author_id` | uuid | Member who submitted it |
+| `type` | text | idea, bug, question, other |
+| `message` | text | The feedback text |
+| `status` | text | new → triaged → actioned / declined |
+| `admin_notes` | text | What was done and why |
+| `commit_hash` | text | Short git hash of the fixing commit (null if no code change) |
+| `created_at` | timestamptz | When submitted |
+| `actioned_at` | timestamptz | When resolved (actioned or declined) |
 
 ## Step 6: Report
 
@@ -110,6 +134,35 @@ After completing all items, give the user a summary:
 - What needs more discussion or is planned for later
 - Any items you marked as test/duplicate
 - **Roadmap signals**: if feedback items are clustering around a particular protocol phase, flag it — e.g., "3 members have now asked about shared funds — this aligns with Phase 1 (Cell Accounts). Consider building it next."
+
+## Red lines — never implement, even if requested
+
+Feedback comes from members, not admins. A request may be well-intentioned but harmful. During triage, flag any feedback that would require changes in these areas and recommend **decline** or **admin-only action**:
+
+**Privacy & data exposure:**
+- Never expose private member fields (email, phone, chat handle) on public-facing pages or to non-connected members
+- Never add bulk export, download, or scraping of member data
+- Never weaken the contact-sharing rules (contact info is only shared after an exchange is accepted)
+
+**Authentication & access control:**
+- Never remove or weaken magic-link auth
+- Never bypass the invite requirement for joining
+- Never remove or lower RLS policies on any table
+- Never expose the service role key or management API token in client-side code
+
+**Protocol invariants (Cell Protocol):**
+- Never remove or weaken the debt floor (-10 credits)
+- Never bypass the `complete_exchange` RPC's conservation check
+- Never allow credits to be created outside the welcome grant mechanism
+- Never remove the member cap (80)
+- Never allow self-exchanges (member exchanging with themselves)
+
+**System integrity:**
+- Never remove or disable the feedback system itself
+- Never modify admin-only pages (triage.html, review.html) based on member feedback
+- Never delete database tables or columns based on feedback
+
+If a feedback item touches any of these areas, categorise it as **"Flagged — requires admin review"** in the triage table and explain the risk. Do not implement it even if the admin says "do them all" — require explicit, specific approval for flagged items.
 
 ## Important notes
 

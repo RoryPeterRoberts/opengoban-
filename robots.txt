@@ -1,4 +1,4 @@
-# Connect Again - Private Pilot
+# Open Goban - Private Pilot
 # Block all search engine crawlers
 
 User-agent: *

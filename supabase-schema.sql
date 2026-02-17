@@ -17,7 +17,7 @@ CREATE TABLE members (
   auth_id               uuid UNIQUE REFERENCES auth.users(id) ON DELETE SET NULL,
   email                 text UNIQUE NOT NULL,
   display_name          text NOT NULL,
-  member_id             text UNIQUE NOT NULL,  -- CC-0001 format
+  member_id             text UNIQUE NOT NULL,  -- OG-0001 format
   primary_category      text,
   secondary_categories  text[] DEFAULT '{}',
   skill_tags            text[] DEFAULT '{}',
@@ -42,7 +42,7 @@ CREATE SEQUENCE member_id_seq START 1;
 CREATE OR REPLACE FUNCTION generate_member_id()
 RETURNS text AS $$
 BEGIN
-  RETURN 'CC-' || LPAD(nextval('member_id_seq')::text, 4, '0');
+  RETURN 'OG-' || LPAD(nextval('member_id_seq')::text, 4, '0');
 END;
 $$ LANGUAGE plpgsql;
 
@@ -274,7 +274,7 @@ BEGIN
     ON CONFLICT (member_id) DO NOTHING;
 
     INSERT INTO balance_history (member_id, amount, reason, type, balance_after)
-    VALUES (NEW.id, 5, 'Welcome bonus for joining Connect Again', 'welcome_bonus', 5);
+    VALUES (NEW.id, 5, 'Welcome bonus for joining Open Goban', 'welcome_bonus', 5);
 
     INSERT INTO audit_log (action, actor_id, actor_name, description)
     VALUES ('member_accepted', NEW.id, NEW.display_name, 'New member accepted: ' || NEW.display_name || ' (' || NEW.member_id || ')');

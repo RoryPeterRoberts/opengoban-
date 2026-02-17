@@ -2,7 +2,7 @@
   "name": "connect-again",
   "version": "0.1.0",
   "private": true,
-  "description": "Connect Again - Neighbours helping neighbours. A local community exchange platform.",
+  "description": "Open Goban - Neighbours helping neighbours. A local community exchange platform.",
   "scripts": {
     "start": "npx serve -l 3000",
     "dev": "npx serve -l 3000",

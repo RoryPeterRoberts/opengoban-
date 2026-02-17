@@ -135,7 +135,7 @@ async function getAcceptedMembers() {
     .from('members')
     .select('*')
     .eq('status', 'ACCEPTED')
-    .neq('member_id', 'CC-0000')
+    .neq('member_id', 'OG-0000')
     .order('created_at', { ascending: true });
   if (error) throw error;
   return data || [];

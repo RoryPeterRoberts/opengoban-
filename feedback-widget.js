@@ -25,7 +25,7 @@
       <div class="modal">
         <div class="modal-header">
           <h2 class="modal-title">Send Feedback</h2>
-          <p class="modal-subtitle">Help us improve Connect Again.</p>
+          <p class="modal-subtitle">Help us improve Open Goban.</p>
         </div>
         <div class="modal-body">
           <div class="form-group">
