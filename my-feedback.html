@@ -220,6 +220,97 @@
       font-weight: var(--font-weight-medium);
     }
 
+    /* Community changelog */
+    .changelog {
+      margin-bottom: var(--space-6);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .changelog-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-bg-card);
+      border-bottom: 1px solid var(--color-border-light);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .changelog-header:hover {
+      background: var(--color-bg-muted);
+    }
+
+    .changelog-title {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .changelog-title svg {
+      width: 16px;
+      height: 16px;
+      color: var(--color-primary);
+    }
+
+    .changelog-toggle {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      transition: transform var(--transition-fast);
+    }
+
+    .changelog-toggle.collapsed {
+      transform: rotate(-90deg);
+    }
+
+    .changelog-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .changelog-list.collapsed {
+      display: none;
+    }
+
+    .changelog-item {
+      display: flex;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .changelog-item:last-child {
+      border-bottom: none;
+    }
+
+    .changelog-check {
+      color: var(--color-status-accepted);
+      flex-shrink: 0;
+      font-weight: var(--font-weight-bold);
+    }
+
+    .changelog-credit {
+      color: var(--color-primary);
+      font-weight: var(--font-weight-medium);
+    }
+
+    .changelog-date {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      white-space: nowrap;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
     /* Empty State */
     .empty-state {
       text-align: center;
@@ -298,11 +389,87 @@
         }
         initFeedbackWidget(member.id);
 
-        const feedback = await getMyFeedback(member.id);
-        renderFeedbackPage(feedback);
+        const [feedback, changelog, members] = await Promise.all([
+          getMyFeedback(member.id),
+          loadCommunityChangelog(),
+          getAcceptedMembers()
+        ]);
+        const memberMap = {};
+        members.forEach(m => { memberMap[m.id] = m.display_name; });
+        renderFeedbackPage(feedback, changelog, memberMap);
       } catch (e) {
         console.error('Init error:', e);
         renderError();
+      }
+    }
+
+    async function loadCommunityChangelog() {
+      try {
+        const sb = getSupabase();
+        const { data } = await sb
+          .from('feedback')
+          .select('feedback_number, admin_notes, actioned_at, author_id, commit_hash')
+          .eq('status', 'actioned')
+          .not('commit_hash', 'is', null)
+          .order('actioned_at', { ascending: false })
+          .limit(20);
+        return data || [];
+      } catch (e) {
+        console.error('Changelog load error:', e);
+        return [];
+      }
+    }
+
+    function renderChangelog(changelog, memberMap) {
+      if (!changelog || changelog.length === 0) return '';
+
+      const items = changelog.map(item => {
+        let note = (item.admin_notes || '')
+          .replace(/Fixed in commit [a-f0-9]+\s*—?\s*/i, '')
+          .replace(/Superseded by .+\.\s*/i, '')
+          .replace(/Implemented in commit [a-f0-9]+\s*/i, '')
+          .replace(/Meitheal framing integrated.+commit [a-f0-9]+/i, 'Meitheal framing added across the app')
+          .trim();
+        if (!note) return '';
+
+        const firstName = (memberMap[item.author_id] || 'A member').split(' ')[0];
+        const date = item.actioned_at
+          ? new Date(item.actioned_at).toLocaleDateString('en-IE', { day: 'numeric', month: 'short' })
+          : '';
+
+        return `
+          <li class="changelog-item">
+            <span class="changelog-check">&#10003;</span>
+            <span>${escapeHtml(note)} — <span class="changelog-credit">thanks ${escapeHtml(firstName)}</span></span>
+            ${date ? `<span class="changelog-date">${date}</span>` : ''}
+          </li>
+        `;
+      }).filter(Boolean);
+
+      if (items.length === 0) return '';
+
+      return `
+        <div class="changelog">
+          <div class="changelog-header" onclick="toggleChangelog()">
+            <span class="changelog-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Recent improvements (${items.length})
+            </span>
+            <span class="changelog-toggle" id="changelog-toggle">&#9660;</span>
+          </div>
+          <ul class="changelog-list" id="changelog-list">
+            ${items.join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    function toggleChangelog() {
+      const list = document.getElementById('changelog-list');
+      const toggle = document.getElementById('changelog-toggle');
+      if (list && toggle) {
+        list.classList.toggle('collapsed');
+        toggle.classList.toggle('collapsed');
       }
     }
 
@@ -317,7 +484,7 @@
       `;
     }
 
-    function renderFeedbackPage(feedback) {
+    function renderFeedbackPage(feedback, changelog, memberMap) {
       const container = document.getElementById('main-container');
 
       const stats = {
@@ -334,13 +501,17 @@
               <polyline points="12 19 5 12 12 5"/>
             </svg>
           </a>
-          <h1 class="feedback-title">My Feedback</h1>
+          <h1 class="feedback-title">Feedback</h1>
         </header>
+
+        ${renderChangelog(changelog, memberMap)}
+
+        <h2 style="font-family:var(--font-family-heading);font-size:var(--font-size-lg);font-weight:var(--font-weight-semibold);color:var(--color-text);margin-bottom:var(--space-4);">Your submissions</h2>
 
         <div class="feedback-stats">
           <div class="stat-card">
             <div class="stat-value">${stats.total}</div>
-            <div class="stat-label">Total</div>
+            <div class="stat-label">Submitted</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">${stats.pending}</div>

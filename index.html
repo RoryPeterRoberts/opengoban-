@@ -398,68 +398,6 @@
       color: var(--color-text);
     }
 
-    /* Community changelog */
-    .changelog {
-      margin-bottom: var(--space-4);
-      border: 1px solid var(--color-border-light);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-    }
-
-    .changelog-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: var(--space-3) var(--space-4);
-      background: var(--color-bg-card);
-      border-bottom: 1px solid var(--color-border-light);
-    }
-
-    .changelog-title {
-      font-size: var(--font-size-sm);
-      font-weight: var(--font-weight-semibold);
-      color: var(--color-text);
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
-    }
-
-    .changelog-title svg {
-      width: 16px;
-      height: 16px;
-      color: var(--color-primary);
-    }
-
-    .changelog-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-
-    .changelog-item {
-      display: flex;
-      gap: var(--space-3);
-      padding: var(--space-3) var(--space-4);
-      font-size: var(--font-size-sm);
-      color: var(--color-text-secondary);
-      line-height: var(--line-height-relaxed);
-      border-bottom: 1px solid var(--color-border-light);
-    }
-
-    .changelog-item:last-child {
-      border-bottom: none;
-    }
-
-    .changelog-icon {
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .changelog-credit {
-      color: var(--color-primary);
-      font-weight: var(--font-weight-medium);
-    }
-
     /* New member card */
     .new-member-card {
       display: flex;
@@ -1182,7 +1120,6 @@
     let feedSearchQuery = '';
     let feedSearchRegex = null;
     let lastVisit = null; // ISO timestamp of previous visit
-    let changelogItems = [];
 
     const postState = {
       mode: null,
@@ -1353,9 +1290,8 @@
         updateUserIdentity();
         await loadBalance();
         allMembers = await getAcceptedMembers();
-        await Promise.all([loadFeed(), loadChangelog()]);
+        await loadFeed();
         renderWhatsNew();
-        renderChangelog();
         updateInviteStatus();
 
         // Update last visit to now (after rendering so badges show correctly)
@@ -1752,92 +1688,7 @@
 
     function dismissWhatsNew() {
       const container = document.getElementById('whats-new-container');
-      if (container) {
-        // Remove only the whats-new-banner, keep changelog
-        const banner = container.querySelector('.whats-new-banner');
-        if (banner) banner.remove();
-      }
-    }
-
-    async function loadChangelog() {
-      try {
-        const sb = getSupabase();
-        const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-        const { data } = await sb
-          .from('feedback')
-          .select('feedback_number, admin_notes, actioned_at, author_id, status, commit_hash')
-          .eq('status', 'actioned')
-          .not('commit_hash', 'is', null)
-          .gte('actioned_at', twoWeeksAgo)
-          .order('actioned_at', { ascending: false })
-          .limit(8);
-        changelogItems = data || [];
-      } catch (e) {
-        console.error('Changelog load error:', e);
-        changelogItems = [];
-      }
-    }
-
-    function renderChangelog() {
-      const container = document.getElementById('whats-new-container');
-      if (!container || changelogItems.length === 0) return;
-
-      // Check if user dismissed this batch
-      const lastDismissed = localStorage.getItem('cc_changelog_dismissed');
-      const latestItem = changelogItems[0];
-      if (lastDismissed && latestItem && lastDismissed >= latestItem.actioned_at) return;
-
-      // Build member lookup for first names
-      const memberMap = {};
-      allMembers.forEach(m => { memberMap[m.id] = m.display_name; });
-
-      const items = changelogItems.map(item => {
-        // Clean notes for member display
-        let note = (item.admin_notes || '')
-          .replace(/Fixed in commit [a-f0-9]+\s*—?\s*/i, '')
-          .replace(/Superseded by .+\.\s*/i, '')
-          .replace(/Implemented in commit [a-f0-9]+\s*/i, '')
-          .replace(/Meitheal framing integrated.+commit [a-f0-9]+/i, 'Meitheal framing added across the app')
-          .trim();
-        if (!note) return '';
-
-        const firstName = (memberMap[item.author_id] || 'A member').split(' ')[0];
-
-        return `
-          <li class="changelog-item">
-            <span class="changelog-icon">&#10003;</span>
-            <span>${escapeHtml(note)} — <span class="changelog-credit">thanks ${escapeHtml(firstName)}</span></span>
-          </li>
-        `;
-      }).filter(Boolean);
-
-      if (items.length === 0) return;
-
-      const changelogHtml = `
-        <div class="changelog" id="changelog-section">
-          <div class="changelog-header">
-            <span class="changelog-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-              Recent improvements
-            </span>
-            <button class="whats-new-dismiss" onclick="dismissChangelog()" title="Dismiss">&times;</button>
-          </div>
-          <ul class="changelog-list">
-            ${items.join('')}
-          </ul>
-        </div>
-      `;
-
-      // Append after any existing whats-new banner
-      container.insertAdjacentHTML('beforeend', changelogHtml);
-    }
-
-    function dismissChangelog() {
-      const el = document.getElementById('changelog-section');
-      if (el) el.remove();
-      if (changelogItems.length > 0) {
-        localStorage.setItem('cc_changelog_dismissed', changelogItems[0].actioned_at);
-      }
+      if (container) container.innerHTML = '';
     }
 
     function renderProposalBadge(listing) {
