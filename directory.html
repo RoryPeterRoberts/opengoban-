@@ -727,6 +727,7 @@
     let filteredMembers = [];
     let activeCategory = 'all';
     let searchQuery = '';
+    let searchRegex = null;
     let memberLookup = {};
     let currentView = 'grid';
     let currentMember = null;
@@ -817,6 +818,10 @@
     // =====================================================
     function handleSearch(e) {
       searchQuery = e.target.value.trim().toLowerCase();
+      try {
+        const escaped = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        searchRegex = searchQuery ? new RegExp('\\b' + escaped + '\\b', 'i') : null;
+      } catch (err) { searchRegex = null; }
       applyFilters();
     }
 
@@ -840,8 +845,8 @@
             member.bio || '',
             member.area || '',
             member.member_id || ''
-          ].join(' ').toLowerCase();
-          if (!searchFields.includes(searchQuery)) return false;
+          ].join(' ');
+          if (!searchRegex || !searchRegex.test(searchFields)) return false;
         }
 
         return true;
@@ -891,7 +896,7 @@
       if (tags.length > 0) {
         tagsHtml = '<div class="member-tags">';
         tagsHtml += tags.map(t => {
-          const matched = searchQuery && t.toLowerCase().includes(searchQuery) ? ' matched' : '';
+          const matched = searchRegex && searchRegex.test(t) ? ' matched' : '';
           return `<span class="skill-tag${matched}">${escapeHtml(t)}</span>`;
         }).join('');
         tagsHtml += '</div>';
@@ -899,7 +904,7 @@
 
       // Bio snippet: show only when search matches bio content
       let bioHtml = '';
-      if (searchQuery && member.bio && member.bio.toLowerCase().includes(searchQuery)) {
+      if (searchRegex && member.bio && searchRegex.test(member.bio)) {
         const snippet = member.bio.length > 120 ? member.bio.slice(0, 120) + '...' : member.bio;
         bioHtml = `<div class="bio-snippet">${escapeHtml(snippet)}</div>`;
       }

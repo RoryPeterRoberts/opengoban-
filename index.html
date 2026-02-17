@@ -1111,6 +1111,7 @@
     let currentSort = 'newest';
     let currentArea = 'all';
     let feedSearchQuery = '';
+    let feedSearchRegex = null;
     let lastVisit = null; // ISO timestamp of previous visit
 
     const postState = {
@@ -1561,8 +1562,8 @@
             l.description || '',
             ...(l.tags || []),
             (l.author || {}).display_name || ''
-          ].join(' ').toLowerCase();
-          return fields.includes(feedSearchQuery);
+          ].join(' ');
+          return matchesSearch(fields);
         });
       }
 
@@ -1700,8 +1701,17 @@
     // =====================================================
     function handleFeedSearch(value) {
       feedSearchQuery = value.trim().toLowerCase();
+      try {
+        const escaped = feedSearchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        feedSearchRegex = feedSearchQuery ? new RegExp('\\b' + escaped + '\\b', 'i') : null;
+      } catch (e) { feedSearchRegex = null; }
       renderFeed();
       renderMemberSearchResults();
+    }
+
+    function matchesSearch(text) {
+      if (!feedSearchRegex) return false;
+      return feedSearchRegex.test(text);
     }
 
     function renderMemberSearchResults() {
@@ -1720,8 +1730,8 @@
           ...(Array.isArray(m.skill_tags) ? m.skill_tags : []),
           m.bio || '',
           m.area || ''
-        ].join(' ').toLowerCase();
-        return fields.includes(feedSearchQuery);
+        ].join(' ');
+        return matchesSearch(fields);
       });
 
       if (matches.length === 0) {
