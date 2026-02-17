@@ -919,6 +919,22 @@
         `;
       }
 
+      // Decline reason
+      if (exchange.status === 'cancelled' && exchange.cancel_reason) {
+        html += `<div style="padding:var(--space-3);background:var(--color-bg-warm);border-radius:var(--radius-md);margin-top:var(--space-3);font-size:var(--font-size-sm);color:var(--color-text-secondary);">
+          <strong>Reason:</strong> ${escapeHtml(exchange.cancel_reason)}
+        </div>`;
+      }
+
+      // Decline reason input (shown when user clicks Decline)
+      html += `<div class="decline-reason-form" id="decline-form-${exchange.id}" style="display:none;margin-top:var(--space-3);">
+        <textarea class="input" id="decline-reason-${exchange.id}" placeholder="Reason (optional)" rows="2" style="resize:vertical;font-size:var(--font-size-sm);margin-bottom:var(--space-2);"></textarea>
+        <div style="display:flex;gap:var(--space-2);">
+          <button class="btn btn-danger btn-sm" onclick="confirmDecline('${exchange.id}')">Confirm Decline</button>
+          <button class="btn btn-ghost btn-sm" onclick="cancelDeclineForm('${exchange.id}')">Back</button>
+        </div>
+      </div>`;
+
       // Action buttons
       const actions = getExchangeActions(exchange, myRole, iProposed);
       if (actions.length > 0) {
@@ -963,7 +979,7 @@
         // The person who did NOT propose can accept or decline
         if (!iProposed) {
           actions.push(`<button class="btn btn-secondary btn-sm" onclick="handleAccept('${id}')">Accept</button>`);
-          actions.push(`<button class="btn btn-danger btn-sm" onclick="handleCancel('${id}')">Decline</button>`);
+          actions.push(`<button class="btn btn-danger btn-sm" onclick="handleDecline('${id}')">Decline</button>`);
         } else {
           // The proposer can cancel their proposal
           actions.push(`<button class="btn btn-danger btn-sm" onclick="handleCancel('${id}')">Cancel</button>`);
@@ -1154,6 +1170,57 @@
         showToast('Failed to confirm. Please try again.');
         btn.disabled = false;
         btn.textContent = 'Confirm Complete';
+      }
+    }
+
+    function handleDecline(exchangeId) {
+      // Show the decline reason form, hide action buttons
+      const form = document.getElementById('decline-form-' + exchangeId);
+      const card = form.closest('.exchange-card');
+      const actions = card.querySelector('.exchange-actions');
+      if (actions) actions.style.display = 'none';
+      form.style.display = 'block';
+      document.getElementById('decline-reason-' + exchangeId).focus();
+    }
+
+    function cancelDeclineForm(exchangeId) {
+      const form = document.getElementById('decline-form-' + exchangeId);
+      const card = form.closest('.exchange-card');
+      const actions = card.querySelector('.exchange-actions');
+      form.style.display = 'none';
+      if (actions) actions.style.display = '';
+    }
+
+    async function confirmDecline(exchangeId) {
+      const reason = document.getElementById('decline-reason-' + exchangeId).value.trim();
+      const form = document.getElementById('decline-form-' + exchangeId);
+      const btn = form.querySelector('.btn-danger');
+      btn.disabled = true;
+      btn.textContent = 'Declining...';
+
+      try {
+        const ex = allExchanges.find(e => e.id === exchangeId);
+        await cancelExchange(exchangeId, reason || null);
+
+        if (ex) {
+          const otherId = getOtherPartyId(ex);
+          const reasonSuffix = reason ? ' — "' + reason + '"' : '';
+          createNotification({
+            member_id: otherId,
+            type: 'exchange_cancelled',
+            title: 'Exchange declined: "' + getExchangeTitle(ex) + '"' + reasonSuffix,
+            link: 'exchanges.html'
+          }).catch(e => console.error('Notification error:', e));
+        }
+
+        showToast('Exchange declined.');
+        await loadExchanges();
+        renderExchangeLists();
+      } catch (e) {
+        console.error('Decline error:', e);
+        showToast('Failed to decline. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Confirm Decline';
       }
     }
 

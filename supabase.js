@@ -362,11 +362,13 @@ async function confirmExchange(exchangeId, role) {
   return data;
 }
 
-async function cancelExchange(exchangeId) {
+async function cancelExchange(exchangeId, cancelReason) {
   const sb = getSupabase();
+  const update = { status: 'cancelled' };
+  if (cancelReason) update.cancel_reason = cancelReason;
   const { data, error } = await sb
     .from('exchanges')
-    .update({ status: 'cancelled' })
+    .update(update)
     .eq('id', exchangeId)
     .select()
     .single();
