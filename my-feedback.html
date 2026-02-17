@@ -285,6 +285,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <script src="js/auth.js"></script>
+  <script src="feedback-widget.js"></script>
 
   <div class="feedback-container" id="main-container">
     <!-- Content rendered by JS -->
@@ -304,6 +305,7 @@
           renderError();
           return;
         }
+        initFeedbackWidget(member.id);
 
         const feedback = await getMyFeedback(member.id);
         renderFeedbackPage(feedback);
