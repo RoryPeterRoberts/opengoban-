@@ -392,45 +392,6 @@
       color: var(--color-text-muted);
     }
 
-    /* Admin Nav */
-    .admin-nav {
-      display: flex;
-      gap: var(--space-3);
-      margin-bottom: var(--space-6);
-      padding-bottom: var(--space-4);
-      border-bottom: 1px solid var(--color-border-light);
-    }
-
-    .admin-nav-link {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-2);
-      padding: var(--space-2) var(--space-4);
-      background: var(--color-bg-card);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      font-size: var(--font-size-sm);
-      color: var(--color-text-secondary);
-      text-decoration: none;
-      transition: all var(--transition-fast);
-    }
-
-    .admin-nav-link:hover {
-      border-color: var(--color-primary);
-      color: var(--color-primary);
-    }
-
-    .admin-nav-link.active {
-      background: var(--color-primary);
-      border-color: var(--color-primary);
-      color: white;
-    }
-
-    .admin-nav-link svg {
-      width: 16px;
-      height: 16px;
-    }
-
     /* Promote Modal */
     .promote-form {
       display: flex;
@@ -447,6 +408,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <script src="js/auth.js"></script>
+  <script src="admin-nav.js"></script>
 
   <div class="admin-container" id="main-container">
     <!-- Content rendered by JS after admin auth -->
@@ -530,34 +492,7 @@
           <span class="admin-badge">Admin</span>
         </header>
 
-        <nav class="admin-nav">
-          <a href="triage.html" class="admin-nav-link active">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            Triage
-          </a>
-          <a href="review.html" class="admin-nav-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-            </svg>
-            Members
-          </a>
-          <a href="audit.html" class="admin-nav-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-            </svg>
-            Audit Log
-          </a>
-          <a href="engagement.html" class="admin-nav-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-            </svg>
-            Engagement
-          </a>
-        </nav>
+        <div id="admin-nav-slot"></div>
 
         <div class="stats-row">
           <div class="stat-card">
@@ -590,6 +525,7 @@
           ${renderFeedbackList()}
         </div>
       `;
+      if (window.renderAdminNav) renderAdminNav('admin-nav-slot');
     }
 
     function setFilter(filter) {
