@@ -206,7 +206,8 @@ async function getListingById(id) {
       *,
       author:members!listings_author_id_fkey (
         id, display_name, member_id, primary_category, skill_tags,
-        area, exchanges_completed, disputes_count, created_at
+        area, exchanges_completed, disputes_count, created_at,
+        email, phone, chat_platform, chat_handle
       )
     `)
     .eq('id', id)
