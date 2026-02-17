@@ -250,6 +250,18 @@
       text-decoration: none;
     }
 
+    /* Scrollable feed container */
+    #feed-list {
+      max-height: 70vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-border) transparent;
+    }
+    #feed-list::-webkit-scrollbar { width: 4px; }
+    #feed-list::-webkit-scrollbar-track { background: transparent; }
+    #feed-list::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+
     .empty-feed { text-align: center; padding: var(--space-8); color: var(--color-text-muted); }
     .empty-feed-icon { font-size: 3rem; margin-bottom: var(--space-4); }
     .empty-feed-title { font-family: var(--font-family-heading); font-size: var(--font-size-lg); color: var(--color-text); margin-bottom: var(--space-2); }
