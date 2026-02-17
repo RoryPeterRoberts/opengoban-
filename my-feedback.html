@@ -176,57 +176,48 @@
       color: var(--color-text-muted);
     }
 
-    .feedback-triage {
+    .feedback-response {
       margin-top: var(--space-4);
-      padding-top: var(--space-3);
-      border-top: 1px solid var(--color-border-light);
+      padding: var(--space-4);
+      background: var(--color-status-accepted-bg);
+      border-radius: var(--radius-md);
+      border-left: 3px solid var(--color-status-accepted);
     }
 
-    .feedback-triage-title {
+    .feedback-response.declined {
+      background: var(--color-bg-muted);
+      border-left-color: var(--color-text-muted);
+    }
+
+    .feedback-response-label {
       font-size: var(--font-size-xs);
       font-weight: var(--font-weight-semibold);
-      color: var(--color-text-muted);
+      color: var(--color-status-accepted);
       text-transform: uppercase;
       letter-spacing: 0.03em;
       margin-bottom: var(--space-2);
     }
 
-    .feedback-triage-info {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-3);
-      font-size: var(--font-size-xs);
-    }
-
-    .feedback-triage-item {
-      display: flex;
-      align-items: center;
-      gap: var(--space-1);
-      color: var(--color-text-secondary);
-    }
-
-    .priority-badge {
-      display: inline-block;
-      padding: 2px var(--space-2);
-      border-radius: var(--radius-sm);
-      font-size: 10px;
-      font-weight: var(--font-weight-semibold);
-      text-transform: uppercase;
-    }
-
-    .priority-badge.high {
-      background: var(--color-status-hold-bg);
-      color: var(--color-status-hold);
-    }
-
-    .priority-badge.medium {
-      background: var(--color-status-review-bg);
-      color: var(--color-status-review);
-    }
-
-    .priority-badge.low {
-      background: var(--color-bg-muted);
+    .feedback-response.declined .feedback-response-label {
       color: var(--color-text-muted);
+    }
+
+    .feedback-response-text {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .feedback-response-date {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-2);
+    }
+
+    .feedback-number {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      font-weight: var(--font-weight-medium);
     }
 
     /* Empty State */
@@ -397,26 +388,52 @@
     function renderFeedbackItem(item) {
       const typeEmoji = { bug: '🐛', idea: '💡', question: '❓', other: '💬' };
       const statusLabels = { new: 'New', triaged: 'Reviewed', actioned: 'Actioned', declined: 'Declined' };
+      const dateOpts = { day: 'numeric', month: 'short', year: 'numeric' };
 
-      const date = new Date(item.created_at);
-      const formattedDate = date.toLocaleDateString('en-IE', {
-        day: 'numeric', month: 'short', year: 'numeric'
-      });
+      const submittedDate = new Date(item.created_at).toLocaleDateString('en-IE', dateOpts);
+
+      // Build the admin response section
+      let responseHtml = '';
+      if ((item.status === 'actioned' || item.status === 'declined') && item.admin_notes) {
+        // Clean admin_notes: strip commit hash references for member-facing display
+        const memberNotes = item.admin_notes
+          .replace(/Fixed in commit [a-f0-9]+\s*—?\s*/i, '')
+          .replace(/Superseded by .+\.\s*/i, '')
+          .trim();
+
+        const actionedDate = item.actioned_at
+          ? new Date(item.actioned_at).toLocaleDateString('en-IE', dateOpts)
+          : null;
+
+        const label = item.status === 'actioned' ? 'Response' : 'Decision';
+
+        responseHtml = `
+          <div class="feedback-response ${item.status === 'declined' ? 'declined' : ''}">
+            <div class="feedback-response-label">${label}</div>
+            <div class="feedback-response-text">${escapeHtml(memberNotes)}</div>
+            ${actionedDate ? `<div class="feedback-response-date">Resolved ${actionedDate}</div>` : ''}
+          </div>
+        `;
+      }
 
       return `
         <div class="feedback-item">
           <div class="feedback-item-header">
-            <span class="feedback-type-badge ${item.type}">
-              ${typeEmoji[item.type] || '💬'} ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-            </span>
+            <div style="display:flex;align-items:center;gap:var(--space-2);">
+              <span class="feedback-type-badge ${item.type}">
+                ${typeEmoji[item.type] || '💬'} ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+              </span>
+              ${item.feedback_number ? `<span class="feedback-number">FB-${item.feedback_number}</span>` : ''}
+            </div>
             <span class="feedback-status-badge ${item.status}">
               ${statusLabels[item.status] || item.status}
             </span>
           </div>
           <p class="feedback-message">${escapeHtml(item.message)}</p>
           <div class="feedback-meta">
-            Submitted ${formattedDate}
+            Submitted ${submittedDate}
           </div>
+          ${responseHtml}
         </div>
       `;
     }
