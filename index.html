@@ -2073,11 +2073,13 @@
 
     function openFeedbackModal() {
       document.getElementById('feedback-modal').classList.add('active');
+      document.getElementById('feedback-fab').style.display = 'none';
       document.getElementById('feedback-message').focus();
     }
 
     function closeFeedbackModal() {
       document.getElementById('feedback-modal').classList.remove('active');
+      document.getElementById('feedback-fab').style.display = 'flex';
       document.getElementById('feedback-message').value = '';
       selectedFeedbackType = 'idea';
       document.querySelectorAll('.feedback-type-option').forEach(opt => {
