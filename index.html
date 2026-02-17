@@ -167,99 +167,88 @@
     .feed-title { font-family: var(--font-family-heading); font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); color: var(--color-text); margin-bottom: var(--space-4); display: flex; align-items: center; gap: var(--space-2); }
     .feed-title svg { width: 20px; height: 20px; color: var(--color-primary); }
 
-    .listing-card {
-      background: var(--color-bg-card);
-      border: 1px solid var(--color-border-light);
-      border-radius: var(--radius-lg);
-      padding: var(--space-4);
-      margin-bottom: var(--space-3);
-      box-shadow: var(--shadow-sm);
-      transition: all var(--transition-fast);
-    }
-
-    .listing-card:hover { box-shadow: var(--shadow-md); }
-
-    /* Compact notice card for Community Notices */
-    .notice-card {
+    /* Compact listing rows */
+    .listing-row {
       background: var(--color-bg-card);
       border: 1px solid var(--color-border-light);
       border-radius: var(--radius-md);
-      padding: var(--space-3);
-      margin-bottom: var(--space-2);
+      margin-bottom: var(--space-1);
     }
-    .notice-card .notice-header {
+    .listing-row summary {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       gap: var(--space-2);
-      flex-wrap: wrap;
-    }
-    .notice-card .notice-title {
-      font-weight: var(--font-weight-semibold);
-      font-size: var(--font-size-base);
-      color: var(--color-text);
-    }
-    .notice-card .notice-time {
-      font-size: var(--font-size-xs);
-      color: var(--color-text-muted);
-      margin-left: auto;
-    }
-    .notice-card details {
-      margin-top: var(--space-2);
-    }
-    .notice-card details summary {
-      font-size: var(--font-size-xs);
-      color: var(--color-primary);
+      padding: var(--space-3);
       cursor: pointer;
       list-style: none;
+      min-height: 44px;
     }
-    .notice-card details summary::-webkit-details-marker { display: none; }
-    .notice-card details summary::before { content: 'More ▸'; }
-    .notice-card details[open] summary::before { content: 'Less ▾'; }
-    .notice-card details .notice-desc {
+    .listing-row summary::-webkit-details-marker { display: none; }
+    .listing-row summary::marker { display: none; content: ''; }
+    .listing-row-type {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+    }
+    .listing-row-type.offer { background: var(--color-status-accepted-bg); color: var(--color-status-accepted); }
+    .listing-row-type.need { background: var(--color-status-review-bg); color: var(--color-status-review); }
+    .listing-row-title {
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-sm);
+      color: var(--color-text);
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .listing-row-time {
+      flex-shrink: 0;
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+    .listing-row-chevron {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      color: var(--color-text-muted);
+      transition: transform 0.15s ease;
+    }
+    .listing-row[open] > summary .listing-row-chevron {
+      transform: rotate(90deg);
+    }
+    .listing-row-body {
+      padding: 0 var(--space-3) var(--space-3);
+    }
+    .listing-row-desc {
       font-size: var(--font-size-sm);
       color: var(--color-text-secondary);
       line-height: var(--line-height-relaxed);
-      margin-top: var(--space-2);
+      margin-bottom: var(--space-3);
     }
-    .notice-card .notice-footer {
+    .listing-row-tags {
+      display: flex;
+      gap: var(--space-1);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-3);
+    }
+    .listing-row-meta {
       display: flex;
       align-items: center;
-      gap: var(--space-2);
-      margin-top: var(--space-2);
+      gap: var(--space-3);
       font-size: var(--font-size-xs);
       color: var(--color-text-muted);
+      flex-wrap: wrap;
     }
-    .notice-card .notice-link {
+    .listing-row-meta a {
       margin-left: auto;
       color: var(--color-primary);
       text-decoration: none;
-      font-size: var(--font-size-xs);
     }
-
-    .listing-type-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-1);
-      padding: var(--space-1) var(--space-2);
-      border-radius: var(--radius-sm);
-      font-size: var(--font-size-xs);
-      font-weight: var(--font-weight-semibold);
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-
-    .listing-type-badge.offer { background: var(--color-status-accepted-bg); color: var(--color-status-accepted); }
-    .listing-type-badge.need { background: var(--color-status-review-bg); color: var(--color-status-review); }
-
-    .listing-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-3); }
-    .listing-title { font-weight: var(--font-weight-semibold); color: var(--color-text); font-size: var(--font-size-base); margin-bottom: var(--space-1); }
-    .listing-category { font-size: var(--font-size-sm); color: var(--color-text-secondary); }
-    .listing-desc { font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: var(--line-height-relaxed); margin-bottom: var(--space-3); }
-    .listing-meta { display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-size-xs); color: var(--color-text-muted); flex-wrap: wrap; }
-    .listing-meta-item { display: inline-flex; align-items: center; gap: var(--space-1); }
-    .listing-meta-item svg { width: 14px; height: 14px; }
-
-    .listing-author { display: flex; align-items: center; gap: var(--space-2); padding-top: var(--space-3); margin-top: var(--space-3); border-top: 1px solid var(--color-border-light); font-size: var(--font-size-xs); color: var(--color-text-muted); }
 
     .empty-feed { text-align: center; padding: var(--space-8); color: var(--color-text-muted); }
     .empty-feed-icon { font-size: 3rem; margin-bottom: var(--space-4); }
@@ -1572,63 +1561,43 @@
     function renderListingCard(listing) {
       const cat = getCategoryById(listing.category);
       const author = listing.author || {};
-      const band = calculateReliabilityBand(author.exchanges_completed || 0, author.disputes_count || 0);
-      const areaLabel = listing.area === 'neighbourhood' ? 'Neighbourhood' : listing.area === 'village' ? 'Village' : 'Nearby';
-      const tags = (listing.tags || []).map(t => `<span style="background:var(--color-bg-muted);padding:2px 8px;border-radius:var(--radius-sm);font-size:var(--font-size-xs);color:var(--color-text-muted);">${t}</span>`).join(' ');
+      const tags = (listing.tags || []).map(t => `<span style="background:var(--color-bg-muted);padding:2px 8px;border-radius:var(--radius-sm);font-size:var(--font-size-xs);color:var(--color-text-muted);">${t}</span>`).join('');
       const isNew = lastVisit && listing.created_at > lastVisit;
+      const isNotice = listing.category === 'events_community';
+      const typeLabel = isNotice ? '' : `<span class="listing-row-type ${listing.type}">${listing.type === 'offer' ? 'O' : 'N'}</span>`;
 
-      // Compact card for Community Notices
-      if (listing.category === 'events_community') {
-        return `
-          <div class="notice-card">
-            <div class="notice-header">
-              <span>${cat.emoji}</span>
-              <span class="notice-title">${escapeHtml(listing.title)}</span>
-              ${isNew ? '<span class="new-badge">New</span>' : ''}
-              <span class="notice-time">${formatRelativeTime(listing.created_at)}</span>
-            </div>
-            ${listing.description ? `<details><summary></summary><div class="notice-desc">${escapeHtml(listing.description)}</div></details>` : ''}
-            ${tags ? `<div style="margin-top:var(--space-2);display:flex;gap:var(--space-1);flex-wrap:wrap;">${tags}</div>` : ''}
-            <div class="notice-footer">
-              <span>${escapeHtml(author.display_name || 'Unknown')}</span>
-              <a href="listing.html?id=${listing.id}" class="notice-link">View listing →</a>
-            </div>
-          </div>
-        `;
+      // Build expanded body content
+      const desc = listing.description ? `<div class="listing-row-desc">${escapeHtml(listing.description)}</div>` : '';
+      const tagBlock = tags ? `<div class="listing-row-tags">${tags}</div>` : '';
+
+      const metaParts = [];
+      metaParts.push(escapeHtml(author.display_name || 'Unknown'));
+      if (!isNotice) {
+        const areaLabel = listing.area === 'neighbourhood' ? 'Neighbourhood' : listing.area === 'village' ? 'Village' : 'Nearby';
+        metaParts.push(areaLabel);
+        if (listing.urgency) metaParts.push(listing.urgency);
       }
+      const metaText = metaParts.join(' · ');
 
       return `
-        <a href="listing.html?id=${listing.id}" class="listing-card" style="text-decoration:none;color:inherit;display:block;">
-          <div class="listing-header">
-            <div>
-              <div class="listing-title">${escapeHtml(listing.title)}${isNew ? '<span class="new-badge">New</span>' : ''}</div>
-              <div class="listing-category">${cat.emoji} ${cat.label}</div>
+        <details class="listing-row">
+          <summary>
+            <span>${cat.emoji}</span>
+            ${typeLabel}
+            <span class="listing-row-title">${escapeHtml(listing.title)}${isNew ? ' <span class="new-badge">New</span>' : ''}</span>
+            <span class="listing-row-time">${formatRelativeTime(listing.created_at)}</span>
+            <svg class="listing-row-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </summary>
+          <div class="listing-row-body">
+            ${desc}
+            ${tagBlock}
+            <div class="listing-row-meta">
+              <span>${metaText}</span>
+              ${renderProposalBadge(listing)}
+              <a href="listing.html?id=${listing.id}">View listing →</a>
             </div>
-            <span class="listing-type-badge ${listing.type}">${listing.type === 'offer' ? 'Offer' : 'Need'}</span>
           </div>
-          ${listing.description ? `<div class="listing-desc">${escapeHtml(listing.description)}</div>` : ''}
-          ${tags ? `<div style="margin-bottom:var(--space-3);display:flex;gap:var(--space-1);flex-wrap:wrap;">${tags}</div>` : ''}
-          <div class="listing-meta">
-            <span class="listing-meta-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              ${areaLabel}
-            </span>
-            <span class="listing-meta-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              ${listing.urgency || 'This week'}
-            </span>
-            <span class="listing-meta-item">${formatRelativeTime(listing.created_at)}</span>
-          </div>
-          <div class="listing-author">
-            <span>${author.display_name || 'Unknown'}</span>
-            <span>&middot;</span>
-            <span style="font-family:var(--font-family-mono,monospace);">${author.member_id || ''}</span>
-            <span>&middot;</span>
-            <span class="reliability-badge ${band.toLowerCase()}">${band}</span>
-            ${renderDegreesBadge(author.id)}
-          </div>
-          ${renderProposalBadge(listing)}
-        </a>
+        </details>
       `;
     }
 
