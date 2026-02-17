@@ -1570,12 +1570,31 @@
 
           // Link to exchanges page for accepted exchanges
           if (ex.status === 'accepted') {
-            itemHtml += `
-              <a href="exchanges.html" class="proposal-exchange-link">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                Confirm &amp; complete on Exchanges page
-              </a>
-            `;
+            // Check if the owner is provider or receiver
+            const ownerRole = ex.provider_id === listing.author_id ? 'provider' : 'receiver';
+            const myConfirmed = ownerRole === 'provider' ? ex.provider_confirmed : ex.receiver_confirmed;
+            const theirConfirmed = ownerRole === 'provider' ? ex.receiver_confirmed : ex.provider_confirmed;
+            const proposerFirst = (proposer.name || 'the other party').split(' ')[0];
+
+            if (myConfirmed) {
+              itemHtml += `
+                <div style="margin-top: var(--space-3); padding: var(--space-3); background: var(--color-bg-warm); border-radius: var(--radius-md); font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -3px; margin-right: 4px;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  You've confirmed. Waiting for ${escapeHtml(proposerFirst)} to confirm.
+                </div>`;
+            } else if (theirConfirmed) {
+              itemHtml += `
+                <a href="exchanges.html" class="proposal-exchange-link" style="background: var(--color-primary); color: white; border-color: var(--color-primary); font-weight: var(--font-weight-semibold);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  ${escapeHtml(proposerFirst)} has confirmed — go confirm to complete
+                </a>`;
+            } else {
+              itemHtml += `
+                <a href="exchanges.html" class="proposal-exchange-link">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  Confirm &amp; complete on Exchanges page
+                </a>`;
+            }
           }
 
           itemHtml += `</div>`;
