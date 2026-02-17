@@ -285,7 +285,7 @@
 
     async function loadAndRender() {
       try {
-        const { members, listingCounts, exchangeCounts, inviteCounts } = await getEngagementData();
+        const { members, listingCounts, exchangeCounts, inviteCounts, feedbackCounts } = await getEngagementData();
 
         engagementData = members
           .filter(m => m.email !== 'bootstrap@system')
@@ -293,7 +293,8 @@
             const lc = listingCounts[m.id] || 0;
             const ec = exchangeCounts[m.id] || 0;
             const ic = inviteCounts[m.id] || 0;
-            const { score, tier, graceperiod } = calculateEngagementScore(m, lc, ec, ic);
+            const fc = feedbackCounts[m.id] || 0;
+            const { score, tier, graceperiod } = calculateEngagementScore(m, lc, ec, ic, fc);
             return {
               member: m,
               score,
@@ -301,7 +302,8 @@
               graceperiod,
               listings: lc,
               exchanges: ec,
-              invites: ic
+              invites: ic,
+              feedback: fc
             };
           });
 

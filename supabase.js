@@ -761,11 +761,12 @@ async function getEngagementData() {
   const sb = getSupabase();
 
   // Fetch all data in parallel
-  const [members, listings, exchanges, invites] = await Promise.all([
+  const [members, listings, exchanges, invites, feedback] = await Promise.all([
     getAcceptedMembers(),
     sb.from('listings').select('id, author_id').then(r => r.data || []),
     sb.from('exchanges').select('id, provider_id, receiver_id, proposed_by, status').then(r => r.data || []),
-    sb.from('invites').select('id, created_by, status').then(r => r.data || [])
+    sb.from('invites').select('id, created_by, status').then(r => r.data || []),
+    sb.from('feedback').select('author_id, commit_hash').eq('status', 'actioned').not('commit_hash', 'is', null).then(r => r.data || [])
   ]);
 
   // Build per-member counts
@@ -788,10 +789,15 @@ async function getEngagementData() {
     }
   });
 
-  return { members, listingCounts, exchangeCounts, inviteCounts };
+  const feedbackCounts = {};
+  feedback.forEach(f => {
+    if (f.author_id) feedbackCounts[f.author_id] = (feedbackCounts[f.author_id] || 0) + 1;
+  });
+
+  return { members, listingCounts, exchangeCounts, inviteCounts, feedbackCounts };
 }
 
-function calculateEngagementScore(member, listingCount, exchangeCount, inviteCount) {
+function calculateEngagementScore(member, listingCount, exchangeCount, inviteCount, feedbackCount) {
   // Grace period: members accepted < 30 days ago get neutral score
   const daysSinceAccepted = member.accepted_at
     ? Math.floor((Date.now() - new Date(member.accepted_at).getTime()) / 86400000)
@@ -802,9 +808,9 @@ function calculateEngagementScore(member, listingCount, exchangeCount, inviteCou
 
   let score = 0;
 
-  // Exchanges completed (max 30 pts)
+  // Exchanges completed (max 25 pts)
   const exchanges = member.exchanges_completed || 0;
-  score += Math.min(exchanges * 10, 30);
+  score += Math.min(exchanges * 8, 25);
 
   // Listings posted (max 20 pts)
   score += Math.min(listingCount * 5, 20);
@@ -830,6 +836,9 @@ function calculateEngagementScore(member, listingCount, exchangeCount, inviteCou
 
   // Invites that led to active members (max 5 pts)
   score += Math.min(inviteCount * 2, 5);
+
+  // Feedback implemented — suggestions that led to code changes (max 5 pts)
+  score += Math.min((feedbackCount || 0), 5);
 
   score = Math.min(score, 100);
 
