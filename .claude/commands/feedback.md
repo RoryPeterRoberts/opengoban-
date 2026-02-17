@@ -34,11 +34,52 @@ curl -s 'https://xqvzpjesgxojsdivupfl.supabase.co/rest/v1/members?select=id,disp
 For each feedback item, categorize it:
 - **Bug** — something is broken
 - **Enhancement** — a feature request or improvement
+- **Roadmap** — relates to a planned Cell Protocol phase (see below)
 - **Question** — user needs help, not a code change
 - **Duplicate** — already addressed or same as another item
 - **Test** — clearly a test submission (like "Testing the feedback form")
 
-Present a summary table to the user showing: submitter, type, category, message, and your recommended action.
+### Cell Protocol Roadmap Awareness
+
+The app is built on the Cell Protocol — a formally specified mutual credit system. The full paper is at `/home/rory/My_LaTeX_Projects/cell_protocol_corrections.tex` and the member-facing page is at `the-cell.html`.
+
+When triaging enhancements, check whether the request maps to a planned roadmap phase. If it does, note which phase and whether now is the right time to build it. The phases in order:
+
+**Phase 1: Cell Accounts, Member Exit + Slow Privilege** (next to build)
+- Welcome account (makes 5-credit starting grant come from a fund, not thin air)
+- Shared funds: meal fund, maintenance fund, tool library — each with floor/ceiling limits
+- Member exit: formal wind-down procedure routing balances through the welcome account
+- Gradual trust: newcomers start with lower credit limits that grow with participation
+- *Build signals*: members asking about shared resources, pooling credits, concerns about new members having too much access, or questions about what happens when someone leaves
+
+**Phase 2: Commitments + Scheduling**
+- Escrowed commitments for recurring obligations (meal rotas, maintenance shifts)
+- The bridge from exchange platform to coordination platform
+- *Build signals*: requests for recurring/scheduled exchanges, meal rotas, regular helping arrangements
+
+**Phase 3: Emergency Mode**
+- Automatic tightening when stress rises (lower limits, essential-services-first)
+- Evidence-based de-escalation with hysteresis
+- Formally defined stress indicators: participation rate, membership trend, dispute frequency, balance floor clustering
+- *Build signals*: community stress events, members leaving, disputes rising, requests for "what happens if things go wrong"
+
+**Phase 4: Federation**
+- Bilateral links between cells with aggregate absolute exposure caps
+- Severability (any cell can disconnect without breaking internal accounting)
+- *Build signals*: another community wanting to connect, members asking about trading with other groups
+
+**When to recommend building a phase:**
+- The community is actively asking for it (multiple feedback items pointing the same way)
+- Prerequisites are in place (e.g., don't build federation before cell accounts)
+- Current system pain points align with what the phase solves
+- The community is large/active enough to benefit (e.g., emergency mode matters more at 40+ members)
+
+**When to hold off:**
+- Only one person has mentioned it and it's not blocking anything
+- Prerequisites aren't built yet
+- The community is still small and the current system handles things fine
+
+Present a summary table to the user showing: submitter, type, category, message, your recommended action, and (for roadmap items) which phase it maps to and whether it's time to build.
 
 ## Step 4: Get approval
 
@@ -68,6 +109,7 @@ After completing all items, give the user a summary:
 - What was fixed and deployed
 - What needs more discussion or is planned for later
 - Any items you marked as test/duplicate
+- **Roadmap signals**: if feedback items are clustering around a particular protocol phase, flag it — e.g., "3 members have now asked about shared funds — this aligns with Phase 1 (Cell Accounts). Consider building it next."
 
 ## Important notes
 
