@@ -1195,10 +1195,10 @@
       } else {
         // Non-owner: show propose exchange form (only if listing is active)
         if (listing.status === 'active') {
-          // Check if current user already has a pending/accepted proposal
+          // Check if current user already has a pending/accepted/completed proposal
           const existingProposal = exchanges.find(ex =>
             ex.proposed_by === currentMember.id &&
-            (ex.status === 'proposed' || ex.status === 'accepted')
+            (ex.status === 'proposed' || ex.status === 'accepted' || ex.status === 'completed')
           );
 
           if (existingProposal) {
@@ -1429,6 +1429,61 @@
 
     function renderExistingProposal(proposal) {
       const statusLabel = proposal.status.charAt(0).toUpperCase() + proposal.status.slice(1);
+      const authorFirst = (listing.author?.display_name || 'the other party').split(' ')[0];
+
+      // Determine my confirmation state
+      const myRole = proposal.provider_id === currentMember.id ? 'provider' : 'receiver';
+      const myConfirmed = myRole === 'provider' ? proposal.provider_confirmed : proposal.receiver_confirmed;
+      const theirConfirmed = myRole === 'provider' ? proposal.receiver_confirmed : proposal.provider_confirmed;
+
+      // Build the accepted-state block
+      let acceptedHtml = '';
+      if (proposal.status === 'accepted') {
+        // Contact info
+        acceptedHtml += `
+          <div class="proposal-contact" style="margin-top: var(--space-3);">
+            <div class="proposal-contact-label">Contact ${escapeHtml(listing.author?.display_name || 'the listing author')}</div>
+            ${listing.author?.email ? `<div class="proposal-contact-row">
+              <a href="mailto:${escapeHtml(listing.author.email)}" class="proposal-contact-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                ${escapeHtml(listing.author.email)}
+              </a>
+            </div>` : ''}
+            ${listing.author?.phone ? `<div class="proposal-contact-row">
+              <a href="tel:${escapeHtml(listing.author.phone)}" class="proposal-contact-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                ${escapeHtml(listing.author.phone)}
+              </a>
+            </div>` : ''}
+          </div>`;
+
+        if (myConfirmed) {
+          // I already confirmed — waiting on the other party
+          acceptedHtml += `
+            <div style="margin-top: var(--space-3); padding: var(--space-3); background: var(--color-bg-warm); border-radius: var(--radius-md); font-size: var(--font-size-sm); color: var(--color-text-secondary);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -3px; margin-right: 4px;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              You've confirmed. Waiting for ${escapeHtml(authorFirst)} to confirm.
+            </div>`;
+        } else {
+          // I haven't confirmed yet — show link to exchanges page
+          acceptedHtml += `
+            <a href="exchanges.html" class="proposal-exchange-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Confirm &amp; complete on Exchanges page
+            </a>`;
+        }
+      }
+
+      // Completed state
+      let completedHtml = '';
+      if (proposal.status === 'completed') {
+        completedHtml = `
+          <div style="margin-top: var(--space-3); padding: var(--space-3); background: var(--color-bg-warm); border-radius: var(--radius-md); font-size: var(--font-size-sm); color: var(--color-primary);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -3px; margin-right: 4px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Exchange complete — credits transferred.
+          </div>`;
+      }
+
       return `
         <div class="exchange-form-card">
           <h3 class="exchange-form-title">Your Proposal</h3>
@@ -1452,27 +1507,8 @@
                 Withdraw Proposal
               </button>
             ` : ''}
-            ${proposal.status === 'accepted' ? `
-              <div class="proposal-contact" style="margin-top: var(--space-3);">
-                <div class="proposal-contact-label">Contact ${escapeHtml(listing.author?.display_name || 'the listing author')}</div>
-                ${listing.author?.email ? `<div class="proposal-contact-row">
-                  <a href="mailto:${escapeHtml(listing.author.email)}" class="proposal-contact-link">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                    ${escapeHtml(listing.author.email)}
-                  </a>
-                </div>` : ''}
-                ${listing.author?.phone ? `<div class="proposal-contact-row">
-                  <a href="tel:${escapeHtml(listing.author.phone)}" class="proposal-contact-link">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                    ${escapeHtml(listing.author.phone)}
-                  </a>
-                </div>` : ''}
-              </div>
-              <a href="exchanges.html" class="proposal-exchange-link">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                Confirm &amp; complete on Exchanges page
-              </a>
-            ` : ''}
+            ${acceptedHtml}
+            ${completedHtml}
           </div>
         </div>
       `;
