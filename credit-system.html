@@ -405,57 +405,9 @@
       </p>
     </div>
 
-    <!-- ============================================= -->
-    <!-- DETAILED MATHS (collapsible) -->
-    <!-- ============================================= -->
-
-    <details>
-      <summary>See the full maths</summary>
-      <div class="maths-body">
-
-        <h3>Core invariant</h3>
-        <p>At any point in time, the sum of all member balances equals the sum of all welcome bonuses issued:</p>
-        <div class="formula">
-          &Sigma; balance(m) = N &times; W<br>
-          where N = number of members, W = 5 (welcome bonus)
-        </div>
-
-        <h3>Transfer function</h3>
-        <p>When an exchange completes for <em>c</em> credits:</p>
-        <div class="formula">
-          balance(provider) &larr; balance(provider) + c<br>
-          balance(receiver) &larr; balance(receiver) &minus; c<br>
-          where c &gt; 0
-        </div>
-
-        <h3>Pre-conditions</h3>
-        <div class="formula">
-          balance(receiver) &minus; c &ge; &minus;10 &nbsp;&nbsp;(debt floor)<br>
-          balance(provider) + c &le; 50 &nbsp;&nbsp;&nbsp;(credit ceiling)<br>
-          Both parties confirmed = true<br>
-          Exchange status = 'active'
-        </div>
-        <p>If any condition fails, the transaction is rejected atomically.</p>
-
-        <h3>Maximum transferable amount</h3>
-        <div class="formula">
-          max = min(balance(receiver) + 10, 50 &minus; balance(provider))
-        </div>
-
-        <h3>Balance bounds</h3>
-        <div class="formula">
-          &minus;10 &le; balance(m) &le; 50 &nbsp;&nbsp;&forall; m
-        </div>
-        <p>Effective range: 60 credits per member.</p>
-
-        <h3>Zero-sum proof</h3>
-        <p>For every exchange: &Delta;provider + &Delta;receiver = (+c) + (&minus;c) = 0. The welcome bonus is the only source of new credits (W per member). Therefore total system credits = N &times; W at all times.</p>
-
-        <h3>Atomicity</h3>
-        <p>Transfers execute as a single database transaction. If any step fails (insufficient balance, ceiling exceeded, missing confirmation), the entire exchange rolls back. No partial transfers can occur.</p>
-
-      </div>
-    </details>
+    <p style="font-size: var(--font-size-sm); color: var(--color-text-muted); text-align: center; margin-top: var(--space-4);">
+      Curious about the formal maths behind the credit system? <a href="the-cell.html" style="color: var(--color-primary);">Read the Cell Protocol &rarr;</a>
+    </p>
 
     <div class="page-footer">
       <p>Open Goban &mdash; Pilot 2026</p>
