@@ -1159,7 +1159,7 @@
             createNotification({
               member_id: otherId,
               type: 'exchange_confirmed',
-              title: 'Your partner confirmed "' + getExchangeTitle(ex) + '"',
+              title: 'Your counterpart confirmed "' + getExchangeTitle(ex) + '"',
               body: 'Please confirm on your side to complete the exchange',
               link: 'exchanges.html'
             }).catch(e => console.error('Notification error:', e));
