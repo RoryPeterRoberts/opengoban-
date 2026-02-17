@@ -641,6 +641,13 @@
     .notif-wrapper {
       position: relative;
     }
+
+    /* Invite needs */
+    .invite-needs { background: var(--color-bg-warm); border-radius: var(--radius-md); padding: var(--space-3); margin-bottom: var(--space-2); }
+    .invite-needs-label { font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: var(--space-2); }
+    .invite-needs-tags { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+    .invite-need-tag { display: inline-flex; align-items: center; gap: 4px; padding: 3px var(--space-2); border-radius: var(--radius-full); font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); background: var(--color-status-review-bg); color: var(--color-status-review); }
+    .invite-need-tag.covered { background: var(--color-secondary-bg); color: var(--color-text-muted); }
   </style>
 </head>
 <body>
@@ -978,6 +985,7 @@
           <p class="modal-subtitle">Grow the meitheal by inviting neighbours you trust.</p>
         </div>
         <div class="modal-body">
+          <div id="invite-needs" class="invite-needs" style="display: none;"></div>
           <div class="form-group">
             <label class="form-label">Their name <span class="required">*</span></label>
             <input type="text" class="input" id="invite-name" placeholder="e.g., Sarah">
@@ -1904,7 +1912,42 @@
       document.getElementById('invite-modal').classList.add('active');
       document.getElementById('invite-form-view').style.display = 'block';
       document.getElementById('invite-success-view').style.display = 'none';
+      renderInviteNeeds();
       document.getElementById('invite-name').focus();
+    }
+
+    function renderInviteNeeds() {
+      const container = document.getElementById('invite-needs');
+      if (!allListings || allListings.length === 0) { container.style.display = 'none'; return; }
+
+      // Count offers and needs per category
+      const supply = {}, demand = {};
+      allListings.forEach(l => {
+        if (l.type === 'offer') supply[l.category] = (supply[l.category] || 0) + 1;
+        else demand[l.category] = (demand[l.category] || 0) + 1;
+      });
+
+      // Find shortages: categories with needs but few/no offers
+      const shortages = [];
+      CATEGORIES.forEach(cat => {
+        const s = supply[cat.id] || 0;
+        const d = demand[cat.id] || 0;
+        if (d > 0 && s === 0) shortages.push(cat);
+        else if (d > s && d - s >= 2) shortages.push(cat);
+      });
+
+      if (shortages.length === 0) { container.style.display = 'none'; return; }
+
+      let html = '<div class="invite-needs-label">The meitheal could use</div>';
+      html += '<div class="invite-needs-tags">';
+      shortages.forEach(cat => {
+        const label = cat.label.split(' & ')[0];
+        html += `<span class="invite-need-tag">${cat.emoji} ${label}</span>`;
+      });
+      html += '</div>';
+
+      container.innerHTML = html;
+      container.style.display = 'block';
     }
 
     function closeInviteModal() {
