@@ -14,36 +14,40 @@
   style.textContent = `
     .admin-nav-bar {
       display: flex;
-      gap: var(--space-3);
+      gap: var(--space-2);
       margin-bottom: var(--space-6);
       padding-bottom: var(--space-4);
       border-bottom: 1px solid var(--color-border-light);
-      flex-wrap: wrap;
     }
     .admin-nav-bar a {
       display: inline-flex;
       align-items: center;
-      gap: var(--space-2);
-      padding: var(--space-2) var(--space-4);
+      justify-content: center;
+      gap: var(--space-1);
+      flex: 1;
+      padding: var(--space-2) var(--space-2);
+      min-height: 44px;
       background: var(--color-bg-card);
       border: 1px solid var(--color-border);
       border-radius: var(--radius-md);
-      font-size: var(--font-size-sm);
+      font-size: var(--font-size-xs);
       color: var(--color-text-secondary);
       text-decoration: none;
       transition: all var(--transition-fast);
+      white-space: nowrap;
     }
     .admin-nav-bar a:hover { border-color: var(--color-primary); color: var(--color-primary); }
     .admin-nav-bar a.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
-    .admin-nav-bar a svg { width: 16px; height: 16px; }
+    .admin-nav-bar a svg { width: 14px; height: 14px; flex-shrink: 0; }
     .admin-nav-bar .nav-home {
-      margin-left: auto;
+      flex: 0 0 auto;
       background: none;
       border-color: transparent;
       color: var(--color-text-muted);
-      font-size: var(--font-size-xs);
+      padding: var(--space-2);
     }
     .admin-nav-bar .nav-home:hover { color: var(--color-primary); border-color: transparent; }
+    .admin-nav-bar .nav-home span { display: none; }
   `;
   document.head.appendChild(style);
 
@@ -53,7 +57,7 @@
     return `<a href="${p.href}"${active}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${p.icon}</svg>${p.label}</a>`;
   }).join('');
 
-  const homeLink = `<a href="index.html" class="nav-home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Home</a>`;
+  const homeLink = `<a href="index.html" class="nav-home" title="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></a>`;
 
   window.renderAdminNav = function(targetId) {
     const target = document.getElementById(targetId);
