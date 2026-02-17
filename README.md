@@ -1,4 +1,4 @@
-# Open Goban - Private Pilot
+# Open Gobán - Private Pilot
 
 A local community exchange platform. Neighbours helping neighbours.
 

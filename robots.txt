@@ -1,4 +1,4 @@
-# Open Goban - Private Pilot
+# Open Gobán - Private Pilot
 # Block all search engine crawlers
 
 User-agent: *

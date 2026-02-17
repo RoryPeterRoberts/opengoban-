@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta name="robots" content="noindex, nofollow">
-  <title>My Profile - Open Goban</title>
+  <title>My Profile - Open Gobán</title>
   <link rel="stylesheet" href="theme.css">
   <style>
     /* Profile Page Styles */
@@ -617,7 +617,7 @@
         memberLookup = {};
         allMembers.forEach(m => { memberLookup[m.id] = m; });
 
-        document.title = isOwnProfile ? 'My Profile - Open Goban' : `${member.display_name} - Open Goban`;
+        document.title = isOwnProfile ? 'My Profile - Open Gobán' : `${member.display_name} - Open Gobán`;
         initFeedbackWidget(currentUser.id);
         if (isOwnProfile) initEditSkillTags();
         renderProfile();
