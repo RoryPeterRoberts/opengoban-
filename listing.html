@@ -1339,16 +1339,35 @@
 
     function renderExchangeForm() {
       const isOffer = listing.type === 'offer';
-      const subtitle = isOffer
-        ? "Interested? Describe why you'd like this and propose a credit amount."
-        : "Interested? Describe what help you'd like to offer and propose a credit amount.";
-      const roleNote = isOffer
-        ? 'You will receive help from the listing author.'
-        : 'You will provide help to the listing author.';
+      const authorFirst = (listing.author?.display_name || 'This member').split(' ')[0];
+
+      let title, subtitle, roleNote, messagePlaceholder, messageLabel, creditLabel, creditHint, buttonLabel;
+
+      if (isOffer) {
+        // Author is OFFERING something — proposer wants to receive it
+        title = 'I\'d like this';
+        subtitle = `${authorFirst} is offering this. Describe why you're interested and suggest a fair price.`;
+        roleNote = `You will pay ${authorFirst} in community credits.`;
+        messageLabel = 'Why are you interested?';
+        messagePlaceholder = 'e.g., This would be really helpful — I\'m available any day this week.';
+        creditLabel = 'Suggested price (credits)';
+        creditHint = `How many credits would you pay ${authorFirst} for this?`;
+        buttonLabel = 'Send Proposal';
+      } else {
+        // Author NEEDS something — proposer can provide it
+        title = 'I can help with this';
+        subtitle = `${authorFirst} needs help. Describe what you can offer and set your price.`;
+        roleNote = `${authorFirst} will pay you in community credits.`;
+        messageLabel = 'What can you offer?';
+        messagePlaceholder = 'e.g., I have what you need and can drop it over tomorrow.';
+        creditLabel = 'Your price (credits)';
+        creditHint = `How many credits should ${authorFirst} pay for your help?`;
+        buttonLabel = 'Offer to Help';
+      }
 
       return `
         <div class="exchange-form-card">
-          <h3 class="exchange-form-title">Propose Exchange</h3>
+          <h3 class="exchange-form-title">${title}</h3>
           <p class="exchange-form-subtitle">${subtitle}</p>
 
           <div class="credit-cost">
@@ -1357,22 +1376,21 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="exchange-desc">Your message <span style="color: var(--color-status-hold);">*</span></label>
-            <textarea class="textarea" id="exchange-desc" placeholder="e.g., I can help on Saturday afternoon. I live nearby so can get there easily." rows="3"></textarea>
-            <p class="form-hint">Tell the other member how you'd like to arrange the exchange.</p>
+            <label class="form-label" for="exchange-desc">${messageLabel} <span style="color: var(--color-status-hold);">*</span></label>
+            <textarea class="textarea" id="exchange-desc" placeholder="${messagePlaceholder}" rows="3"></textarea>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="exchange-credits">Credits <span style="color: var(--color-status-hold);">*</span></label>
+            <label class="form-label" for="exchange-credits">${creditLabel} <span style="color: var(--color-status-hold);">*</span></label>
             <input type="number" class="input" id="exchange-credits" value="1" min="1" max="10" step="1" oninput="checkProposalBalance()">
-            <p class="form-hint">Number of community credits for this exchange (1-10).</p>
+            <p class="form-hint">${creditHint} (1-10)</p>
             <p class="form-hint" style="margin-top: var(--space-1);">Your balance: <strong>${currentBalance ? currentBalance.credits : 0}</strong> credits</p>
             <p class="form-hint" id="balance-warning" style="color: var(--color-status-hold); display: none; margin-top: var(--space-2);"></p>
           </div>
 
           <button class="btn btn-primary btn-lg btn-block" id="propose-btn" onclick="submitProposal()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            Propose Exchange
+            ${buttonLabel}
           </button>
         </div>
       `;
