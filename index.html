@@ -773,10 +773,22 @@
       </header>
 
       <!-- Welcome Card -->
-      <div class="card card-welcome mb-6">
+      <div class="card card-welcome mb-6" style="text-align:center;">
         <h2 class="card-title">Welcome to the meitheal</h2>
         <p class="card-subtitle mt-2">Share what you have. Ask for what you need. Neighbours helping neighbours, the way it used to work.</p>
-        <div style="margin-top: var(--space-3);">
+        <svg class="celtic-knot-divider" viewBox="0 0 400 24" style="width:min(260px,80%);height:24px;margin:var(--space-3) auto;display:block;opacity:0.25;" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <!-- left rope -->
+          <path d="M0,12 C20,12 30,4 50,4 C70,4 70,20 90,20 C110,20 110,4 130,4 C150,4 150,20 170,20 C180,20 185,16 190,12"/>
+          <!-- right rope (mirror) -->
+          <path d="M400,12 C380,12 370,4 350,4 C330,4 330,20 310,20 C290,20 290,4 270,4 C250,4 250,20 230,20 C220,20 215,16 210,12"/>
+          <!-- centre knot -->
+          <circle cx="200" cy="12" r="5"/>
+          <circle cx="200" cy="12" r="2"/>
+          <!-- interweave strands -->
+          <path d="M0,12 C20,12 30,20 50,20 C70,20 70,4 90,4 C110,4 110,20 130,20 C150,20 150,4 170,4 C180,4 185,8 190,12"/>
+          <path d="M400,12 C380,12 370,20 350,20 C330,20 330,4 310,4 C290,4 290,20 270,20 C250,20 250,4 230,4 C220,4 215,8 210,12"/>
+        </svg>
+        <div>
           <span class="pilot-badge">Pilot Programme</span>
         </div>
       </div>
