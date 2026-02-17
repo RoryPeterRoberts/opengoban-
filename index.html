@@ -759,6 +759,10 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
           Review<span class="review-count-badge" id="review-count-badge" style="display:none;">0</span>
         </a>
+        <a href="triage.html" class="btn btn-ghost" id="admin-hub-link" style="flex: 1; min-width: 120px; justify-content: center; display: none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+          Admin
+        </a>
       </div>
 
       <!-- Search -->
@@ -1305,9 +1309,11 @@
         initAreaSelection();
         initFeedbackTypeSelection();
 
-        // Show admin review link if admin
+        // Show admin links if admin
         if (currentMember.role === 'admin' || currentMember.role === 'moderator') {
           showAdminReviewBadge();
+          const hubLink = document.getElementById('admin-hub-link');
+          if (hubLink) hubLink.style.display = '';
         }
 
         // Load notifications
