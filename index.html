@@ -179,6 +179,63 @@
 
     .listing-card:hover { box-shadow: var(--shadow-md); }
 
+    /* Compact notice card for Community Notices */
+    .notice-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-md);
+      padding: var(--space-3);
+      margin-bottom: var(--space-2);
+    }
+    .notice-card .notice-header {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+    .notice-card .notice-title {
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-base);
+      color: var(--color-text);
+    }
+    .notice-card .notice-time {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-left: auto;
+    }
+    .notice-card details {
+      margin-top: var(--space-2);
+    }
+    .notice-card details summary {
+      font-size: var(--font-size-xs);
+      color: var(--color-primary);
+      cursor: pointer;
+      list-style: none;
+    }
+    .notice-card details summary::-webkit-details-marker { display: none; }
+    .notice-card details summary::before { content: 'More ▸'; }
+    .notice-card details[open] summary::before { content: 'Less ▾'; }
+    .notice-card details .notice-desc {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
+      margin-top: var(--space-2);
+    }
+    .notice-card .notice-footer {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-top: var(--space-2);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+    .notice-card .notice-link {
+      margin-left: auto;
+      color: var(--color-primary);
+      text-decoration: none;
+      font-size: var(--font-size-xs);
+    }
+
     .listing-type-badge {
       display: inline-flex;
       align-items: center;
@@ -1519,6 +1576,26 @@
       const areaLabel = listing.area === 'neighbourhood' ? 'Neighbourhood' : listing.area === 'village' ? 'Village' : 'Nearby';
       const tags = (listing.tags || []).map(t => `<span style="background:var(--color-bg-muted);padding:2px 8px;border-radius:var(--radius-sm);font-size:var(--font-size-xs);color:var(--color-text-muted);">${t}</span>`).join(' ');
       const isNew = lastVisit && listing.created_at > lastVisit;
+
+      // Compact card for Community Notices
+      if (listing.category === 'events_community') {
+        return `
+          <div class="notice-card">
+            <div class="notice-header">
+              <span>${cat.emoji}</span>
+              <span class="notice-title">${escapeHtml(listing.title)}</span>
+              ${isNew ? '<span class="new-badge">New</span>' : ''}
+              <span class="notice-time">${formatRelativeTime(listing.created_at)}</span>
+            </div>
+            ${listing.description ? `<details><summary></summary><div class="notice-desc">${escapeHtml(listing.description)}</div></details>` : ''}
+            ${tags ? `<div style="margin-top:var(--space-2);display:flex;gap:var(--space-1);flex-wrap:wrap;">${tags}</div>` : ''}
+            <div class="notice-footer">
+              <span>${escapeHtml(author.display_name || 'Unknown')}</span>
+              <a href="listing.html?id=${listing.id}" class="notice-link">View listing →</a>
+            </div>
+          </div>
+        `;
+      }
 
       return `
         <a href="listing.html?id=${listing.id}" class="listing-card" style="text-decoration:none;color:inherit;display:block;">
