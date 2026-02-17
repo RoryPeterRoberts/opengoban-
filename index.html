@@ -761,6 +761,13 @@
         </a>
       </div>
 
+      <!-- Search -->
+      <div class="feed-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="feed-search-input" id="feed-search-input" placeholder="Search listings and members..." autocomplete="off" spellcheck="false" oninput="handleFeedSearch(this.value)">
+      </div>
+      <div id="member-search-results"></div>
+
       <!-- Community Feed -->
       <div class="feed-section">
         <h3 class="feed-title">
@@ -768,11 +775,6 @@
           Community board
         </h3>
         <div id="whats-new-container"></div>
-        <div class="feed-search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" class="feed-search-input" id="feed-search-input" placeholder="Search listings and members..." autocomplete="off" spellcheck="false" oninput="handleFeedSearch(this.value)">
-        </div>
-        <div id="member-search-results"></div>
         <div class="feed-tabs">
           <button class="feed-tab active" onclick="filterFeed('all')">All</button>
           <button class="feed-tab" onclick="filterFeed('offer')">Offers</button>
