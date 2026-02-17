@@ -466,10 +466,34 @@
       flex-shrink: 0;
     }
 
-    .feed-tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
+    .feed-tabs { display: flex; gap: var(--space-2); margin-bottom: var(--space-3); }
     .feed-tab { padding: var(--space-2) var(--space-4); border-radius: var(--radius-full); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); border: 1px solid var(--color-border); background: var(--color-bg-card); color: var(--color-text-secondary); cursor: pointer; transition: all var(--transition-fast); }
     .feed-tab:hover { border-color: var(--color-primary); color: var(--color-primary); }
     .feed-tab.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
+
+    /* Category filter pills */
+    .feed-filters { margin-bottom: var(--space-3); }
+    .category-pills { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-2); -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .category-pills::-webkit-scrollbar { display: none; }
+    .cat-pill { white-space: nowrap; padding: 6px 12px; border-radius: var(--radius-full); font-size: var(--font-size-xs); border: 1px solid var(--color-border-light); background: var(--color-bg-card); color: var(--color-text-muted); cursor: pointer; transition: all var(--transition-fast); flex-shrink: 0; }
+    .cat-pill:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .cat-pill.active { background: var(--color-primary-bg); border-color: var(--color-primary); color: var(--color-primary); font-weight: var(--font-weight-medium); }
+
+    /* Sort and area controls */
+    .feed-controls { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); flex-wrap: wrap; }
+    .feed-control-group { display: flex; align-items: center; gap: var(--space-2); }
+    .feed-control-label { font-size: var(--font-size-xs); color: var(--color-text-muted); flex-shrink: 0; }
+    .control-pill { padding: 4px 10px; border-radius: var(--radius-full); font-size: var(--font-size-xs); border: 1px solid var(--color-border-light); background: var(--color-bg-card); color: var(--color-text-muted); cursor: pointer; transition: all var(--transition-fast); }
+    .control-pill:hover { border-color: var(--color-text-secondary); color: var(--color-text-secondary); }
+    .control-pill.active { background: var(--color-bg-muted); border-color: var(--color-text-secondary); color: var(--color-text); font-weight: var(--font-weight-medium); }
+
+    /* Category group headings */
+    .category-group-heading { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) 0 var(--space-2); font-family: var(--font-family-heading); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); border-bottom: 1px solid var(--color-border-light); margin-bottom: var(--space-3); }
+    .category-group-heading .cat-count { font-weight: var(--font-weight-normal); color: var(--color-text-muted); }
+
+    /* Active filter summary */
+    .active-filters { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); flex-wrap: wrap; }
+    .clear-filters { font-size: var(--font-size-xs); color: var(--color-primary); cursor: pointer; background: none; border: none; padding: 0; text-decoration: underline; }
 
     /* Feedback FAB */
     .feedback-fab { position: fixed; bottom: var(--space-4); right: var(--space-4); display: flex; align-items: center; gap: var(--space-2); background: var(--color-primary); color: white; padding: var(--space-3) var(--space-4); border-radius: var(--radius-full); border: none; cursor: pointer; box-shadow: var(--shadow-lg); z-index: 1000; font-family: var(--font-family); font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); transition: all var(--transition-fast); }
@@ -746,6 +770,24 @@
           <button class="feed-tab active" onclick="filterFeed('all')">All</button>
           <button class="feed-tab" onclick="filterFeed('offer')">Offers</button>
           <button class="feed-tab" onclick="filterFeed('need')">Needs</button>
+        </div>
+        <div class="feed-filters">
+          <div class="category-pills" id="category-pills"></div>
+        </div>
+        <div class="feed-controls">
+          <div class="feed-control-group">
+            <span class="feed-control-label">Sort:</span>
+            <button class="control-pill active" onclick="setSort('newest')">Newest</button>
+            <button class="control-pill" onclick="setSort('category')">By category</button>
+            <button class="control-pill" onclick="setSort('urgent')">Urgent first</button>
+          </div>
+          <div class="feed-control-group">
+            <span class="feed-control-label">Area:</span>
+            <button class="control-pill active" onclick="setArea('all')">All</button>
+            <button class="control-pill" onclick="setArea('neighbourhood')">Near</button>
+            <button class="control-pill" onclick="setArea('village')">Village</button>
+            <button class="control-pill" onclick="setArea('nearby')">10km</button>
+          </div>
         </div>
         <div id="feed-list">
           <div class="loading-state"><div class="loading-spinner-lg"></div></div>
@@ -1057,6 +1099,9 @@
     let allMembers = [];
     let myExchanges = [];
     let currentFilter = 'all';
+    let currentCategory = null;
+    let currentSort = 'newest';
+    let currentArea = 'all';
     let feedSearchQuery = '';
     let lastVisit = null; // ISO timestamp of previous visit
 
@@ -1393,12 +1438,114 @@
       renderFeed();
     }
 
+    function setCategory(catId) {
+      currentCategory = currentCategory === catId ? null : catId;
+      renderCategoryPills();
+      renderFeed();
+    }
+
+    function setSort(sort) {
+      currentSort = sort;
+      document.querySelectorAll('.feed-controls .feed-control-group:first-child .control-pill').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      renderFeed();
+    }
+
+    function setArea(area) {
+      currentArea = area;
+      document.querySelectorAll('.feed-controls .feed-control-group:last-child .control-pill').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      renderFeed();
+    }
+
+    function clearAllFilters() {
+      currentFilter = 'all';
+      currentCategory = null;
+      currentSort = 'newest';
+      currentArea = 'all';
+      feedSearchQuery = '';
+      document.getElementById('feed-search-input').value = '';
+      document.querySelectorAll('.feed-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector('.feed-tab').classList.add('active');
+      document.querySelectorAll('.feed-controls .control-pill').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.feed-controls .control-pill:first-child').forEach(p => p.classList.add('active'));
+      renderCategoryPills();
+      renderFeed();
+      renderMemberSearchResults();
+    }
+
+    function renderCategoryPills() {
+      const container = document.getElementById('category-pills');
+      // Only show categories that have active listings
+      const activeCats = new Set(allListings.map(l => l.category));
+      const pills = CATEGORIES.filter(c => activeCats.has(c.id)).map(c => {
+        const count = allListings.filter(l => l.category === c.id).length;
+        const active = currentCategory === c.id ? ' active' : '';
+        return `<button class="cat-pill${active}" onclick="setCategory('${c.id}')">${c.emoji} ${c.label} <span style="opacity:0.6;">${count}</span></button>`;
+      }).join('');
+      container.innerHTML = pills;
+    }
+
+    function renderListingCard(listing) {
+      const cat = getCategoryById(listing.category);
+      const author = listing.author || {};
+      const band = calculateReliabilityBand(author.exchanges_completed || 0, author.disputes_count || 0);
+      const areaLabel = listing.area === 'neighbourhood' ? 'Neighbourhood' : listing.area === 'village' ? 'Village' : 'Nearby';
+      const tags = (listing.tags || []).map(t => `<span style="background:var(--color-bg-muted);padding:2px 8px;border-radius:var(--radius-sm);font-size:var(--font-size-xs);color:var(--color-text-muted);">${t}</span>`).join(' ');
+      const isNew = lastVisit && listing.created_at > lastVisit;
+
+      return `
+        <a href="listing.html?id=${listing.id}" class="listing-card" style="text-decoration:none;color:inherit;display:block;">
+          <div class="listing-header">
+            <div>
+              <div class="listing-title">${escapeHtml(listing.title)}${isNew ? '<span class="new-badge">New</span>' : ''}</div>
+              <div class="listing-category">${cat.emoji} ${cat.label}</div>
+            </div>
+            <span class="listing-type-badge ${listing.type}">${listing.type === 'offer' ? 'Offer' : 'Need'}</span>
+          </div>
+          ${listing.description ? `<div class="listing-desc">${escapeHtml(listing.description)}</div>` : ''}
+          ${tags ? `<div style="margin-bottom:var(--space-3);display:flex;gap:var(--space-1);flex-wrap:wrap;">${tags}</div>` : ''}
+          <div class="listing-meta">
+            <span class="listing-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${areaLabel}
+            </span>
+            <span class="listing-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ${listing.urgency || 'This week'}
+            </span>
+            <span class="listing-meta-item">${formatRelativeTime(listing.created_at)}</span>
+          </div>
+          <div class="listing-author">
+            <span>${author.display_name || 'Unknown'}</span>
+            <span>&middot;</span>
+            <span style="font-family:var(--font-family-mono,monospace);">${author.member_id || ''}</span>
+            <span>&middot;</span>
+            <span class="reliability-badge ${band.toLowerCase()}">${band}</span>
+            ${renderDegreesBadge(author.id)}
+          </div>
+          ${renderProposalBadge(listing)}
+        </a>
+      `;
+    }
+
     function renderFeed() {
       const container = document.getElementById('feed-list');
       let filtered = allListings;
+
+      // Apply type filter
       if (currentFilter !== 'all') {
         filtered = filtered.filter(l => l.type === currentFilter);
       }
+      // Apply category filter
+      if (currentCategory) {
+        filtered = filtered.filter(l => l.category === currentCategory);
+      }
+      // Apply area filter
+      if (currentArea !== 'all') {
+        filtered = filtered.filter(l => l.area === currentArea);
+      }
+      // Apply search
       if (feedSearchQuery) {
         filtered = filtered.filter(l => {
           const fields = [
@@ -1411,20 +1558,25 @@
         });
       }
 
+      // Update category pills to reflect current listings
+      renderCategoryPills();
+
       if (filtered.length === 0) {
+        const hasFilters = currentFilter !== 'all' || currentCategory || currentArea !== 'all' || feedSearchQuery;
         container.innerHTML = `
           <div class="empty-feed">
-            <div class="empty-feed-icon">🌱</div>
-            <div class="empty-feed-title">No listings yet</div>
-            <p>Be the first to post an offer or need!</p>
+            <div class="empty-feed-icon">${hasFilters ? '🔍' : '🌱'}</div>
+            <div class="empty-feed-title">${hasFilters ? 'No matches' : 'No listings yet'}</div>
+            <p>${hasFilters ? 'Try broadening your filters.' : 'Be the first to post an offer or need!'}</p>
+            ${hasFilters ? '<button class="clear-filters" onclick="clearAllFilters()" style="margin-top:var(--space-3);">Clear all filters</button>' : ''}
           </div>
         `;
         return;
       }
 
-      // Build new member cards for members who joined since last visit
+      // Build new member cards
       let newMemberCards = '';
-      if (lastVisit && !feedSearchQuery && currentFilter === 'all') {
+      if (lastVisit && !feedSearchQuery && currentFilter === 'all' && !currentCategory && currentArea === 'all') {
         const newMembers = allMembers.filter(m =>
           m.accepted_at && m.accepted_at > lastVisit && m.id !== currentMember.id
         );
@@ -1445,48 +1597,44 @@
         }).join('');
       }
 
-      container.innerHTML = newMemberCards + filtered.map(listing => {
-        const cat = getCategoryById(listing.category);
-        const author = listing.author || {};
-        const band = calculateReliabilityBand(author.exchanges_completed || 0, author.disputes_count || 0);
-        const areaLabel = listing.area === 'neighbourhood' ? 'Neighbourhood' : listing.area === 'village' ? 'Village' : 'Nearby';
-        const tags = (listing.tags || []).map(t => `<span style="background:var(--color-bg-muted);padding:2px 8px;border-radius:var(--radius-sm);font-size:var(--font-size-xs);color:var(--color-text-muted);">${t}</span>`).join(' ');
-        const isNew = lastVisit && listing.created_at > lastVisit;
+      // Sort
+      const urgencyOrder = { 'Today': 0, 'This week': 1, 'Flexible': 2 };
 
-        return `
-          <a href="listing.html?id=${listing.id}" class="listing-card" style="text-decoration:none;color:inherit;display:block;">
-            <div class="listing-header">
-              <div>
-                <div class="listing-title">${escapeHtml(listing.title)}${isNew ? '<span class="new-badge">New</span>' : ''}</div>
-                <div class="listing-category">${cat.emoji} ${cat.label}</div>
-              </div>
-              <span class="listing-type-badge ${listing.type}">${listing.type === 'offer' ? 'Offer' : 'Need'}</span>
-            </div>
-            ${listing.description ? `<div class="listing-desc">${escapeHtml(listing.description)}</div>` : ''}
-            ${tags ? `<div style="margin-bottom:var(--space-3);display:flex;gap:var(--space-1);flex-wrap:wrap;">${tags}</div>` : ''}
-            <div class="listing-meta">
-              <span class="listing-meta-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                ${areaLabel}
-              </span>
-              <span class="listing-meta-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                ${listing.urgency || 'This week'}
-              </span>
-              <span class="listing-meta-item">${formatRelativeTime(listing.created_at)}</span>
-            </div>
-            <div class="listing-author">
-              <span>${author.display_name || 'Unknown'}</span>
-              <span>&middot;</span>
-              <span style="font-family:var(--font-family-mono,monospace);">${author.member_id || ''}</span>
-              <span>&middot;</span>
-              <span class="reliability-badge ${band.toLowerCase()}">${band}</span>
-              ${renderDegreesBadge(author.id)}
-            </div>
-            ${renderProposalBadge(listing)}
-          </a>
-        `;
-      }).join('');
+      if (currentSort === 'urgent') {
+        filtered = [...filtered].sort((a, b) => {
+          const ua = urgencyOrder[a.urgency] ?? 1;
+          const ub = urgencyOrder[b.urgency] ?? 1;
+          if (ua !== ub) return ua - ub;
+          return new Date(b.created_at) - new Date(a.created_at);
+        });
+      } else if (currentSort === 'newest') {
+        filtered = [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      }
+      // 'category' sort handled below via grouping
+
+      // Render
+      if (currentSort === 'category') {
+        // Group by category
+        const groups = {};
+        filtered.forEach(l => {
+          if (!groups[l.category]) groups[l.category] = [];
+          groups[l.category].push(l);
+        });
+        // Sort groups by CATEGORIES order
+        const catOrder = CATEGORIES.map(c => c.id);
+        const sortedKeys = Object.keys(groups).sort((a, b) => catOrder.indexOf(a) - catOrder.indexOf(b));
+
+        let html = newMemberCards;
+        sortedKeys.forEach(catId => {
+          const cat = getCategoryById(catId);
+          const items = groups[catId].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          html += `<div class="category-group-heading">${cat.emoji} ${cat.label} <span class="cat-count">(${items.length})</span></div>`;
+          html += items.map(renderListingCard).join('');
+        });
+        container.innerHTML = html;
+      } else {
+        container.innerHTML = newMemberCards + filtered.map(renderListingCard).join('');
+      }
     }
 
     function getInitials(name) {
