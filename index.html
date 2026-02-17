@@ -473,8 +473,7 @@
 
     /* Category filter pills */
     .feed-filters { margin-bottom: var(--space-3); }
-    .category-pills { display: flex; gap: var(--space-2); overflow-x: auto; padding-bottom: var(--space-2); -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-    .category-pills::-webkit-scrollbar { display: none; }
+    .category-pills { display: flex; gap: var(--space-2); flex-wrap: wrap; padding-bottom: var(--space-2); }
     .cat-pill { white-space: nowrap; padding: 6px 12px; border-radius: var(--radius-full); font-size: var(--font-size-xs); border: 1px solid var(--color-border-light); background: var(--color-bg-card); color: var(--color-text-muted); cursor: pointer; transition: all var(--transition-fast); flex-shrink: 0; }
     .cat-pill:hover { border-color: var(--color-primary); color: var(--color-primary); }
     .cat-pill.active { background: var(--color-primary-bg); border-color: var(--color-primary); color: var(--color-primary); font-weight: var(--font-weight-medium); }
@@ -794,6 +793,8 @@
             <button class="control-pill" onclick="setSort('category')">By category</button>
             <button class="control-pill" onclick="setSort('urgent')">Urgent first</button>
           </div>
+          <!-- Area filter hidden for now — revisit when geocoding is added -->
+          <!--
           <div class="feed-control-group">
             <span class="feed-control-label">Area:</span>
             <button class="control-pill active" onclick="setArea('all')">All</button>
@@ -801,6 +802,7 @@
             <button class="control-pill" onclick="setArea('village')">Village</button>
             <button class="control-pill" onclick="setArea('nearby')">10km</button>
           </div>
+          -->
         </div>
         <div id="feed-list">
           <div class="loading-state"><div class="loading-spinner-lg"></div></div>
