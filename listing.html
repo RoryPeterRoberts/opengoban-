@@ -243,6 +243,7 @@
       font-weight: var(--font-weight-semibold);
       text-transform: uppercase;
       letter-spacing: 0.03em;
+      cursor: help;
     }
 
     .reliability-badge.low { background: var(--color-bg-muted); color: var(--color-text-muted); }
@@ -1152,7 +1153,7 @@
               <div class="author-member-id">${author.member_id || ''}</div>
               <div class="author-trust">
                 <span>${author.exchanges_completed || 0} exchange${(author.exchanges_completed || 0) !== 1 ? 's' : ''}</span>
-                <span class="reliability-badge ${band.toLowerCase()}">${band}</span>
+                <span class="reliability-badge ${band.toLowerCase()}" title="${getReliabilityTooltip(band)}">${band}</span>
                 ${renderDegreesBadge(author.id)}
               </div>
             </div>

@@ -380,6 +380,7 @@
       text-transform: uppercase;
       letter-spacing: 0.03em;
       flex-shrink: 0;
+      cursor: help;
     }
 
     .reliability-badge.low {
@@ -1003,7 +1004,7 @@
               <div class="member-name">${escapeHtml(member.display_name)}</div>
               <div class="member-id">${escapeHtml(member.member_id || '')}</div>
             </div>
-            <span class="reliability-badge ${bandClass}">${band}</span>
+            <span class="reliability-badge ${bandClass}" title="${getReliabilityTooltip(band)}">${band}</span>
           </div>
           <div class="member-category">
             <span class="member-category-emoji">${cat.emoji}</span>

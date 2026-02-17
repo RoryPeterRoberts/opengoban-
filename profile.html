@@ -242,6 +242,7 @@
       font-weight: var(--font-weight-semibold);
       text-transform: uppercase;
       letter-spacing: 0.03em;
+      cursor: help;
     }
 
     .reliability-badge.low {
@@ -697,7 +698,7 @@
 
           <div class="reliability-section">
             <div class="reliability-label">Reliability</div>
-            <span class="reliability-badge ${band.toLowerCase()}">${band}</span>
+            <span class="reliability-badge ${band.toLowerCase()}" title="${getReliabilityTooltip(band)}">${band}</span>
           </div>
         </div>
 

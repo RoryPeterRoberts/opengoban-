@@ -357,6 +357,12 @@ async function confirmExchange(exchangeId, role) {
       exchange_uuid: exchangeId
     });
     if (rpcError) throw rpcError;
+
+    // Mark the listing as matched (owner can close or leave open for more)
+    if (data.listing_id) {
+      await sb.from('listings').update({ status: 'matched' }).eq('id', data.listing_id).eq('status', 'active');
+    }
+
     // Re-fetch to get updated status
     return getExchangeById(exchangeId);
   }
@@ -928,6 +934,15 @@ function calculateReliabilityBand(exchangesCompleted, disputesCount) {
   if (exchangesCompleted >= 10 && disputesCount === 0) return 'High';
   if (exchangesCompleted >= 3 && disputesCount <= 1) return 'Medium';
   return 'Low';
+}
+
+function getReliabilityTooltip(band) {
+  const tips = {
+    Low: 'New or fewer than 3 exchanges completed',
+    Medium: '3+ exchanges completed',
+    High: '10+ exchanges completed with no disputes'
+  };
+  return tips[band] || '';
 }
 
 function formatDate(isoDate) {
