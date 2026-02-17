@@ -108,10 +108,14 @@
     }
 
     /* Category Filter Pills */
+    .filter-pills-wrapper {
+      position: relative;
+      margin-bottom: var(--space-6);
+    }
+
     .filter-pills {
       display: flex;
       gap: var(--space-2);
-      margin-bottom: var(--space-6);
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
@@ -120,6 +124,42 @@
 
     .filter-pills::-webkit-scrollbar {
       display: none;
+    }
+
+    .filter-scroll-btn {
+      display: none;
+      position: absolute;
+      top: 0;
+      bottom: var(--space-2);
+      width: 32px;
+      border: none;
+      background: linear-gradient(to right, var(--color-bg), transparent);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      z-index: 1;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .filter-scroll-btn:hover {
+      color: var(--color-primary);
+    }
+
+    .filter-scroll-btn--left {
+      left: 0;
+      background: linear-gradient(to right, var(--color-bg) 60%, transparent);
+    }
+
+    .filter-scroll-btn--right {
+      right: 0;
+      background: linear-gradient(to left, var(--color-bg) 60%, transparent);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .filter-scroll-btn.visible {
+        display: flex;
+      }
     }
 
     .filter-pill {
@@ -665,8 +705,16 @@
     </div>
 
     <!-- Category Filter Pills -->
-    <div class="filter-pills" id="filter-pills">
-      <!-- Populated by JS -->
+    <div class="filter-pills-wrapper">
+      <button class="filter-scroll-btn filter-scroll-btn--left" id="scroll-left" aria-label="Scroll categories left">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="filter-pills" id="filter-pills">
+        <!-- Populated by JS -->
+      </div>
+      <button class="filter-scroll-btn filter-scroll-btn--right" id="scroll-right" aria-label="Scroll categories right">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
     </div>
 
     <!-- View Toggle -->
@@ -803,7 +851,38 @@
       });
 
       container.innerHTML = html;
+      updateScrollArrows();
     }
+
+    // Scroll arrow logic for desktop
+    function updateScrollArrows() {
+      const pills = document.getElementById('filter-pills');
+      const leftBtn = document.getElementById('scroll-left');
+      const rightBtn = document.getElementById('scroll-right');
+      if (!pills || !leftBtn || !rightBtn) return;
+
+      const canScrollLeft = pills.scrollLeft > 0;
+      const canScrollRight = pills.scrollLeft + pills.clientWidth < pills.scrollWidth - 1;
+
+      leftBtn.classList.toggle('visible', canScrollLeft);
+      rightBtn.classList.toggle('visible', canScrollRight);
+    }
+
+    (function initScrollArrows() {
+      const pills = document.getElementById('filter-pills');
+      const leftBtn = document.getElementById('scroll-left');
+      const rightBtn = document.getElementById('scroll-right');
+
+      pills.addEventListener('scroll', updateScrollArrows);
+      window.addEventListener('resize', updateScrollArrows);
+
+      leftBtn.addEventListener('click', () => {
+        pills.scrollBy({ left: -150, behavior: 'smooth' });
+      });
+      rightBtn.addEventListener('click', () => {
+        pills.scrollBy({ left: 150, behavior: 'smooth' });
+      });
+    })();
 
     function filterByCategory(categoryId, btn) {
       activeCategory = categoryId;
