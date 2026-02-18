@@ -1091,10 +1091,10 @@ async function getTrades() {
     .from('trusted_trades')
     .select(`
       *,
-      added_by_member:members!trusted_trades_added_by_fkey (id, display_name, member_id),
+      added_by_member:members (id, display_name, member_id),
       endorsements:trade_endorsements (
         id, member_id, note, not_recommended, created_at,
-        member:members!trade_endorsements_member_id_fkey (id, display_name, member_id)
+        member:members (id, display_name, member_id)
       )
     `)
     .order('created_at', { ascending: false });
