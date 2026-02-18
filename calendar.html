@@ -332,6 +332,21 @@
         <input type="number" class="input" id="evt-max" min="2" max="200" placeholder="Leave blank for unlimited">
       </div>
 
+      <div class="form-group">
+        <label class="form-label" for="evt-recurrence">Repeats</label>
+        <select class="input" id="evt-recurrence" onchange="toggleRecurrenceEnd()">
+          <option value="none" selected>Does not repeat</option>
+          <option value="weekly">Weekly</option>
+          <option value="fortnightly">Fortnightly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="recurrence-end-group" style="display:none;">
+        <label class="form-label" for="evt-recurrence-ends">Repeat until <span style="color:var(--color-text-muted);font-weight:normal;">(optional)</span></label>
+        <input type="date" class="input" id="evt-recurrence-ends">
+      </div>
+
       <div class="modal-actions">
         <button class="btn btn-primary" style="flex:1;" onclick="submitEvent()" id="evt-submit-btn">Create Event</button>
         <button class="btn btn-ghost" onclick="closeEventModal()">Cancel</button>
@@ -393,6 +408,56 @@
       if (key === '__today__') return 'Today';
       if (key === '__tomorrow__') return 'Tomorrow';
       return key;
+    }
+
+    function recurrenceLabel(r) {
+      return { weekly: 'Weekly', fortnightly: 'Fortnightly', monthly: 'Monthly' }[r] || '';
+    }
+
+    function expandEvents(rawEvents) {
+      const now = new Date();
+      const horizon = new Date(now.getTime() + 8 * 7 * 24 * 3600 * 1000); // 8 weeks ahead
+      const result = [];
+
+      rawEvents.forEach(event => {
+        const recurrence = event.recurrence || 'none';
+
+        if (recurrence === 'none') {
+          if (new Date(event.starts_at) >= now) result.push(event);
+          return;
+        }
+
+        // Compute occurrence duration (if ends_at set)
+        const durationMs = event.ends_at
+          ? new Date(event.ends_at) - new Date(event.starts_at)
+          : null;
+
+        // Hard stop: recurrence_ends_at (end of that day) or 8-week horizon
+        const recurrenceEnds = event.recurrence_ends_at
+          ? new Date(event.recurrence_ends_at + 'T23:59:59')
+          : horizon;
+        const stop = recurrenceEnds < horizon ? recurrenceEnds : horizon;
+
+        let cursor = new Date(event.starts_at);
+        while (cursor <= stop) {
+          if (cursor >= now) {
+            const occurrence = {
+              ...event,
+              starts_at: cursor.toISOString(),
+              ends_at: durationMs ? new Date(cursor.getTime() + durationMs).toISOString() : null
+            };
+            result.push(occurrence);
+          }
+          // Advance by interval
+          const next = new Date(cursor);
+          if (recurrence === 'weekly') next.setDate(next.getDate() + 7);
+          else if (recurrence === 'fortnightly') next.setDate(next.getDate() + 14);
+          else if (recurrence === 'monthly') next.setMonth(next.getMonth() + 1);
+          cursor = next;
+        }
+      });
+
+      return result.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
     }
 
     function eventTypeBadge(type) {
@@ -531,7 +596,8 @@
     }
 
     function renderEventsList() {
-      if (events.length === 0) {
+      const expanded = expandEvents(events);
+      if (expanded.length === 0) {
         return `
           <div class="empty-state">
             <div class="empty-icon">🎉</div>
@@ -540,7 +606,7 @@
           </div>
         `;
       }
-      return renderDateGroupedCards(events, renderEventCard);
+      return renderDateGroupedCards(expanded, renderEventCard);
     }
 
     function renderDateGroupedCards(items, renderFn) {
@@ -619,6 +685,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               ${attendeeCount} going${maxNote}
             </div>
+            ${event.recurrence && event.recurrence !== 'none' ? `<div class="cal-meta-item">🔁 ${recurrenceLabel(event.recurrence)}</div>` : ''}
           </div>
           <div class="rsvp-row">
             <span class="attendee-count">${amAttending ? '✅ You\'re going' : isFull ? 'Event full' : ''}</span>
@@ -657,6 +724,11 @@
       cards.classList.toggle('open', open);
     }
 
+    function toggleRecurrenceEnd() {
+      const val = document.getElementById('evt-recurrence').value;
+      document.getElementById('recurrence-end-group').style.display = val === 'none' ? 'none' : 'block';
+    }
+
     // =====================================================
     // CREATE EVENT MODAL
     // =====================================================
@@ -685,6 +757,8 @@
       const description = document.getElementById('evt-desc').value.trim();
       const maxRaw = document.getElementById('evt-max').value;
       const maxAttendees = maxRaw ? parseInt(maxRaw, 10) : null;
+      const recurrence = document.getElementById('evt-recurrence').value;
+      const recurrenceEndsAt = document.getElementById('evt-recurrence-ends').value || null;
 
       if (!title) { showToast('Please add a title'); document.getElementById('evt-title').focus(); return; }
       if (!date) { showToast('Please choose a date'); document.getElementById('evt-date').focus(); return; }
@@ -706,7 +780,9 @@
           ...(endsAt && { ends_at: endsAt }),
           ...(location && { location_note: location }),
           ...(description && { description }),
-          ...(maxAttendees && { max_attendees: maxAttendees })
+          ...(maxAttendees && { max_attendees: maxAttendees }),
+          recurrence,
+          ...(recurrence !== 'none' && recurrenceEndsAt && { recurrence_ends_at: recurrenceEndsAt })
         };
 
         await createEvent(eventData);
@@ -720,6 +796,9 @@
         document.getElementById('evt-location').value = '';
         document.getElementById('evt-desc').value = '';
         document.getElementById('evt-max').value = '';
+        document.getElementById('evt-recurrence').value = 'none';
+        document.getElementById('evt-recurrence-ends').value = '';
+        document.getElementById('recurrence-end-group').style.display = 'none';
 
         closeEventModal();
 

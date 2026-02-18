@@ -1034,6 +1034,8 @@ function getDegreesFromUser(allMembers, fromId, toId) {
 
 async function getUpcomingEvents() {
   const sb = getSupabase();
+  const now = new Date().toISOString();
+  // Fetch upcoming one-off events AND all recurring events (expansion happens client-side)
   const { data, error } = await sb
     .from('events')
     .select(`
@@ -1041,7 +1043,7 @@ async function getUpcomingEvents() {
       organiser:members!events_organiser_id_fkey (id, display_name, member_id),
       attendees:event_attendees (member_id)
     `)
-    .gte('starts_at', new Date().toISOString())
+    .or(`starts_at.gte.${now},recurrence.neq.none`)
     .order('starts_at', { ascending: true });
   if (error) throw error;
   return data || [];
