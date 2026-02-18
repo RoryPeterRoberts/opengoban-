@@ -447,7 +447,7 @@
     let allTrades = [];
     let activeFilter = 'all';
     let vouchingTradeId = null;
-    let isAdmin = false;
+    let currentUserIsAdmin = false;
 
     const TRADE_LABELS = {
       plumber: 'Plumber',
@@ -512,7 +512,7 @@
         if (!member) { window.location.href = 'access.html'; return; }
         if (typeof initFeedbackWidget === 'function') initFeedbackWidget(member.id);
 
-        isAdmin = member.member_id === 'OG-0001';
+        currentUserIsAdmin = member.member_id === 'OG-0001';
 
         allTrades = await getTrades();
         renderPage();
@@ -649,7 +649,7 @@
       const panelHtml = renderEndorsementPanel(trade, endorsements);
 
       // Admin remove
-      const adminHtml = isAdmin
+      const adminHtml = currentUserIsAdmin
         ? `<button class="admin-remove-btn" onclick="handleRemoveTrade('${trade.id}', '${escapeHtml(trade.name)}')">Remove</button>`
         : '';
 
