@@ -345,6 +345,17 @@
       flex-shrink: 0;
     }
 
+    /* Scheduled time */
+    .exchange-scheduled {
+      font-size: var(--font-size-sm);
+      color: var(--color-primary);
+      font-weight: var(--font-weight-medium);
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-primary-bg);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-3);
+    }
+
     /* Time stamp */
     .exchange-time {
       font-size: var(--font-size-xs);
@@ -780,7 +791,14 @@
           </div>
         `;
       } else {
-        html += active.map(ex => renderExchangeCard(ex)).join('');
+        // Scheduled exchanges first (soonest first), then unscheduled (by proposed_at desc)
+        const sortedActive = [...active].sort((a, b) => {
+          if (a.scheduled_at && b.scheduled_at) return new Date(a.scheduled_at) - new Date(b.scheduled_at);
+          if (a.scheduled_at) return -1;
+          if (b.scheduled_at) return 1;
+          return new Date(b.proposed_at) - new Date(a.proposed_at);
+        });
+        html += sortedActive.map(ex => renderExchangeCard(ex)).join('');
       }
 
       // History Section
@@ -879,6 +897,19 @@
           </div>
         </div>
       `;
+
+      // Scheduled time
+      if (exchange.scheduled_at) {
+        let schedHtml = `<div class="exchange-scheduled">📅 ${formatScheduledTime(exchange.scheduled_at)}`;
+        if (exchange.scheduled_end_at) {
+          schedHtml += ` – ${new Date(exchange.scheduled_end_at).toLocaleTimeString('en-IE', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+        }
+        if (exchange.location_note) {
+          schedHtml += ` · 📍 ${escapeHtml(exchange.location_note)}`;
+        }
+        schedHtml += `</div>`;
+        html += schedHtml;
+      }
 
       // Contact info (only for accepted/completed exchanges)
       if (exchange.status === 'accepted' || exchange.status === 'completed') {
@@ -1058,6 +1089,20 @@
         disputed: 'Disputed'
       };
       return labels[status] || status;
+    }
+
+    function formatScheduledTime(iso) {
+      if (!iso) return '';
+      const date = new Date(iso);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const timeStr = date.toLocaleTimeString('en-IE', { hour: 'numeric', minute: '2-digit', hour12: true });
+      if (dateOnly.getTime() === today.getTime()) return 'Today at ' + timeStr;
+      if (dateOnly.getTime() === tomorrow.getTime()) return 'Tomorrow at ' + timeStr;
+      const dayDate = date.toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' });
+      return dayDate + ' at ' + timeStr;
     }
 
     // =====================================================

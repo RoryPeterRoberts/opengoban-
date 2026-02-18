@@ -1029,6 +1029,57 @@ function getDegreesFromUser(allMembers, fromId, toId) {
 }
 
 // =====================================================
+// COMMUNITY EVENTS
+// =====================================================
+
+async function getUpcomingEvents() {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('events')
+    .select(`
+      *,
+      organiser:members!events_organiser_id_fkey (id, display_name, member_id),
+      attendees:event_attendees (member_id)
+    `)
+    .gte('starts_at', new Date().toISOString())
+    .order('starts_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+async function createEvent(eventData) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('events')
+    .insert(eventData)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function rsvpEvent(eventId, memberId) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('event_attendees')
+    .insert({ event_id: eventId, member_id: memberId })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function cancelRsvp(eventId, memberId) {
+  const sb = getSupabase();
+  const { error } = await sb
+    .from('event_attendees')
+    .delete()
+    .eq('event_id', eventId)
+    .eq('member_id', memberId);
+  if (error) throw error;
+}
+
+// =====================================================
 // COMMUNITY GOVERNANCE
 // =====================================================
 

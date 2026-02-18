@@ -1438,12 +1438,50 @@
             <p class="form-hint" id="balance-warning" style="color: var(--color-status-hold); display: none; margin-top: var(--space-2);"></p>
           </div>
 
+          <div class="form-group" style="margin-top: var(--space-4);">
+            <label style="display: flex; align-items: center; gap: var(--space-2); cursor: pointer; user-select: none;">
+              <input type="checkbox" id="schedule-toggle" onchange="toggleSchedule()" style="width: 16px; height: 16px; cursor: pointer;">
+              <span class="form-label" style="margin: 0;">Schedule a time <span style="color: var(--color-text-muted); font-weight: normal;">(optional)</span></span>
+            </label>
+          </div>
+
+          <div id="schedule-section" style="display: none; padding: var(--space-4); background: var(--color-bg-muted); border-radius: var(--radius-lg); margin-top: var(--space-2);">
+            <div class="form-group">
+              <label class="form-label" for="schedule-date">Date</label>
+              <input type="date" class="input" id="schedule-date">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3);">
+              <div class="form-group">
+                <label class="form-label" for="schedule-time">Start time</label>
+                <input type="time" class="input" id="schedule-time">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="schedule-end-time">End time <span style="color: var(--color-text-muted); font-weight: normal;">(opt.)</span></label>
+                <input type="time" class="input" id="schedule-end-time">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="schedule-location">Location <span style="color: var(--color-text-muted); font-weight: normal;">(optional)</span></label>
+              <input type="text" class="input" id="schedule-location" placeholder="e.g. My front gate, village hall…">
+            </div>
+          </div>
+
           <button class="btn btn-primary btn-lg btn-block" id="propose-btn" onclick="submitProposal()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             ${buttonLabel}
           </button>
         </div>
       `;
+    }
+
+    function toggleSchedule() {
+      const checked = document.getElementById('schedule-toggle').checked;
+      document.getElementById('schedule-section').style.display = checked ? 'block' : 'none';
+    }
+
+    function combineDatetime(dateVal, timeVal) {
+      if (!dateVal || !timeVal) return null;
+      return new Date(dateVal + 'T' + timeVal).toISOString();
     }
 
     function renderExistingProposal(proposal) {
@@ -1896,6 +1934,17 @@
       try {
         const isOffer = listing.type === 'offer';
 
+        const scheduleEnabled = document.getElementById('schedule-toggle') && document.getElementById('schedule-toggle').checked;
+        const scheduledAt = scheduleEnabled ? combineDatetime(
+          document.getElementById('schedule-date').value,
+          document.getElementById('schedule-time').value
+        ) : null;
+        const scheduledEndAt = scheduleEnabled ? combineDatetime(
+          document.getElementById('schedule-date').value,
+          document.getElementById('schedule-end-time').value
+        ) : null;
+        const locationNote = scheduleEnabled ? (document.getElementById('schedule-location').value.trim() || null) : null;
+
         const exchangeData = {
           listing_id: listing.id,
           provider_id: isOffer ? listing.author_id : currentMember.id,
@@ -1904,7 +1953,10 @@
           description: description,
           category: listing.category,
           proposed_by: currentMember.id,
-          status: 'proposed'
+          status: 'proposed',
+          ...(scheduledAt && { scheduled_at: scheduledAt }),
+          ...(scheduledEndAt && { scheduled_end_at: scheduledEndAt }),
+          ...(locationNote && { location_note: locationNote })
         };
 
         await proposeExchange(exchangeData);

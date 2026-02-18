@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Calendar — Open Gobán</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .page-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-5);
+      min-height: 100vh;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-6);
+    }
+    .page-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .back-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+      flex-shrink: 0;
+    }
+    .back-link:hover { background: var(--color-bg-muted); color: var(--color-primary); }
+    .back-link svg { width: 20px; height: 20px; }
+
+    .page-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+
+    /* Section headings */
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-4);
+      margin-top: var(--space-8);
+    }
+    .section-heading:first-of-type { margin-top: 0; }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+    .section-title svg { width: 18px; height: 18px; color: var(--color-primary); }
+
+    /* Date group labels */
+    .date-group-label {
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      padding: var(--space-2) 0;
+      margin-top: var(--space-4);
+      margin-bottom: var(--space-2);
+      border-bottom: 1px solid var(--color-border-light);
+    }
+    .date-group-label:first-child { margin-top: 0; }
+
+    /* Calendar cards */
+    .cal-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: var(--space-3);
+      text-decoration: none;
+      display: block;
+      color: inherit;
+      transition: box-shadow var(--transition-fast);
+    }
+    .cal-card:hover { box-shadow: var(--shadow-md); }
+    .cal-card-link { cursor: pointer; }
+
+    .cal-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-3);
+      margin-bottom: var(--space-2);
+    }
+    .cal-card-title {
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-snug);
+    }
+    .cal-card-sub {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-1);
+    }
+
+    .cal-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px var(--space-2);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: var(--font-weight-semibold);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .cal-badge.proposed { background: var(--color-primary-bg); color: var(--color-primary); }
+    .cal-badge.accepted { background: var(--color-status-accepted-bg); color: var(--color-status-accepted); }
+    .cal-badge.completed { background: var(--color-bg-muted); color: var(--color-text-muted); }
+    .cal-badge.work_party { background: #fef3c7; color: #92400e; }
+    .cal-badge.meeting { background: var(--color-primary-bg); color: var(--color-primary); }
+    .cal-badge.skill_share { background: #ede9fe; color: #6d28d9; }
+    .cal-badge.social { background: #fce7f3; color: #9d174d; }
+    .cal-badge.other { background: var(--color-bg-muted); color: var(--color-text-muted); }
+
+    .cal-time {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--font-size-sm);
+      color: var(--color-primary);
+      font-weight: var(--font-weight-medium);
+      margin-bottom: var(--space-2);
+    }
+    .cal-time svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    .cal-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      flex-wrap: wrap;
+    }
+    .cal-meta-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+    .cal-meta-item svg { width: 13px; height: 13px; }
+
+    /* RSVP button */
+    .rsvp-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: var(--space-3);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--color-border-light);
+    }
+    .attendee-count {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-10) var(--space-4);
+    }
+    .empty-icon { font-size: 2.5rem; margin-bottom: var(--space-3); }
+    .empty-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+    .empty-text { font-size: var(--font-size-sm); color: var(--color-text-muted); line-height: var(--line-height-relaxed); }
+
+    /* Past group (collapsible) */
+    .past-toggle {
+      background: none;
+      border: none;
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      padding: var(--space-2) 0;
+      width: 100%;
+      text-align: left;
+      margin-top: var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+    .past-toggle svg { width: 12px; height: 12px; transition: transform 0.2s; }
+    .past-toggle.open svg { transform: rotate(90deg); }
+    .past-cards { display: none; }
+    .past-cards.open { display: block; }
+
+    /* Modal overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      overflow-y: auto;
+      padding: var(--space-6) var(--space-4);
+    }
+    .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+    .modal {
+      background: var(--color-bg-card);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      max-width: 480px;
+      width: 100%;
+      box-shadow: var(--shadow-xl);
+      position: relative;
+    }
+    .modal-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-5);
+    }
+    .modal-close {
+      position: absolute;
+      top: var(--space-4);
+      right: var(--space-4);
+      background: var(--color-bg-muted);
+      border: none;
+      border-radius: var(--radius-md);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--color-text-muted);
+    }
+    .modal-close:hover { background: var(--color-border); }
+    .modal-close svg { width: 16px; height: 16px; }
+    .modal-actions {
+      display: flex;
+      gap: var(--space-3);
+      margin-top: var(--space-5);
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="feedback-widget.js"></script>
+
+  <div class="page-container" id="main-container">
+    <div style="text-align:center;padding:var(--space-12);color:var(--color-text-muted);font-size:var(--font-size-sm);">Loading…</div>
+  </div>
+
+  <!-- Create Event Modal -->
+  <div class="modal-overlay" id="event-modal" onclick="handleModalBgClick(event)">
+    <div class="modal">
+      <button class="modal-close" onclick="closeEventModal()" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="modal-title">Create Community Event</div>
+
+      <div class="form-group">
+        <label class="form-label" for="evt-title">Title <span style="color:var(--color-status-hold);">*</span></label>
+        <input type="text" class="input" id="evt-title" placeholder="e.g. Autumn work party, Skill share evening…">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="evt-type">Type</label>
+        <select class="input" id="evt-type">
+          <option value="work_party">Work Party</option>
+          <option value="meeting">Meeting</option>
+          <option value="skill_share">Skill Share</option>
+          <option value="social">Social</option>
+          <option value="other" selected>Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="evt-date">Date <span style="color:var(--color-status-hold);">*</span></label>
+        <input type="date" class="input" id="evt-date">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
+        <div class="form-group">
+          <label class="form-label" for="evt-start">Start time <span style="color:var(--color-status-hold);">*</span></label>
+          <input type="time" class="input" id="evt-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="evt-end">End time <span style="color:var(--color-text-muted);font-weight:normal;">(opt.)</span></label>
+          <input type="time" class="input" id="evt-end">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="evt-location">Location <span style="color:var(--color-text-muted);font-weight:normal;">(optional)</span></label>
+        <input type="text" class="input" id="evt-location" placeholder="e.g. Village hall, Community garden…">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="evt-desc">Description <span style="color:var(--color-text-muted);font-weight:normal;">(optional)</span></label>
+        <textarea class="textarea" id="evt-desc" rows="3" placeholder="What's happening? What should people bring?"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="evt-max">Max attendees <span style="color:var(--color-text-muted);font-weight:normal;">(optional)</span></label>
+        <input type="number" class="input" id="evt-max" min="2" max="200" placeholder="Leave blank for unlimited">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary" style="flex:1;" onclick="submitEvent()" id="evt-submit-btn">Create Event</button>
+        <button class="btn btn-ghost" onclick="closeEventModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let member = null;
+    let myExchanges = [];
+    let events = [];
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function combineDatetime(dateVal, timeVal) {
+      if (!dateVal || !timeVal) return null;
+      return new Date(dateVal + 'T' + timeVal).toISOString();
+    }
+
+    function formatTime(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleTimeString('en-IE', { hour: 'numeric', minute: '2-digit', hour12: true });
+    }
+
+    function formatScheduledTime(iso) {
+      if (!iso) return '';
+      const date = new Date(iso);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const timeStr = formatTime(iso);
+      if (dateOnly.getTime() === today.getTime()) return 'Today at ' + timeStr;
+      if (dateOnly.getTime() === tomorrow.getTime()) return 'Tomorrow at ' + timeStr;
+      const dayDate = date.toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' });
+      return dayDate + ' at ' + timeStr;
+    }
+
+    function getDateGroupKey(iso) {
+      if (!iso) return 'upcoming';
+      const date = new Date(iso);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+      const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      if (dateOnly.getTime() === today.getTime()) return '__today__';
+      if (dateOnly.getTime() === tomorrow.getTime()) return '__tomorrow__';
+      return date.toLocaleDateString('en-IE', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+
+    function getDateGroupLabel(key) {
+      if (key === '__today__') return 'Today';
+      if (key === '__tomorrow__') return 'Tomorrow';
+      return key;
+    }
+
+    function eventTypeBadge(type) {
+      const labels = {
+        work_party: 'Work Party',
+        meeting: 'Meeting',
+        skill_share: 'Skill Share',
+        social: 'Social',
+        other: 'Event'
+      };
+      return `<span class="cal-badge ${escapeHtml(type)}">${labels[type] || 'Event'}</span>`;
+    }
+
+    function statusBadge(status) {
+      const labels = { proposed: 'Proposed', accepted: 'Accepted', completed: 'Completed' };
+      return `<span class="cal-badge ${escapeHtml(status)}">${labels[status] || status}</span>`;
+    }
+
+    async function init() {
+      try {
+        const session = await getAuthSession();
+        if (!session) { window.location.href = 'access.html'; return; }
+
+        member = await getCurrentMember();
+        if (!member) { window.location.href = 'access.html'; return; }
+        if (typeof initFeedbackWidget === 'function') initFeedbackWidget(member.id);
+
+        [myExchanges, events] = await Promise.all([
+          getMyExchanges(member.id),
+          getUpcomingEvents()
+        ]);
+
+        renderPage();
+      } catch (e) {
+        console.error('Calendar init error:', e);
+        document.getElementById('main-container').innerHTML =
+          '<p style="padding:40px;text-align:center;color:var(--color-text-muted);">Something went wrong loading the calendar.</p>';
+      }
+    }
+
+    function renderPage() {
+      const container = document.getElementById('main-container');
+
+      const scheduledExchanges = myExchanges
+        .filter(ex => ex.scheduled_at && ex.status !== 'cancelled')
+        .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+
+      const now = new Date();
+      const upcomingExchanges = scheduledExchanges.filter(ex => new Date(ex.scheduled_at) >= now);
+      const pastExchanges = scheduledExchanges.filter(ex => new Date(ex.scheduled_at) < now);
+
+      container.innerHTML = `
+        <header class="page-header">
+          <div class="page-header-left">
+            <a href="index.html" class="back-link" aria-label="Back to home">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+              </svg>
+            </a>
+            <h1 class="page-title">Calendar</h1>
+          </div>
+        </header>
+
+        ${renderExchangesSection(upcomingExchanges, pastExchanges)}
+        ${renderEventsSection()}
+      `;
+    }
+
+    function renderExchangesSection(upcoming, past) {
+      let html = `
+        <div class="section-heading">
+          <div class="section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="17 1 21 5 17 9"/>
+              <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+              <polyline points="7 23 3 19 7 15"/>
+              <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+            </svg>
+            Scheduled Exchanges
+          </div>
+        </div>
+      `;
+
+      if (upcoming.length === 0 && past.length === 0) {
+        html += `
+          <div class="empty-state">
+            <div class="empty-icon">🗓️</div>
+            <div class="empty-title">No scheduled exchanges</div>
+            <p class="empty-text">When you propose an exchange, you can optionally add a date and time. It will appear here.</p>
+          </div>
+        `;
+        return html;
+      }
+
+      if (upcoming.length === 0) {
+        html += `<p style="font-size:var(--font-size-sm);color:var(--color-text-muted);margin-bottom:var(--space-4);">No upcoming scheduled exchanges.</p>`;
+      } else {
+        html += renderDateGroupedCards(upcoming, renderExchangeCard);
+      }
+
+      if (past.length > 0) {
+        html += `
+          <button class="past-toggle" id="past-exchanges-toggle" onclick="togglePast('past-exchanges')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            Past (${past.length})
+          </button>
+          <div class="past-cards" id="past-exchanges-cards">
+            ${renderDateGroupedCards(past, renderExchangeCard)}
+          </div>
+        `;
+      }
+
+      return html;
+    }
+
+    function renderEventsSection() {
+      return `
+        <div class="section-heading" style="margin-top:var(--space-10);">
+          <div class="section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Community Events
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="openEventModal()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Create
+          </button>
+        </div>
+        <div id="events-list">${renderEventsList()}</div>
+      `;
+    }
+
+    function renderEventsList() {
+      if (events.length === 0) {
+        return `
+          <div class="empty-state">
+            <div class="empty-icon">🎉</div>
+            <div class="empty-title">No upcoming events</div>
+            <p class="empty-text">Create a community event to get neighbours together — work parties, skill shares, socials, and more.</p>
+          </div>
+        `;
+      }
+      return renderDateGroupedCards(events, renderEventCard);
+    }
+
+    function renderDateGroupedCards(items, renderFn) {
+      const groups = {};
+      const groupOrder = [];
+      items.forEach(item => {
+        const key = getDateGroupKey(item.scheduled_at || item.starts_at);
+        if (!groups[key]) { groups[key] = []; groupOrder.push(key); }
+        groups[key].push(item);
+      });
+
+      let html = '';
+      groupOrder.forEach(key => {
+        html += `<div class="date-group-label">${getDateGroupLabel(key)}</div>`;
+        html += groups[key].map(item => renderFn(item)).join('');
+      });
+      return html;
+    }
+
+    function renderExchangeCard(exchange) {
+      const isProvider = exchange.provider_id === member.id;
+      const counterparty = isProvider ? exchange.receiver : exchange.provider;
+      const counterpartyName = counterparty ? counterparty.display_name : 'Unknown';
+      const listing = exchange.listing;
+      const title = listing ? listing.title : (exchange.description || 'Exchange');
+      const timeStr = formatScheduledTime(exchange.scheduled_at);
+      let endStr = '';
+      if (exchange.scheduled_end_at) {
+        endStr = ' – ' + formatTime(exchange.scheduled_end_at);
+      }
+
+      return `
+        <a class="cal-card cal-card-link" href="listing.html?id=${exchange.listing_id || ''}" style="text-decoration:none;">
+          <div class="cal-card-top">
+            <div>
+              <div class="cal-card-title">${escapeHtml(title)}</div>
+              <div class="cal-card-sub">with ${escapeHtml(counterpartyName)}</div>
+            </div>
+            ${statusBadge(exchange.status)}
+          </div>
+          <div class="cal-time">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${escapeHtml(timeStr)}${escapeHtml(endStr)}
+          </div>
+          ${exchange.location_note ? `<div class="cal-meta"><div class="cal-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${escapeHtml(exchange.location_note)}</div></div>` : ''}
+        </a>
+      `;
+    }
+
+    function renderEventCard(event) {
+      const organiserName = event.organiser ? event.organiser.display_name : 'Unknown';
+      const attendeeCount = event.attendees ? event.attendees.length : 0;
+      const amAttending = event.attendees ? event.attendees.some(a => a.member_id === member.id) : false;
+      const timeStr = formatTime(event.starts_at);
+      const endStr = event.ends_at ? ' – ' + formatTime(event.ends_at) : '';
+      const maxNote = event.max_attendees ? ` · ${attendeeCount}/${event.max_attendees}` : '';
+      const isFull = event.max_attendees && attendeeCount >= event.max_attendees && !amAttending;
+
+      return `
+        <div class="cal-card">
+          <div class="cal-card-top">
+            <div>
+              <div class="cal-card-title">${escapeHtml(event.title)}</div>
+              <div class="cal-card-sub">by ${escapeHtml(organiserName)}</div>
+            </div>
+            ${eventTypeBadge(event.event_type)}
+          </div>
+          <div class="cal-time">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${escapeHtml(timeStr + endStr)}
+          </div>
+          ${event.description ? `<p style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin:var(--space-2) 0;">${escapeHtml(event.description)}</p>` : ''}
+          <div class="cal-meta">
+            ${event.location_note ? `<div class="cal-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${escapeHtml(event.location_note)}</div>` : ''}
+            <div class="cal-meta-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              ${attendeeCount} going${maxNote}
+            </div>
+          </div>
+          <div class="rsvp-row">
+            <span class="attendee-count">${amAttending ? '✅ You\'re going' : isFull ? 'Event full' : ''}</span>
+            ${amAttending
+              ? `<button class="btn btn-ghost btn-sm" onclick="handleRsvp('${event.id}', false)">Cancel RSVP</button>`
+              : isFull
+                ? `<button class="btn btn-ghost btn-sm" disabled>Full</button>`
+                : `<button class="btn btn-secondary btn-sm" onclick="handleRsvp('${event.id}', true)">Going</button>`
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    async function handleRsvp(eventId, going) {
+      try {
+        if (going) {
+          await rsvpEvent(eventId, member.id);
+        } else {
+          await cancelRsvp(eventId, member.id);
+        }
+        // Refresh events
+        events = await getUpcomingEvents();
+        document.getElementById('events-list').innerHTML = renderEventsList();
+      } catch (e) {
+        console.error('RSVP error:', e);
+        showToast('Could not update RSVP. Please try again.');
+      }
+    }
+
+    function togglePast(prefix) {
+      const toggle = document.getElementById(prefix + '-toggle');
+      const cards = document.getElementById(prefix + '-cards');
+      if (!toggle || !cards) return;
+      const open = toggle.classList.toggle('open');
+      cards.classList.toggle('open', open);
+    }
+
+    // =====================================================
+    // CREATE EVENT MODAL
+    // =====================================================
+    function openEventModal() {
+      // Set default date to today
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('evt-date').value = today;
+      document.getElementById('event-modal').classList.add('open');
+    }
+
+    function closeEventModal() {
+      document.getElementById('event-modal').classList.remove('open');
+    }
+
+    function handleModalBgClick(e) {
+      if (e.target === document.getElementById('event-modal')) closeEventModal();
+    }
+
+    async function submitEvent() {
+      const title = document.getElementById('evt-title').value.trim();
+      const type = document.getElementById('evt-type').value;
+      const date = document.getElementById('evt-date').value;
+      const startTime = document.getElementById('evt-start').value;
+      const endTime = document.getElementById('evt-end').value;
+      const location = document.getElementById('evt-location').value.trim();
+      const description = document.getElementById('evt-desc').value.trim();
+      const maxRaw = document.getElementById('evt-max').value;
+      const maxAttendees = maxRaw ? parseInt(maxRaw, 10) : null;
+
+      if (!title) { showToast('Please add a title'); document.getElementById('evt-title').focus(); return; }
+      if (!date) { showToast('Please choose a date'); document.getElementById('evt-date').focus(); return; }
+      if (!startTime) { showToast('Please set a start time'); document.getElementById('evt-start').focus(); return; }
+
+      const startsAt = combineDatetime(date, startTime);
+      const endsAt = endTime ? combineDatetime(date, endTime) : null;
+
+      const btn = document.getElementById('evt-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Creating…';
+
+      try {
+        const eventData = {
+          organiser_id: member.id,
+          title,
+          event_type: type,
+          starts_at: startsAt,
+          ...(endsAt && { ends_at: endsAt }),
+          ...(location && { location_note: location }),
+          ...(description && { description }),
+          ...(maxAttendees && { max_attendees: maxAttendees })
+        };
+
+        await createEvent(eventData);
+
+        // Reset form
+        document.getElementById('evt-title').value = '';
+        document.getElementById('evt-type').value = 'other';
+        document.getElementById('evt-date').value = '';
+        document.getElementById('evt-start').value = '';
+        document.getElementById('evt-end').value = '';
+        document.getElementById('evt-location').value = '';
+        document.getElementById('evt-desc').value = '';
+        document.getElementById('evt-max').value = '';
+
+        closeEventModal();
+
+        // Refresh events
+        events = await getUpcomingEvents();
+        document.getElementById('events-list').innerHTML = renderEventsList();
+        showToast('Event created!');
+      } catch (e) {
+        console.error('Create event error:', e);
+        showToast('Could not create event. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Create Event';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
