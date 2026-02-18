@@ -609,8 +609,14 @@
 
           ${item.admin_notes ? `
             <div class="triage-box">
-              <div class="triage-box-title">Admin Notes</div>
+              <div class="triage-box-title">Admin Notes <span style="font-size:var(--font-size-xs);color:var(--color-text-muted);font-weight:normal;">(internal)</span></div>
               <p style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin:0;">${escapeHtml(item.admin_notes)}</p>
+            </div>
+          ` : ''}
+          ${item.member_note ? `
+            <div class="triage-box" style="border-left:3px solid var(--color-status-accepted);background:var(--color-status-accepted-bg);">
+              <div class="triage-box-title" style="color:var(--color-status-accepted);">Member Update <span style="font-size:var(--font-size-xs);font-weight:normal;">(shown to member)</span></div>
+              <p style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin:0;">${escapeHtml(item.member_note)}</p>
             </div>
           ` : ''}
 

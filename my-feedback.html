@@ -408,7 +408,7 @@
         const sb = getSupabase();
         const { data } = await sb
           .from('feedback')
-          .select('feedback_number, admin_notes, actioned_at, author_id, commit_hash')
+          .select('feedback_number, admin_notes, member_note, actioned_at, author_id, commit_hash')
           .eq('status', 'actioned')
           .not('commit_hash', 'is', null)
           .order('actioned_at', { ascending: false })
@@ -424,7 +424,8 @@
       if (!changelog || changelog.length === 0) return '';
 
       const items = changelog.map(item => {
-        let note = (item.admin_notes || '')
+        // Use member_note if available (user-friendly); fall back to stripped admin_notes for older entries
+        let note = item.member_note || (item.admin_notes || '')
           .replace(/Fixed in commit [a-f0-9]+\s*—?\s*/i, '')
           .replace(/Superseded by .+\.\s*/i, '')
           .replace(/Implemented in commit [a-f0-9]+\s*/i, '')
@@ -563,25 +564,19 @@
 
       const submittedDate = new Date(item.created_at).toLocaleDateString('en-IE', dateOpts);
 
-      // Build the admin response section
+      // Build the member response section
       let responseHtml = '';
-      if ((item.status === 'actioned' || item.status === 'declined') && item.admin_notes) {
-        // Clean admin_notes: strip commit hash references for member-facing display
-        const memberNotes = item.admin_notes
-          .replace(/Fixed in commit [a-f0-9]+\s*—?\s*/i, '')
-          .replace(/Superseded by .+\.\s*/i, '')
-          .trim();
-
+      if ((item.status === 'actioned' || item.status === 'declined') && item.member_note) {
         const actionedDate = item.actioned_at
           ? new Date(item.actioned_at).toLocaleDateString('en-IE', dateOpts)
           : null;
 
-        const label = item.status === 'actioned' ? 'Response' : 'Decision';
+        const label = item.status === 'actioned' ? 'Update' : 'Update';
 
         responseHtml = `
           <div class="feedback-response ${item.status === 'declined' ? 'declined' : ''}">
             <div class="feedback-response-label">${label}</div>
-            <div class="feedback-response-text">${escapeHtml(memberNotes)}</div>
+            <div class="feedback-response-text">${escapeHtml(item.member_note)}</div>
             ${actionedDate ? `<div class="feedback-response-date">Resolved ${actionedDate}</div>` : ''}
           </div>
         `;
