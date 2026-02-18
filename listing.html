@@ -1169,22 +1169,40 @@
       // Owner view: show edit button and proposals
       if (isOwner) {
         if (listing.status === 'active') {
-          html += `
-            <div class="own-listing-notice">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span>This is your listing. Exchange proposals from other members will appear below.</span>
-            </div>
-            <div class="own-listing-actions">
-              <button class="btn btn-outline" onclick="showEditForm()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Edit listing
-              </button>
-              <button class="btn btn-secondary" onclick="showConfirm('fulfilled')">Mark as fulfilled</button>
-              <button class="btn btn-danger" onclick="showConfirm('close')">Close listing</button>
-            </div>
-          `;
-        } else {
-          // Non-active: show reopen button
+          const hasAcceptedExchange = exchanges.some(ex => ex.status === 'accepted');
+          if (hasAcceptedExchange) {
+            // Exchange in progress — direct owner to confirm; hide close/fulfil to avoid confusion
+            html += `
+              <div class="own-listing-notice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>An exchange is in progress for this listing. Go to your Exchanges page to confirm completion and transfer credits.</span>
+              </div>
+              <div class="own-listing-actions">
+                <button class="btn btn-outline" onclick="showEditForm()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit listing
+                </button>
+                <a href="exchanges.html" class="btn btn-primary">Go to Exchanges</a>
+              </div>
+            `;
+          } else {
+            html += `
+              <div class="own-listing-notice">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>This is your listing. Exchange proposals from other members will appear below.</span>
+              </div>
+              <div class="own-listing-actions">
+                <button class="btn btn-outline" onclick="showEditForm()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit listing
+                </button>
+                <button class="btn btn-secondary" onclick="showConfirm('fulfilled')">Mark as fulfilled</button>
+                <button class="btn btn-danger" onclick="showConfirm('close')">Close listing</button>
+              </div>
+            `;
+          }
+        } else if (listing.status === 'cancelled' || listing.status === 'expired') {
+          // Only allow reopen for cancelled or expired listings
           html += `
             <div class="own-listing-actions">
               <button class="btn btn-primary" onclick="reopenListing()">Reopen listing</button>
@@ -1675,8 +1693,8 @@
         },
         completed: {
           icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
-          title: 'Listing fulfilled',
-          text: isOwner ? 'You marked this listing as fulfilled.' : 'This exchange has been completed.'
+          title: 'Exchange completed',
+          text: isOwner ? 'This listing has been fulfilled and credits have been transferred.' : 'This exchange has been completed.'
         },
         expired: {
           icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',

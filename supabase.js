@@ -358,9 +358,9 @@ async function confirmExchange(exchangeId, role) {
     });
     if (rpcError) throw rpcError;
 
-    // Mark the listing as matched (owner can close or leave open for more)
+    // Mark the listing as completed now that the exchange is done
     if (data.listing_id) {
-      await sb.from('listings').update({ status: 'matched' }).eq('id', data.listing_id).eq('status', 'active');
+      await sb.from('listings').update({ status: 'completed' }).eq('id', data.listing_id).eq('status', 'active');
     }
 
     // Re-fetch to get updated status
