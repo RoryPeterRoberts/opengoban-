@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Trusted Trades — Open Gobán</title>
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    .page-container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-5);
+      min-height: 100vh;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-6);
+    }
+    .page-header-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .back-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+      flex-shrink: 0;
+    }
+    .back-link:hover { background: var(--color-bg-muted); color: var(--color-primary); }
+    .back-link svg { width: 20px; height: 20px; }
+
+    .page-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+
+    /* Filter pills */
+    .filter-pills {
+      display: flex;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-5);
+    }
+    .filter-pill {
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      border: 1px solid var(--color-border);
+      background: var(--color-bg-card);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+    }
+    .filter-pill:hover { border-color: var(--color-primary); color: var(--color-primary); }
+    .filter-pill.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: #fff;
+    }
+
+    /* Trade cards */
+    .trade-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl);
+      padding: var(--space-5);
+      margin-bottom: var(--space-3);
+      transition: border-color var(--transition-fast);
+    }
+    .trade-card:hover { border-color: var(--color-primary); }
+
+    .trade-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+    .trade-name {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+    .trade-area {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-1);
+    }
+
+    .trade-badge {
+      flex-shrink: 0;
+      padding: 3px var(--space-2);
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: var(--font-weight-semibold);
+      text-transform: capitalize;
+      background: var(--color-bg-muted);
+      color: var(--color-text-secondary);
+      border: 1px solid var(--color-border);
+    }
+
+    .trade-description {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-3);
+      line-height: 1.5;
+    }
+
+    .trade-contact {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      margin-bottom: var(--space-3);
+    }
+    .trade-contact-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+    }
+    .trade-contact-item a {
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+    .trade-contact-item a:hover { text-decoration: underline; }
+    .trade-contact-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    .trade-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+      padding-top: var(--space-3);
+      border-top: 1px solid var(--color-border);
+    }
+
+    .trade-footer-left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      flex-wrap: wrap;
+    }
+
+    /* Endorsement chips */
+    .endorsement-chips {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      cursor: pointer;
+    }
+    .endorsement-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px var(--space-2);
+      border-radius: var(--radius-full);
+      background: color-mix(in srgb, var(--color-status-active) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-status-active) 30%, transparent);
+      font-size: 11px;
+      font-weight: var(--font-weight-medium);
+      color: var(--color-status-active);
+    }
+    .endorsement-chip.warning {
+      background: color-mix(in srgb, var(--color-status-hold) 12%, transparent);
+      border-color: color-mix(in srgb, var(--color-status-hold) 30%, transparent);
+      color: var(--color-status-hold);
+    }
+    .endorsement-count {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+    .no-endorsements {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    /* Endorsement detail panel */
+    .endorsement-panel {
+      display: none;
+      margin-top: var(--space-3);
+      border-top: 1px solid var(--color-border);
+      padding-top: var(--space-3);
+    }
+    .endorsement-panel.open { display: block; }
+    .endorsement-row {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+      margin-bottom: var(--space-2);
+      font-size: var(--font-size-sm);
+    }
+    .endorsement-name {
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text);
+      white-space: nowrap;
+    }
+    .endorsement-note {
+      color: var(--color-text-secondary);
+    }
+    .endorsement-date {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      white-space: nowrap;
+    }
+    .endorsement-warning-icon {
+      color: var(--color-status-hold);
+      font-size: 13px;
+    }
+
+    /* Added by */
+    .added-by {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+    }
+
+    /* Admin remove */
+    .admin-remove-btn {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+    }
+    .admin-remove-btn:hover { color: var(--color-status-hold); }
+
+    /* Modal overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      overflow-y: auto;
+      padding: var(--space-6) var(--space-4);
+    }
+    .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+    .modal {
+      background: var(--color-bg-card);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      max-width: 480px;
+      width: 100%;
+      box-shadow: var(--shadow-xl);
+      position: relative;
+    }
+    .modal-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-5);
+    }
+    .modal-close {
+      position: absolute;
+      top: var(--space-4);
+      right: var(--space-4);
+      background: var(--color-bg-muted);
+      border: none;
+      border-radius: var(--radius-md);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--color-text-muted);
+    }
+    .modal-close:hover { background: var(--color-border); }
+    .modal-close svg { width: 16px; height: 16px; }
+    .modal-actions {
+      display: flex;
+      gap: var(--space-3);
+      margin-top: var(--space-5);
+    }
+    .modal-subtitle {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      margin-bottom: var(--space-4);
+      margin-top: calc(-1 * var(--space-3));
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-6);
+      color: var(--color-text-muted);
+    }
+    .empty-icon { font-size: 40px; margin-bottom: var(--space-3); }
+    .empty-title {
+      font-family: var(--font-family-heading);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      margin-bottom: var(--space-2);
+    }
+    .empty-text { font-size: var(--font-size-sm); }
+
+    /* Vouch toggle */
+    .not-rec-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-top: var(--space-3);
+      cursor: pointer;
+    }
+    .not-rec-toggle input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+    .not-rec-toggle label {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+    }
+
+    /* Contact requirement hint */
+    .field-hint {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: var(--space-1);
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="feedback-widget.js"></script>
+
+  <div class="page-container" id="main-container">
+    <div style="text-align:center;padding:var(--space-12);color:var(--color-text-muted);font-size:var(--font-size-sm);">Loading…</div>
+  </div>
+
+  <!-- Add Tradesperson Modal -->
+  <div class="modal-overlay" id="add-trade-modal" onclick="handleModalBgClick(event, 'add-trade-modal')">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('add-trade-modal')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="modal-title">Add a Tradesperson</div>
+      <p class="modal-subtitle">Share someone who's done good work for you — your vouching it means a lot to your neighbours.</p>
+
+      <div class="form-group">
+        <label class="form-label" for="trade-name">Name <span style="color:var(--color-status-hold);">*</span></label>
+        <input type="text" class="input" id="trade-name" placeholder="e.g. Paddy Murphy Plumbing">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="trade-type">Trade <span style="color:var(--color-status-hold);">*</span></label>
+        <select class="input" id="trade-type">
+          <option value="">Select trade…</option>
+          <option value="plumber">Plumber</option>
+          <option value="electrician">Electrician</option>
+          <option value="builder">Builder</option>
+          <option value="painter">Painter / Decorator</option>
+          <option value="cleaner">Cleaner</option>
+          <option value="gardener">Gardener</option>
+          <option value="carpenter">Carpenter / Joiner</option>
+          <option value="mechanic">Mechanic</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="trade-area">Areas covered</label>
+        <input type="text" class="input" id="trade-area" placeholder="e.g. Smithfield, Stoneybatter, Phibsborough">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="trade-phone">Phone</label>
+        <input type="tel" class="input" id="trade-phone" placeholder="+353 …">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="trade-email">Email</label>
+        <input type="email" class="input" id="trade-email" placeholder="…">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="trade-website">Website</label>
+        <input type="url" class="input" id="trade-website" placeholder="https://…">
+        <p class="field-hint">At least one contact method (phone, email, or website) is required.</p>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="trade-description">Notes on their work (optional)</label>
+        <textarea class="input" id="trade-description" rows="3" placeholder="What they did for you, quality of work, anything useful to know…" style="resize:vertical;"></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('add-trade-modal')" style="flex:1;">Cancel</button>
+        <button class="btn btn-primary" onclick="submitAddTrade()" id="add-trade-submit" style="flex:2;">Add tradesperson</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vouch Modal -->
+  <div class="modal-overlay" id="vouch-modal" onclick="handleModalBgClick(event, 'vouch-modal')">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal('vouch-modal')" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <div class="modal-title" id="vouch-modal-title">Vouch for this person</div>
+      <p class="modal-subtitle" id="vouch-modal-sub">Your endorsement will be shown with your name.</p>
+
+      <div class="form-group">
+        <label class="form-label" for="vouch-note">Add a note (optional)</label>
+        <textarea class="input" id="vouch-note" rows="3" placeholder="e.g. Did our roof last autumn — very tidy job, good price, turned up when they said they would." style="resize:vertical;"></textarea>
+      </div>
+
+      <div class="not-rec-toggle">
+        <input type="checkbox" id="vouch-not-rec">
+        <label for="vouch-not-rec">I'd rather not recommend this person</label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal('vouch-modal')" style="flex:1;">Cancel</button>
+        <button class="btn btn-primary" onclick="submitVouch()" id="vouch-submit" style="flex:2;">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let member = null;
+    let allTrades = [];
+    let activeFilter = 'all';
+    let vouchingTradeId = null;
+    let isAdmin = false;
+
+    const TRADE_LABELS = {
+      plumber: 'Plumber',
+      electrician: 'Electrician',
+      builder: 'Builder',
+      painter: 'Painter',
+      cleaner: 'Cleaner',
+      gardener: 'Gardener',
+      carpenter: 'Carpenter',
+      mechanic: 'Mechanic',
+      other: 'Other'
+    };
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    function showToast(msg, type = 'success') {
+      let t = document.getElementById('toast');
+      if (!t) {
+        t = document.createElement('div');
+        t.id = 'toast';
+        t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:8px;font-size:14px;font-weight:500;z-index:9999;transition:opacity 0.3s;max-width:340px;text-align:center;';
+        document.body.appendChild(t);
+      }
+      t.textContent = msg;
+      t.style.background = type === 'error' ? 'var(--color-status-hold)' : '#222';
+      t.style.color = '#fff';
+      t.style.opacity = '1';
+      clearTimeout(t._timeout);
+      t._timeout = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.add('open');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+    }
+
+    function handleModalBgClick(e, id) {
+      if (e.target === document.getElementById(id)) closeModal(id);
+    }
+
+    async function init() {
+      try {
+        const session = await getAuthSession();
+        if (!session) { window.location.href = 'access.html'; return; }
+
+        member = await getCurrentMember();
+        if (!member) { window.location.href = 'access.html'; return; }
+        if (typeof initFeedbackWidget === 'function') initFeedbackWidget(member.id);
+
+        isAdmin = member.member_id === 'OG-0001';
+
+        allTrades = await getTrades();
+        renderPage();
+      } catch (e) {
+        console.error('Trades init error:', e);
+        document.getElementById('main-container').innerHTML =
+          '<p style="padding:40px;text-align:center;color:var(--color-text-muted);">Something went wrong loading Trusted Trades.</p>';
+      }
+    }
+
+    function renderPage() {
+      const container = document.getElementById('main-container');
+
+      const filtered = activeFilter === 'all'
+        ? allTrades
+        : allTrades.filter(t => t.trade_type === activeFilter);
+
+      const tradeTypesPresent = [...new Set(allTrades.map(t => t.trade_type))];
+
+      container.innerHTML = `
+        <div class="page-header">
+          <div class="page-header-left">
+            <a href="index.html" class="back-link" aria-label="Back to home">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </a>
+            <div class="page-title">Trusted Trades</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openModal('add-trade-modal')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add
+          </button>
+        </div>
+
+        <p style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-5);">
+          Tradespeople vouched for by your neighbours. Contact info is visible to all members.
+        </p>
+
+        <div class="filter-pills">
+          <button class="filter-pill ${activeFilter === 'all' ? 'active' : ''}" onclick="setFilter('all')">All (${allTrades.length})</button>
+          ${Object.entries(TRADE_LABELS).map(([k, v]) => {
+            const count = allTrades.filter(t => t.trade_type === k).length;
+            if (count === 0 && !tradeTypesPresent.includes(k)) return '';
+            return `<button class="filter-pill ${activeFilter === k ? 'active' : ''}" onclick="setFilter('${k}')">${v}${count > 0 ? ` (${count})` : ''}</button>`;
+          }).join('')}
+        </div>
+
+        <div id="trades-list">
+          ${filtered.length === 0 ? renderEmpty() : filtered.map(t => renderTradeCard(t)).join('')}
+        </div>
+      `;
+    }
+
+    function renderEmpty() {
+      if (allTrades.length === 0) {
+        return `
+          <div class="empty-state">
+            <div class="empty-icon">🔧</div>
+            <div class="empty-title">No trades listed yet</div>
+            <p class="empty-text">Be the first to add a tradesperson your neighbours can trust.</p>
+          </div>
+        `;
+      }
+      return `
+        <div class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-title">No ${TRADE_LABELS[activeFilter] || ''} listed yet</div>
+          <p class="empty-text">Know a good one? Add them for the community.</p>
+        </div>
+      `;
+    }
+
+    function renderTradeCard(trade) {
+      const endorsements = trade.endorsements || [];
+      const positive = endorsements.filter(e => !e.not_recommended);
+      const warnings = endorsements.filter(e => e.not_recommended);
+      const myEndorsement = endorsements.find(e => e.member_id === member.id);
+      const tradeLabel = TRADE_LABELS[trade.trade_type] || trade.trade_type;
+      const addedByName = trade.added_by_member ? trade.added_by_member.display_name : 'a member';
+
+      // Endorsement chip display: show first 2 names + count
+      let endorsementChipsHtml = '';
+      if (positive.length === 0 && warnings.length === 0) {
+        endorsementChipsHtml = `<span class="no-endorsements">No endorsements yet</span>`;
+      } else {
+        const firstTwo = positive.slice(0, 2).map(e =>
+          `<span class="endorsement-chip">${escapeHtml(e.member ? e.member.display_name.split(' ')[0] : '?')}</span>`
+        ).join('');
+        const moreCount = positive.length > 2 ? positive.length - 2 : 0;
+        const moreHtml = moreCount > 0 ? `<span class="endorsement-count">+${moreCount}</span>` : '';
+        const warningHtml = warnings.length > 0
+          ? `<span class="endorsement-chip warning">⚠ ${warnings.length} concern${warnings.length > 1 ? 's' : ''}</span>`
+          : '';
+        endorsementChipsHtml = `
+          <div class="endorsement-chips" onclick="toggleEndorsementPanel('${trade.id}')" title="Click to see details">
+            ${firstTwo}${moreHtml}${warningHtml}
+          </div>
+        `;
+      }
+
+      // Vouch button
+      let vouchBtnHtml = '';
+      if (myEndorsement) {
+        if (myEndorsement.not_recommended) {
+          vouchBtnHtml = `<button class="btn btn-ghost btn-sm" onclick="openEditVouch('${trade.id}')">You flagged a concern</button>`;
+        } else {
+          vouchBtnHtml = `<button class="btn btn-ghost btn-sm" onclick="openEditVouch('${trade.id}')">You vouched ✓</button>`;
+        }
+      } else {
+        vouchBtnHtml = `<button class="btn btn-secondary btn-sm" onclick="openVouchModal('${trade.id}', '${escapeHtml(trade.name)}')">Vouch for this person</button>`;
+      }
+
+      // Contact info
+      const contactItems = [];
+      if (trade.phone) contactItems.push(`
+        <div class="trade-contact-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.18 6.18l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <a href="tel:${escapeHtml(trade.phone)}">${escapeHtml(trade.phone)}</a>
+        </div>
+      `);
+      if (trade.email) contactItems.push(`
+        <div class="trade-contact-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <a href="mailto:${escapeHtml(trade.email)}">${escapeHtml(trade.email)}</a>
+        </div>
+      `);
+      if (trade.website) contactItems.push(`
+        <div class="trade-contact-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <a href="${escapeHtml(trade.website)}" target="_blank" rel="noopener noreferrer">Website</a>
+        </div>
+      `);
+
+      // Endorsement detail panel
+      const panelHtml = renderEndorsementPanel(trade, endorsements);
+
+      // Admin remove
+      const adminHtml = isAdmin
+        ? `<button class="admin-remove-btn" onclick="handleRemoveTrade('${trade.id}', '${escapeHtml(trade.name)}')">Remove</button>`
+        : '';
+
+      return `
+        <div class="trade-card" id="trade-${trade.id}">
+          <div class="trade-card-top">
+            <div>
+              <div class="trade-name">${escapeHtml(trade.name)}</div>
+              ${trade.area ? `<div class="trade-area">📍 ${escapeHtml(trade.area)}</div>` : ''}
+            </div>
+            <span class="trade-badge">${escapeHtml(tradeLabel)}</span>
+          </div>
+
+          ${trade.description ? `<p class="trade-description">${escapeHtml(trade.description)}</p>` : ''}
+
+          ${contactItems.length > 0 ? `<div class="trade-contact">${contactItems.join('')}</div>` : ''}
+
+          <div class="trade-footer">
+            <div class="trade-footer-left">
+              ${endorsementChipsHtml}
+            </div>
+            ${vouchBtnHtml}
+          </div>
+
+          <div class="endorsement-panel" id="panel-${trade.id}">
+            ${panelHtml}
+          </div>
+
+          <div style="margin-top:var(--space-2);display:flex;justify-content:space-between;align-items:center;">
+            <span class="added-by">Added by ${escapeHtml(addedByName)}</span>
+            ${adminHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderEndorsementPanel(trade, endorsements) {
+      if (endorsements.length === 0) {
+        return `<p style="font-size:var(--font-size-sm);color:var(--color-text-muted);font-style:italic;">No endorsements yet — be the first to vouch for them.</p>`;
+      }
+
+      const positive = endorsements.filter(e => !e.not_recommended);
+      const warnings = endorsements.filter(e => e.not_recommended);
+
+      let html = '';
+
+      if (positive.length > 0) {
+        html += `<p style="font-size:var(--font-size-xs);font-weight:var(--font-weight-semibold);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-text-muted);margin-bottom:var(--space-2);">Endorsed by</p>`;
+        html += positive.map(e => `
+          <div class="endorsement-row">
+            <span class="endorsement-name">${escapeHtml(e.member ? e.member.display_name : 'Member')}</span>
+            ${e.note ? `<span class="endorsement-note">— ${escapeHtml(e.note)}</span>` : ''}
+            <span class="endorsement-date">${formatDate(e.created_at)}</span>
+          </div>
+        `).join('');
+      }
+
+      if (warnings.length > 0) {
+        html += `<p style="font-size:var(--font-size-xs);font-weight:var(--font-weight-semibold);text-transform:uppercase;letter-spacing:0.05em;color:var(--color-status-hold);margin-top:var(--space-3);margin-bottom:var(--space-2);">⚠ Concerns raised</p>`;
+        html += warnings.map(e => `
+          <div class="endorsement-row">
+            <span class="endorsement-name">${escapeHtml(e.member ? e.member.display_name : 'Member')}</span>
+            ${e.note ? `<span class="endorsement-note">— ${escapeHtml(e.note)}</span>` : ''}
+            <span class="endorsement-date">${formatDate(e.created_at)}</span>
+          </div>
+        `).join('');
+      }
+
+      return html;
+    }
+
+    function toggleEndorsementPanel(tradeId) {
+      const panel = document.getElementById(`panel-${tradeId}`);
+      if (panel) panel.classList.toggle('open');
+    }
+
+    function setFilter(type) {
+      activeFilter = type;
+      renderPage();
+    }
+
+    function openVouchModal(tradeId, tradeName) {
+      vouchingTradeId = tradeId;
+      document.getElementById('vouch-modal-title').textContent = `Vouch for ${tradeName}`;
+      document.getElementById('vouch-modal-sub').textContent = 'Your name will be shown with your endorsement.';
+      document.getElementById('vouch-note').value = '';
+      document.getElementById('vouch-not-rec').checked = false;
+      openModal('vouch-modal');
+    }
+
+    function openEditVouch(tradeId) {
+      const trade = allTrades.find(t => t.id === tradeId);
+      if (!trade) return;
+      const existing = (trade.endorsements || []).find(e => e.member_id === member.id);
+      vouchingTradeId = tradeId;
+      document.getElementById('vouch-modal-title').textContent = `Update your vouching for ${trade.name}`;
+      document.getElementById('vouch-modal-sub').textContent = 'Edit your note or change your stance. Submitting will update your existing entry.';
+      document.getElementById('vouch-note').value = existing ? (existing.note || '') : '';
+      document.getElementById('vouch-not-rec').checked = existing ? !!existing.not_recommended : false;
+      openModal('vouch-modal');
+    }
+
+    async function submitVouch() {
+      if (!vouchingTradeId) return;
+      const note = document.getElementById('vouch-note').value.trim();
+      const notRec = document.getElementById('vouch-not-rec').checked;
+
+      const btn = document.getElementById('vouch-submit');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      try {
+        await endorseTrade({
+          trade_id: vouchingTradeId,
+          member_id: member.id,
+          note: note || null,
+          not_recommended: notRec
+        });
+        closeModal('vouch-modal');
+        allTrades = await getTrades();
+        renderPage();
+        showToast(notRec ? 'Concern noted — thanks for the heads up.' : 'Thanks for vouching!');
+      } catch (e) {
+        console.error('Vouch error:', e);
+        showToast('Something went wrong — please try again.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit';
+      }
+    }
+
+    async function submitAddTrade() {
+      const name = document.getElementById('trade-name').value.trim();
+      const tradeType = document.getElementById('trade-type').value;
+      const area = document.getElementById('trade-area').value.trim();
+      const phone = document.getElementById('trade-phone').value.trim();
+      const email = document.getElementById('trade-email').value.trim();
+      const website = document.getElementById('trade-website').value.trim();
+      const description = document.getElementById('trade-description').value.trim();
+
+      if (!name) { showToast('Please enter a name.', 'error'); return; }
+      if (!tradeType) { showToast('Please select a trade type.', 'error'); return; }
+      if (!phone && !email && !website) {
+        showToast('Please add at least one contact method.', 'error'); return;
+      }
+
+      const btn = document.getElementById('add-trade-submit');
+      btn.disabled = true;
+      btn.textContent = 'Adding…';
+
+      try {
+        const trade = await createTrade({
+          added_by: member.id,
+          name,
+          trade_type: tradeType,
+          area: area || null,
+          phone: phone || null,
+          email: email || null,
+          website: website || null,
+          description: description || null
+        });
+
+        // Auto-endorse from the submitter
+        await endorseTrade({
+          trade_id: trade.id,
+          member_id: member.id,
+          note: description || null,
+          not_recommended: false
+        });
+
+        closeModal('add-trade-modal');
+        // Reset form
+        ['trade-name', 'trade-area', 'trade-phone', 'trade-email', 'trade-website', 'trade-description'].forEach(id => {
+          document.getElementById(id).value = '';
+        });
+        document.getElementById('trade-type').value = '';
+
+        allTrades = await getTrades();
+        renderPage();
+        showToast(`${name} added to Trusted Trades!`);
+      } catch (e) {
+        console.error('Add trade error:', e);
+        showToast('Something went wrong — please try again.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Add tradesperson';
+      }
+    }
+
+    async function handleRemoveTrade(tradeId, tradeName) {
+      if (!confirm(`Remove "${tradeName}" from Trusted Trades? This will also remove all endorsements.`)) return;
+      try {
+        await removeTrade(tradeId);
+        allTrades = await getTrades();
+        renderPage();
+        showToast(`${tradeName} removed.`);
+      } catch (e) {
+        console.error('Remove trade error:', e);
+        showToast('Something went wrong — please try again.', 'error');
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

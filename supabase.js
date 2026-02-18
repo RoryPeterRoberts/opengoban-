@@ -1082,6 +1082,68 @@ async function cancelRsvp(eventId, memberId) {
 }
 
 // =====================================================
+// TRUSTED TRADES
+// =====================================================
+
+async function getTrades() {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('trusted_trades')
+    .select(`
+      *,
+      added_by_member:members!trusted_trades_added_by_fkey (id, display_name, member_id),
+      endorsements:trade_endorsements (
+        id, member_id, note, not_recommended, created_at,
+        member:members!trade_endorsements_member_id_fkey (id, display_name, member_id)
+      )
+    `)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+async function createTrade(tradeData) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('trusted_trades')
+    .insert(tradeData)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function endorseTrade(endorsementData) {
+  const sb = getSupabase();
+  const { data, error } = await sb
+    .from('trade_endorsements')
+    .upsert(endorsementData, { onConflict: 'trade_id,member_id' })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function removeEndorsement(tradeId, memberId) {
+  const sb = getSupabase();
+  const { error } = await sb
+    .from('trade_endorsements')
+    .delete()
+    .eq('trade_id', tradeId)
+    .eq('member_id', memberId);
+  if (error) throw error;
+}
+
+async function removeTrade(tradeId) {
+  const sb = getSupabase();
+  const { error } = await sb
+    .from('trusted_trades')
+    .delete()
+    .eq('id', tradeId);
+  if (error) throw error;
+}
+
+// =====================================================
 // COMMUNITY GOVERNANCE
 // =====================================================
 
