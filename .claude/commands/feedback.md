@@ -93,24 +93,38 @@ For approved items:
 3. Test your logic (check for obvious errors)
 4. Commit with a clear message referencing the feedback number (e.g., "Fixes FB-17")
 5. Push to main: `git push origin master:main`
-6. Mark the feedback as resolved in Supabase, setting all audit fields:
+6. Mark the feedback as resolved in Supabase, setting all audit fields.
 
+**Always write both `admin_notes` and `member_note`** — they serve different audiences:
+
+- **`admin_notes`** — internal record. Technical language is fine. Include commit hash, what files changed, why the decision was made.
+- **`member_note`** — shown directly to the member on their my-feedback.html page. Must be warm, plain-language, and courteous. No commit hashes, no technical jargon. Tell them what happened in human terms, invite them to try it out if implemented, thank them for the suggestion.
+
+**Tone guide for `member_note`:**
+- Friendly and personal — address their specific suggestion, not a generic response
+- For implemented items: explain what changed in one sentence, tell them where/how to try it, encourage them to test it
+- For declined items: acknowledge the idea warmly, give an honest plain-language reason, leave the door open
+- Examples of good member_notes:
+  - ✅ "Thanks so much for flagging this, Eamonn! The calendar now shows scheduled times clearly on exchange cards. You can see it on your My Exchanges page — any exchange you schedule a time for will show the date and time highlighted at the top of the card. Let us know if it works well!"
+  - ✅ "Great suggestion, Sinéad! We've added a way to filter listings by area so you can focus on what's close to home. Give it a try on the community board — look for the new filter options at the top."
+  - ✅ "Thanks for this, Ciarán. We had a think about it and decided to hold off for now — the current design works well for the community size we have. We'll revisit it as we grow. Really appreciate you taking the time to suggest it."
+
+For **actioned** items:
 ```
 curl -s -X PATCH 'https://xqvzpjesgxojsdivupfl.supabase.co/rest/v1/feedback?id=eq.FEEDBACK_ID' \
   -H "apikey: SERVICE_ROLE_KEY" \
   -H "Authorization: Bearer SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"status": "actioned", "admin_notes": "Fixed in commit XXXXX — description of fix", "commit_hash": "XXXXX", "actioned_at": "ISO_TIMESTAMP"}'
+  -d '{"status": "actioned", "admin_notes": "Fixed in commit XXXXX — description of fix", "member_note": "FRIENDLY MESSAGE TO MEMBER", "commit_hash": "XXXXX", "actioned_at": "ISO_TIMESTAMP"}'
 ```
 
-For declined items, still set `actioned_at` (the time the decision was made) but leave `commit_hash` null:
-
+For **declined** items (still set `actioned_at`, leave `commit_hash` null):
 ```
 curl -s -X PATCH 'https://xqvzpjesgxojsdivupfl.supabase.co/rest/v1/feedback?id=eq.FEEDBACK_ID' \
   -H "apikey: SERVICE_ROLE_KEY" \
   -H "Authorization: Bearer SERVICE_ROLE_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"status": "declined", "admin_notes": "Reason for declining", "actioned_at": "ISO_TIMESTAMP"}'
+  -d '{"status": "declined", "admin_notes": "Internal reason for declining", "member_note": "FRIENDLY MESSAGE TO MEMBER", "actioned_at": "ISO_TIMESTAMP"}'
 ```
 
 ### Feedback table fields
@@ -122,7 +136,8 @@ curl -s -X PATCH 'https://xqvzpjesgxojsdivupfl.supabase.co/rest/v1/feedback?id=e
 | `type` | text | idea, bug, question, other |
 | `message` | text | The feedback text |
 | `status` | text | new → triaged → actioned / declined |
-| `admin_notes` | text | What was done and why |
+| `admin_notes` | text | Internal notes — technical details, commit refs, decision rationale. Not shown to members. |
+| `member_note` | text | User-facing message — warm, plain-language update shown on my-feedback.html. No jargon. |
 | `commit_hash` | text | Short git hash of the fixing commit (null if no code change) |
 | `created_at` | timestamptz | When submitted |
 | `actioned_at` | timestamptz | When resolved (actioned or declined) |

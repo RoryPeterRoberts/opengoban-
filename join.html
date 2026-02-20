@@ -407,6 +407,53 @@
       width: 14px;
       height: 14px;
     }
+
+    /* Listings step */
+    .listings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-4);
+      margin-bottom: var(--space-5);
+    }
+
+    @media (max-width: 600px) {
+      .listings-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .listing-card {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-left: 4px solid transparent;
+      border-radius: var(--radius-lg);
+      padding: var(--space-4);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .listing-card--need {
+      border-left-color: var(--color-status-review);
+    }
+
+    .listing-card--offer {
+      border-left-color: var(--color-primary);
+    }
+
+    .listing-card-label {
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-bold);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: var(--space-3);
+    }
+
+    .listing-card--need .listing-card-label {
+      color: var(--color-status-review);
+    }
+
+    .listing-card--offer .listing-card-label {
+      color: var(--color-primary);
+    }
   </style>
 </head>
 <body>
@@ -434,6 +481,7 @@
     // =====================================================
 
     let currentMember = null;
+    let memberArea = 'village';
     let profile = {
       primaryCategory: '',
       secondaryCategories: [],
@@ -507,6 +555,18 @@
         // If not PENDING_PROFILE or REVIEW or HOLD, something is wrong
         if (!['PENDING_PROFILE', 'REVIEW', 'HOLD'].includes(currentMember.status)) {
           renderError('Your account status is unexpected. Please contact a community member.');
+          return;
+        }
+
+        // REVIEW members: check if they still need to complete the listings step
+        if (currentMember.status === 'REVIEW') {
+          memberArea = currentMember.area || 'village';
+          const { needs, offers } = await checkListingsComplete(currentMember.id);
+          if (needs >= 2 && offers >= 2) {
+            window.location.href = 'join-status.html';
+            return;
+          }
+          renderListingsStep();
           return;
         }
 
@@ -1154,8 +1214,10 @@
         // Clear invite token from localStorage (no longer needed)
         clearInviteToken();
 
-        // Redirect to status page
-        window.location.href = 'join-status.html';
+        // Show listings step — member must post 2 needs + 2 offers before joining
+        memberArea = area;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        renderListingsStep();
 
       } catch (e) {
         console.error('Submit error:', e);
@@ -1170,6 +1232,148 @@
       errorEl.innerHTML = html;
       errorEl.style.display = 'block';
       window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    // =====================================================
+    // LISTINGS STEP
+    // =====================================================
+
+    async function checkListingsComplete(memberId) {
+      const sb = getSupabase();
+      const { data, error } = await sb
+        .from('listings')
+        .select('type')
+        .eq('author_id', memberId)
+        .eq('status', 'active');
+      if (error) return { needs: 0, offers: 0 };
+      const needs = (data || []).filter(l => l.type === 'need').length;
+      const offers = (data || []).filter(l => l.type === 'offer').length;
+      return { needs, offers };
+    }
+
+    function renderListingsStep() {
+      const container = document.getElementById('main-container');
+
+      function listingCard(type, index) {
+        const isNeed = type === 'need';
+        const label = `${isNeed ? 'NEED' : 'OFFER'} ${index}`;
+        const placeholder = isNeed ? 'e.g. Help moving furniture' : 'e.g. I can give Spanish lessons';
+        const question = isNeed ? 'What do you need?' : 'What can you offer?';
+        const id = `${type}-${index}`;
+        return `
+          <div class="listing-card listing-card--${type}">
+            <div class="listing-card-label">${label}</div>
+            <div class="form-group">
+              <label class="form-label">${question}</label>
+              <input type="text" class="input" id="title-${id}" placeholder="${placeholder}" maxlength="120">
+              <div class="validation-error" id="err-title-${id}" style="display:none;"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category</label>
+              <select class="select" id="cat-${id}">
+                <option value="">Select a category...</option>
+                ${CATEGORIES.map(cat => `<option value="${cat.id}">${cat.emoji} ${cat.label}</option>`).join('')}
+              </select>
+              <div class="validation-error" id="err-cat-${id}" style="display:none;"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Area</label>
+              <select class="select" id="area-${id}">
+                ${AREA_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === memberArea ? 'selected' : ''}>${opt.label} — ${opt.description}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="join-header">
+          <div class="join-logo">
+            <div class="join-logo-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9,22 9,12 15,12 15,22"/>
+              </svg>
+            </div>
+          </div>
+          <h1 class="join-title">One more thing before you're done</h1>
+          <p class="join-subtitle">Add 2 things you can offer and 2 things you need — it's what makes the community work.</p>
+        </div>
+
+        <div class="listings-grid">
+          ${listingCard('need', 1)}
+          ${listingCard('need', 2)}
+          ${listingCard('offer', 1)}
+          ${listingCard('offer', 2)}
+        </div>
+
+        <button class="btn btn-primary btn-lg btn-block" id="listings-submit-btn" onclick="submitListings()">
+          Post listings &amp; finish
+        </button>
+
+        <div id="listings-error" class="validation-error" style="text-align: center; margin-top: var(--space-4); display: none;"></div>
+      `;
+    }
+
+    async function submitListings() {
+      const cards = [
+        { type: 'need', index: 1 },
+        { type: 'need', index: 2 },
+        { type: 'offer', index: 1 },
+        { type: 'offer', index: 2 }
+      ];
+
+      // Clear previous errors and validate
+      let hasError = false;
+      for (const { type, index } of cards) {
+        const id = `${type}-${index}`;
+        const title = document.getElementById(`title-${id}`).value.trim();
+        const category = document.getElementById(`cat-${id}`).value;
+        const titleErr = document.getElementById(`err-title-${id}`);
+        const catErr = document.getElementById(`err-cat-${id}`);
+
+        titleErr.style.display = 'none';
+        catErr.style.display = 'none';
+
+        if (!title) {
+          titleErr.textContent = 'Please enter a title';
+          titleErr.style.display = 'block';
+          hasError = true;
+        }
+        if (!category) {
+          catErr.textContent = 'Please select a category';
+          catErr.style.display = 'block';
+          hasError = true;
+        }
+      }
+
+      if (hasError) return;
+
+      const btn = document.getElementById('listings-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Posting...';
+
+      try {
+        await Promise.all(cards.map(({ type, index }) => {
+          const id = `${type}-${index}`;
+          return createListing({
+            author_id: currentMember.id,
+            type,
+            category: document.getElementById(`cat-${id}`).value,
+            title: document.getElementById(`title-${id}`).value.trim(),
+            area: document.getElementById(`area-${id}`).value,
+            visibility: 'public'
+          });
+        }));
+        window.location.href = 'join-status.html';
+      } catch (e) {
+        console.error('Listings submit error:', e);
+        const errEl = document.getElementById('listings-error');
+        errEl.textContent = 'Something went wrong posting your listings. Please try again.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Post listings & finish';
+      }
     }
 
     // =====================================================
