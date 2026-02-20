@@ -982,7 +982,8 @@
 
         <div class="form-group">
           <label class="form-label">Title <span style="color: var(--color-status-hold);">*</span></label>
-          <input type="text" class="input" id="listing-title" placeholder="e.g., Need help moving a sofa this Saturday" maxlength="120">
+          <input type="text" class="input" id="listing-title" placeholder="e.g., Need help moving a sofa this Saturday" maxlength="120" oninput="checkTitleHint(this)">
+          <p class="form-hint" id="smart-title-hint" style="display:none;">Tip: add how long, how often, or when — e.g. "…2 hours, any weekend"</p>
         </div>
 
         <div class="form-group">
@@ -1905,6 +1906,13 @@
           if (radio) { radio.checked = true; postState.area = radio.value; }
         });
       });
+    }
+
+    function checkTitleHint(input) {
+      const hint = document.getElementById('smart-title-hint');
+      if (!hint) return;
+      const len = input.value.trim().length;
+      hint.style.display = (len > 0 && len < 30) ? 'block' : 'none';
     }
 
     async function submitListing() {

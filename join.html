@@ -1257,7 +1257,7 @@
       function listingCard(type, index) {
         const isNeed = type === 'need';
         const label = `${isNeed ? 'NEED' : 'OFFER'} ${index}`;
-        const placeholder = isNeed ? 'e.g. Help moving furniture' : 'e.g. I can give Spanish lessons';
+        const placeholder = isNeed ? 'e.g. Help moving 2-bed flat — half a day, any weekend' : 'e.g. Spanish conversation practice — 1 hour per week';
         const question = isNeed ? 'What do you need?' : 'What can you offer?';
         const id = `${type}-${index}`;
         return `
@@ -1298,6 +1298,29 @@
           </div>
           <h1 class="join-title">One more thing before you're done</h1>
           <p class="join-subtitle">Add 2 things you can offer and 2 things you need — it's what makes the community work.</p>
+        </div>
+
+        <div style="background: var(--color-bg-warm); border: 1px solid var(--color-border-light); border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-5);">
+          <p style="font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-muted); margin-bottom: var(--space-3);">Good listings are specific and doable</p>
+          <div style="display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--font-size-sm);">
+            <div style="display: flex; gap: var(--space-2); align-items: baseline;">
+              <span style="color: var(--color-status-accepted); font-weight: var(--font-weight-bold); flex-shrink: 0;">✓</span>
+              <span style="color: var(--color-text-secondary);">"Help weeding a small garden — 2–3 hours, any Saturday"</span>
+            </div>
+            <div style="display: flex; gap: var(--space-2); align-items: baseline;">
+              <span style="color: var(--color-status-hold); font-weight: var(--font-weight-bold); flex-shrink: 0;">✗</span>
+              <span style="color: var(--color-text-muted);">"Help with garden"</span>
+            </div>
+            <div style="display: flex; gap: var(--space-2); align-items: baseline; margin-top: var(--space-1);">
+              <span style="color: var(--color-status-accepted); font-weight: var(--font-weight-bold); flex-shrink: 0;">✓</span>
+              <span style="color: var(--color-text-secondary);">"Can proofread documents — up to 2,000 words, 2–3 day turnaround"</span>
+            </div>
+            <div style="display: flex; gap: var(--space-2); align-items: baseline;">
+              <span style="color: var(--color-status-hold); font-weight: var(--font-weight-bold); flex-shrink: 0;">✗</span>
+              <span style="color: var(--color-text-muted);">"Proofreading"</span>
+            </div>
+          </div>
+          <p style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--color-border-light);">Include: <strong>what</strong> · <strong>how much</strong> · <strong>when or how often</strong></p>
         </div>
 
         <div class="listings-grid">
