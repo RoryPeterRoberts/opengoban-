@@ -160,18 +160,55 @@
     }
 
     .exchange-description {
-      font-weight: var(--font-weight-semibold);
-      color: var(--color-text);
-      font-size: var(--font-size-base);
-      line-height: var(--line-height-snug);
       flex: 1;
       min-width: 0;
     }
 
-    .exchange-listing-title {
-      font-size: var(--font-size-sm);
-      color: var(--color-text-muted);
+    .exchange-listing-ref {
+      margin-bottom: var(--space-2);
+    }
+
+    .exchange-listing-ref-label {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: var(--font-weight-bold);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-primary);
+      background: var(--color-primary-bg);
+      border-radius: var(--radius-sm);
+      padding: 1px 6px;
+      margin-bottom: var(--space-1);
+    }
+
+    .exchange-listing-ref-title {
+      display: block;
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      font-size: var(--font-size-base);
+      line-height: var(--line-height-snug);
+    }
+
+    .exchange-proposal-block {
+      padding-top: var(--space-2);
+      border-top: 1px solid var(--color-border-light);
       margin-top: var(--space-1);
+    }
+
+    .exchange-proposal-label {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: var(--font-weight-bold);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-1);
+    }
+
+    .exchange-proposal-text {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      line-height: var(--line-height-relaxed);
     }
 
     /* Status Badge */
@@ -858,12 +895,27 @@
       // Build card
       let html = `<div class="exchange-card" data-exchange-id="${exchange.id}">`;
 
-      // Top row: description + status
+      // Top row: listing context + proposal + status
       html += `<div class="exchange-card-top">`;
       html += `<div class="exchange-description">`;
-      html += escapeHtml(exchange.description || (exchange.listing ? exchange.listing.title : 'Exchange'));
-      if (exchange.listing && exchange.description && exchange.listing.title) {
-        html += `<div class="exchange-listing-title">${escapeHtml(exchange.listing.title)}</div>`;
+      if (exchange.listing && exchange.listing.title) {
+        html += `<div class="exchange-listing-ref">
+          <span class="exchange-listing-ref-label">Listing</span>
+          <span class="exchange-listing-ref-title">${escapeHtml(exchange.listing.title)}</span>
+        </div>`;
+      }
+      if (exchange.description) {
+        const hasListing = !!(exchange.listing && exchange.listing.title);
+        if (hasListing) {
+          html += `<div class="exchange-proposal-block">
+            <span class="exchange-proposal-label">Proposal</span>
+            <div class="exchange-proposal-text">${escapeHtml(exchange.description)}</div>
+          </div>`;
+        } else {
+          html += `<span class="exchange-listing-ref-title">${escapeHtml(exchange.description)}</span>`;
+        }
+      } else if (!exchange.listing) {
+        html += `<span class="exchange-listing-ref-title">Exchange</span>`;
       }
       html += `</div>`;
       html += `<span class="exchange-status ${exchange.status}">${formatStatus(exchange.status)}</span>`;

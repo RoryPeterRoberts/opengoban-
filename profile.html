@@ -155,10 +155,51 @@
     }
 
     .balance-value {
-      font-family: var(--font-family-heading);
-      font-size: var(--font-size-xl);
+      font-family: var(--font-family);
+      font-size: var(--font-size-2xl);
       font-weight: var(--font-weight-bold);
       color: var(--color-primary);
+      letter-spacing: -0.01em;
+    }
+
+    /* Member Offers List */
+    .member-offers-section {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-6);
+      margin-bottom: var(--space-5);
+      box-shadow: var(--shadow-card);
+    }
+
+    .member-offer-row {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .member-offer-row:last-child { border-bottom: none; }
+
+    .member-offer-emoji { font-size: 1.1em; flex-shrink: 0; padding-top: 1px; }
+
+    .member-offer-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .member-offer-title {
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      color: var(--color-text);
+      line-height: var(--line-height-snug);
+    }
+
+    .member-offer-meta {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      margin-top: 2px;
     }
 
     /* Trust Signals Section */
@@ -580,6 +621,7 @@
     let allMembers = [];
     let memberLookup = {};
     let profileDirty = false;
+    let memberOffers = [];
 
     // =====================================================
     // INITIALIZATION
@@ -612,6 +654,14 @@
         }
 
         balance = await getBalance(member.id);
+
+        // Load active offer listings for this member (shown on profile)
+        try {
+          const allListings = await getMyListings(member.id);
+          memberOffers = allListings.filter(l => l.type === 'offer' && l.status === 'active');
+        } catch (e) {
+          memberOffers = [];
+        }
 
         // Load all members for invite chain display
         allMembers = await getAcceptedMembers();
@@ -723,6 +773,29 @@
 
           ${member.bio ? `<div style="margin-top:var(--space-4);padding:var(--space-4);background:var(--color-bg-warm);border-radius:var(--radius-lg);"><p style="margin:0;font-size:var(--font-size-sm);color:var(--color-text-secondary);line-height:var(--line-height-relaxed);">${escapeHtml(member.bio)}</p></div>` : ''}
         </div>
+
+        ${!isOwnProfile && memberOffers.length > 0 ? `
+        <!-- Active offer listings -->
+        <div class="member-offers-section">
+          <div class="section-header">
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 11 12 14 22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            <h3 class="section-title">Active offers</h3>
+          </div>
+          ${memberOffers.map(listing => {
+            const cat = getCategoryById(listing.category);
+            return `<div class="member-offer-row">
+              <span class="member-offer-emoji">${cat ? cat.emoji : '📋'}</span>
+              <div class="member-offer-text">
+                <div class="member-offer-title">${escapeHtml(listing.title)}</div>
+                <div class="member-offer-meta">${cat ? cat.label : ''}</div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+        ` : ''}
 
         ${isOwnProfile ? `
         <!-- Edit Profile -->

@@ -562,7 +562,7 @@
         if (currentMember.status === 'REVIEW') {
           memberArea = currentMember.area || 'village';
           const { needs, offers } = await checkListingsComplete(currentMember.id);
-          if (needs >= 2 && offers >= 2) {
+          if (needs >= 1 && offers >= 1) {
             window.location.href = 'join-status.html';
             return;
           }
@@ -1296,8 +1296,8 @@
               </svg>
             </div>
           </div>
-          <h1 class="join-title">One more thing before you're done</h1>
-          <p class="join-subtitle">Add 2 things you can offer and 2 things you need — it's what makes the community work.</p>
+          <h1 class="join-title">Nearly there &mdash; one of each</h1>
+          <p class="join-subtitle">Add one thing you can offer and one thing you need — it's what makes the community work.</p>
         </div>
 
         <div style="background: var(--color-bg-warm); border: 1px solid var(--color-border-light); border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-5);">
@@ -1325,9 +1325,7 @@
 
         <div class="listings-grid">
           ${listingCard('need', 1)}
-          ${listingCard('need', 2)}
           ${listingCard('offer', 1)}
-          ${listingCard('offer', 2)}
         </div>
 
         <button class="btn btn-primary btn-lg btn-block" id="listings-submit-btn" onclick="submitListings()">
@@ -1341,9 +1339,7 @@
     async function submitListings() {
       const cards = [
         { type: 'need', index: 1 },
-        { type: 'need', index: 2 },
-        { type: 'offer', index: 1 },
-        { type: 'offer', index: 2 }
+        { type: 'offer', index: 1 }
       ];
 
       // Clear previous errors and validate
