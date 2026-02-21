@@ -2161,11 +2161,17 @@
         const statusEl = document.getElementById('invite-status');
         const btnEl = document.getElementById('invite-btn');
 
+        const pendingInvites = myInvites.filter(i => i.status === 'pending');
+
         if (atCap) {
           statusEl.textContent = `Community full (${capMembers.length}/${COMMUNITY_SETTINGS.MEMBER_CAP} members)`;
           btnEl.disabled = true;
         } else if (allowance.remaining <= 0) {
-          statusEl.textContent = `No invites remaining (${allowance.used}/${allowance.limit} used)`;
+          if (pendingInvites.length > 0) {
+            statusEl.textContent = `${pendingInvites.length} unsent invite link${pendingInvites.length !== 1 ? 's' : ''} below — copy and share`;
+          } else {
+            statusEl.textContent = `No invites remaining (${allowance.used}/${allowance.limit} used)`;
+          }
           btnEl.disabled = true;
         } else {
           statusEl.textContent = `${allowance.remaining} invite${allowance.remaining !== 1 ? 's' : ''} remaining · ${capMembers.length}/${COMMUNITY_SETTINGS.MEMBER_CAP} members`;
@@ -2179,12 +2185,25 @@
             <p style="font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-muted); margin-bottom: var(--space-2);">Your invites</p>
             ${myInvites.map(inv => {
               const name = escapeHtml(inv.invitee_name || 'Unnamed');
-              const status = inv.status === 'redeemed'
-                ? '<span style="color: var(--color-status-active);">Joined</span>'
-                : '<span style="color: var(--color-text-muted);">Pending</span>';
-              return `<div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border-light);">
-                <span style="font-size: var(--font-size-sm);">${name}</span>
-                <span style="font-size: var(--font-size-xs);">${status}</span>
+              if (inv.status === 'redeemed') {
+                return `<div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--color-border-light);">
+                  <span style="font-size: var(--font-size-sm);">${name}</span>
+                  <span style="font-size: var(--font-size-xs); color: var(--color-status-active);">Joined ✓</span>
+                </div>`;
+              }
+              // Pending: show the invite link with copy button
+              const link = generateInviteLink(inv.token);
+              return `<div style="padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border-light);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2);">
+                  <span style="font-size: var(--font-size-sm);">${name || 'Unsent invite'}</span>
+                  <span style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Pending</span>
+                </div>
+                <div style="display: flex; gap: var(--space-2);">
+                  <button class="btn btn-outline btn-sm" style="flex:1;font-size:var(--font-size-xs);padding:var(--space-2) var(--space-3);"
+                    onclick="copyPendingInvite(this, '${escapeHtml(link)}')">Copy link</button>
+                  ${navigator.share ? `<button class="btn btn-outline btn-sm" style="font-size:var(--font-size-xs);padding:var(--space-2) var(--space-3);"
+                    onclick="sharePendingInvite('${escapeHtml(link)}', '${name}')">Share</button>` : ''}
+                </div>
               </div>`;
             }).join('')}
           `;
@@ -2193,6 +2212,26 @@
         console.error('Invite status error:', e);
         document.getElementById('invite-status').textContent = 'Know someone who\'d like to join?';
         document.getElementById('invite-btn').disabled = false;
+      }
+    }
+
+    async function copyPendingInvite(btn, link) {
+      try {
+        await navigator.clipboard.writeText(link);
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy link'; }, 2000);
+      } catch (e) {
+        showToast('Could not copy — try long-pressing the link');
+      }
+    }
+
+    function sharePendingInvite(link, name) {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Join Open Gobán',
+          text: `${name} has invited you to join Open Gobán — a community exchange for neighbours.`,
+          url: link
+        }).catch(() => {});
       }
     }
 
