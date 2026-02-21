@@ -1020,6 +1020,18 @@
         </div>
       </div>`;
 
+      // Cancel confirmation (shown when user clicks Cancel on a proposal)
+      const otherName = escapeHtml((isProvider ? exchange.receiver?.display_name : exchange.provider?.display_name) || 'the other person');
+      html += `<div class="decline-reason-form" id="cancel-confirm-${exchange.id}" style="display:none;margin-top:var(--space-3);">
+        <p style="font-size:var(--font-size-sm);color:var(--color-text-secondary);margin-bottom:var(--space-3);">
+          Consider letting <strong>${otherName}</strong> know before you cancel — a quick message goes a long way.
+        </p>
+        <div style="display:flex;gap:var(--space-2);">
+          <button class="btn btn-danger btn-sm" onclick="confirmCancel('${exchange.id}')">Yes, cancel</button>
+          <button class="btn btn-ghost btn-sm" onclick="cancelConfirmBack('${exchange.id}')">Back</button>
+        </div>
+      </div>`;
+
       // Action buttons
       const actions = getExchangeActions(exchange, myRole, iProposed);
       if (actions.length > 0) {
@@ -1066,8 +1078,8 @@
           actions.push(`<button class="btn btn-secondary btn-sm" onclick="handleAccept('${id}')">Accept</button>`);
           actions.push(`<button class="btn btn-danger btn-sm" onclick="handleDecline('${id}')">Decline</button>`);
         } else {
-          // The proposer can cancel their proposal
-          actions.push(`<button class="btn btn-danger btn-sm" onclick="handleCancel('${id}')">Cancel</button>`);
+          // The proposer can cancel — show confirmation first
+          actions.push(`<button class="btn btn-danger btn-sm" onclick="showCancelConfirm('${id}')">Cancel</button>`);
         }
       }
 
@@ -1080,7 +1092,7 @@
         }
 
         if (!anyConfirmed) {
-          actions.push(`<button class="btn btn-danger btn-sm" onclick="handleCancel('${id}')">Cancel</button>`);
+          actions.push(`<button class="btn btn-danger btn-sm" onclick="showCancelConfirm('${id}')">Cancel</button>`);
         }
       }
 
@@ -1288,6 +1300,53 @@
       const actions = card.querySelector('.exchange-actions');
       form.style.display = 'none';
       if (actions) actions.style.display = '';
+    }
+
+    function showCancelConfirm(exchangeId) {
+      const confirm = document.getElementById('cancel-confirm-' + exchangeId);
+      const card = confirm.closest('.exchange-card');
+      const actions = card.querySelector('.exchange-actions');
+      if (actions) actions.style.display = 'none';
+      confirm.style.display = 'block';
+    }
+
+    function cancelConfirmBack(exchangeId) {
+      const confirm = document.getElementById('cancel-confirm-' + exchangeId);
+      const card = confirm.closest('.exchange-card');
+      const actions = card.querySelector('.exchange-actions');
+      confirm.style.display = 'none';
+      if (actions) actions.style.display = '';
+    }
+
+    async function confirmCancel(exchangeId) {
+      const confirm = document.getElementById('cancel-confirm-' + exchangeId);
+      const btn = confirm.querySelector('.btn-danger');
+      btn.disabled = true;
+      btn.textContent = 'Cancelling...';
+
+      try {
+        const ex = allExchanges.find(e => e.id === exchangeId);
+        await cancelExchange(exchangeId);
+
+        if (ex) {
+          const otherId = getOtherPartyId(ex);
+          createNotification({
+            member_id: otherId,
+            type: 'exchange_cancelled',
+            title: 'Exchange cancelled: "' + getExchangeTitle(ex) + '"',
+            link: 'exchanges.html'
+          }).catch(e => console.error('Notification error:', e));
+        }
+
+        showToast('Exchange cancelled.');
+        await loadExchanges();
+        renderExchangeLists();
+      } catch (e) {
+        console.error('Cancel error:', e);
+        showToast('Failed to cancel exchange. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Yes, cancel';
+      }
     }
 
     async function confirmDecline(exchangeId) {

@@ -337,6 +337,37 @@
       margin-bottom: var(--space-6);
     }
 
+    /* Reply compose */
+    .reply-compose {
+      margin-top: var(--space-4);
+      padding: var(--space-4);
+      background: var(--color-bg-warm);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+    }
+
+    .reply-context {
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      border-left: 3px solid var(--color-border);
+      padding-left: var(--space-3);
+      margin-bottom: var(--space-3);
+      line-height: var(--line-height-relaxed);
+    }
+
+    .reply-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: var(--space-3);
+      font-size: var(--font-size-sm);
+      resize: vertical;
+    }
+
+    .reply-actions {
+      display: flex;
+      gap: var(--space-2);
+    }
+
     /* Footer */
     .feedback-footer {
       text-align: center;
@@ -375,6 +406,8 @@
   </div>
 
   <script>
+    let currentMemberId = null;
+
     async function init() {
       try {
         const session = await getAuthSession();
@@ -388,6 +421,7 @@
           renderError();
           return;
         }
+        currentMemberId = member.id;
         initFeedbackWidget(member.id);
 
         const [feedback, changelog, members] = await Promise.all([
@@ -583,6 +617,27 @@
         `;
       }
 
+      const fbNum = item.feedback_number;
+      const replyBtn = `<button class="btn btn-ghost btn-sm" style="font-size:var(--font-size-xs);margin-top:var(--space-3);padding:var(--space-1) var(--space-3);" onclick="toggleReplyForm(${fbNum})">Reply &#8594;</button>`;
+
+      // Context snippet for the reply form
+      const contextSnippet = escapeHtml((item.message || '').slice(0, 120)) + ((item.message || '').length > 120 ? '…' : '');
+      const memberNoteSnippet = item.member_note ? escapeHtml((item.member_note).slice(0, 200)) + ((item.member_note).length > 200 ? '…' : '') : '';
+
+      const replyForm = `
+        <div class="reply-compose" id="reply-form-${fbNum}" style="display:none;">
+          <div class="reply-context">
+            <strong>Your message:</strong> ${contextSnippet}
+            ${memberNoteSnippet ? `<br><strong style="color:var(--color-status-accepted);">Response:</strong> ${memberNoteSnippet}` : ''}
+          </div>
+          <textarea class="input reply-textarea" id="reply-text-${fbNum}" rows="3" placeholder="Your follow-up...">Re: FB-${fbNum}: </textarea>
+          <div class="reply-actions">
+            <button class="btn btn-primary btn-sm" onclick="submitReply(${fbNum}, this)">Send</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleReplyForm(${fbNum})">Cancel</button>
+          </div>
+        </div>
+      `;
+
       return `
         <div class="feedback-item">
           <div class="feedback-item-header">
@@ -590,7 +645,7 @@
               <span class="feedback-type-badge ${item.type}">
                 ${typeEmoji[item.type] || '💬'} ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}
               </span>
-              ${item.feedback_number ? `<span class="feedback-number">FB-${item.feedback_number}</span>` : ''}
+              ${fbNum ? `<span class="feedback-number">FB-${fbNum}</span>` : ''}
             </div>
             <span class="feedback-status-badge ${item.status}">
               ${statusLabels[item.status] || item.status}
@@ -601,8 +656,48 @@
             Submitted ${submittedDate}
           </div>
           ${responseHtml}
+          ${replyBtn}
+          ${replyForm}
         </div>
       `;
+    }
+
+    function toggleReplyForm(fbNum) {
+      const form = document.getElementById('reply-form-' + fbNum);
+      if (!form) return;
+      const isOpen = form.style.display !== 'none';
+      form.style.display = isOpen ? 'none' : 'block';
+      if (!isOpen) {
+        const ta = document.getElementById('reply-text-' + fbNum);
+        if (ta) { ta.focus(); ta.selectionStart = ta.selectionEnd = ta.value.length; }
+      }
+    }
+
+    async function submitReply(fbNum, btn) {
+      const ta = document.getElementById('reply-text-' + fbNum);
+      const message = ta ? ta.value.trim() : '';
+      if (!message || message === `Re: FB-${fbNum}:`) {
+        if (ta) { ta.style.borderColor = 'var(--color-status-hold)'; setTimeout(() => { ta.style.borderColor = ''; }, 1500); }
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        await createFeedbackRecord({
+          author_id: currentMemberId,
+          type: 'other',
+          message: message
+        });
+        const form = document.getElementById('reply-form-' + fbNum);
+        if (form) form.innerHTML = `<p style="color:var(--color-status-accepted);font-size:var(--font-size-sm);padding:var(--space-2) 0;">&#10003; Reply sent! We'll get back to you.</p>`;
+      } catch (e) {
+        console.error('Reply error:', e);
+        btn.disabled = false;
+        btn.textContent = 'Send';
+        alert('Failed to send reply. Please try again.');
+      }
     }
 
     function escapeHtml(text) {

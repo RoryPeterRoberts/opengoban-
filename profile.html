@@ -172,15 +172,46 @@
       box-shadow: var(--shadow-card);
     }
 
-    .member-offer-row {
+    .member-offer-details {
+      border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .member-offer-details:last-child { border-bottom: none; }
+
+    .member-offer-summary {
       display: flex;
       align-items: flex-start;
       gap: var(--space-3);
       padding: var(--space-3) 0;
-      border-bottom: 1px solid var(--color-border-light);
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
     }
 
-    .member-offer-row:last-child { border-bottom: none; }
+    .member-offer-summary::-webkit-details-marker { display: none; }
+
+    .member-offer-chevron {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      color: var(--color-text-muted);
+      transition: transform 0.2s;
+      margin-top: 2px;
+      margin-left: auto;
+    }
+
+    .member-offer-details[open] .member-offer-chevron {
+      transform: rotate(90deg);
+    }
+
+    .offer-propose-form {
+      padding: var(--space-1) 0 var(--space-4) calc(1.2em + var(--space-3));
+    }
+
+    .offer-propose-form textarea {
+      margin-bottom: var(--space-3);
+      font-size: var(--font-size-sm);
+    }
 
     .member-offer-emoji { font-size: 1.1em; flex-shrink: 0; padding-top: 1px; }
 
@@ -786,13 +817,24 @@
           </div>
           ${memberOffers.map(listing => {
             const cat = getCategoryById(listing.category);
-            return `<div class="member-offer-row">
-              <span class="member-offer-emoji">${cat ? cat.emoji : '📋'}</span>
-              <div class="member-offer-text">
-                <div class="member-offer-title">${escapeHtml(listing.title)}</div>
-                <div class="member-offer-meta">${cat ? cat.label : ''}</div>
+            const lid = escapeHtml(listing.id);
+            const lcat = escapeHtml(listing.category || '');
+            const areaMeta = listing.area ? ` · ${escapeHtml(listing.area)}` : '';
+            const chevron = `<svg class="member-offer-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>`;
+            return `<details class="member-offer-details">
+              <summary class="member-offer-summary">
+                <span class="member-offer-emoji">${cat ? cat.emoji : '📋'}</span>
+                <div class="member-offer-text">
+                  <div class="member-offer-title">${escapeHtml(listing.title)}</div>
+                  <div class="member-offer-meta">${cat ? cat.label : ''}${areaMeta}</div>
+                </div>
+                ${chevron}
+              </summary>
+              <div class="offer-propose-form" id="propose-form-${lid}">
+                <textarea class="input" placeholder="Describe what you'd like to arrange..." rows="3"></textarea>
+                <button class="btn btn-primary btn-sm" onclick="proposeFromOffer('${lid}', '${lcat}', this)">Propose exchange</button>
               </div>
-            </div>`;
+            </details>`;
           }).join('')}
         </div>
         ` : ''}
@@ -1143,6 +1185,49 @@
           ${inviteesHtml}
         </div>
       `;
+    }
+
+    async function proposeFromOffer(listingId, listingCategory, btn) {
+      const form = btn.closest('.offer-propose-form');
+      const textarea = form.querySelector('textarea');
+      const description = textarea.value.trim();
+      if (!description) {
+        textarea.style.borderColor = 'var(--color-status-hold)';
+        textarea.focus();
+        setTimeout(() => { textarea.style.borderColor = ''; }, 1500);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        await proposeExchange({
+          listing_id: listingId,
+          provider_id: member.id,       // the offer author is the provider
+          receiver_id: currentUser.id,  // the viewer is the receiver
+          credits: 1,
+          description: description,
+          category: listingCategory,
+          proposed_by: currentUser.id,
+          status: 'proposed',
+        });
+
+        createNotification({
+          member_id: member.id,
+          type: 'proposal_received',
+          title: 'New proposal from ' + currentUser.display_name,
+          body: currentUser.display_name + ' wants to arrange an exchange',
+          link: 'exchanges.html'
+        }).catch(e => console.error('Notification error:', e));
+
+        form.innerHTML = `<p style="color:var(--color-status-accepted);font-size:var(--font-size-sm);padding:var(--space-2) 0 var(--space-3);">&#10003; Proposal sent! Check <a href="exchanges.html" style="color:var(--color-primary);">My Exchanges</a> to follow up.</p>`;
+      } catch (e) {
+        console.error('Propose error:', e);
+        btn.disabled = false;
+        btn.textContent = 'Propose exchange';
+        showToast('Failed to submit proposal. Please try again.');
+      }
     }
 
     async function doSignOut() {
